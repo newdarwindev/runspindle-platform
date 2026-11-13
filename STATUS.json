@@ -8,6 +8,16 @@
   "live_acceptance": "not_run",
   "production_deployment": "not_run",
   "runner_capacity": "unverified",
+  "runner_fleet_preparation": {
+    "configuration": "fleet/config.json",
+    "disposable_backends": "strix_qemu_implemented_live_qualification_pending",
+    "documentation": "docs/RUNNER_FLEET.md",
+    "host_managers": "strix_systemd_implemented_live_qualification_pending",
+    "mac_lanes": "pending_original_resource_and_isolation_gates",
+    "qualification": "blocked",
+    "required_checks": "unchanged",
+    "status": "strix_implementation_under_qualification"
+  },
   "runtime_adapter_tests": "passed_bounded_temporal_development_lane",
   "selected_source_migration": "partial",
   "stage": "temporal_lane_candidate",

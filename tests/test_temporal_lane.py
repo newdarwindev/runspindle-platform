@@ -108,9 +108,10 @@ class RealLaneTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as context, tempfile.TemporaryDirectory() as modified:
             context_path, directory = pathlib.Path(context), pathlib.Path(modified)
             (context_path / 'Dockerfile').write_text('FROM scratch\nLABEL synthetic.unrelated=' + uuid.uuid4().hex + '\n')
-            lane_module.docker('build', '--network', 'none', '--pull=false', '--provenance=false',
+            tag = 'runspindle-synthetic-unrelated:' + uuid.uuid4().hex
+            lane_module.docker('build', '--load', '--tag', tag, '--network', 'none', '--pull=false', '--provenance=false',
                                '--iidfile', context_path / 'image.id', context_path, timeout=60)
-            unrelated = (context_path / 'image.id').read_text().strip()
+            unrelated = lane_module.docker('image', 'inspect', '--format', '{{.Id}}', tag).stdout.strip()
             try:
                 prepared = pathlib.Path(PREPARED)
                 metadata = json.loads((prepared / 'prepared.json').read_text())

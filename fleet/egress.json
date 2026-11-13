@@ -1,0 +1,25 @@
+{
+  "https_domains": [
+    "github.com",
+    "api.github.com",
+    "codeload.github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "raw.githubusercontent.com",
+    "github-releases.githubusercontent.com",
+    "*.actions.githubusercontent.com",
+    "*.actions.github.com",
+    "results-receiver.actions.githubusercontent.com",
+    "static.rust-lang.org",
+    "archive.ubuntu.com",
+    "security.ubuntu.com",
+    "nodejs.org"
+  ],
+  "ports": [
+    443
+  ],
+  "dns": "host resolution per connection; reject entire answer set on any non-global IPv4; numeric dial only",
+  "ipv6": "blocked at guest tap",
+  "http": "denied",
+  "purpose": "GitHub runner control, source/action archives, and image dependency preparation"
+}
