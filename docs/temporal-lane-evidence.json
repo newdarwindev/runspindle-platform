@@ -1,0 +1,105 @@
+{
+  "base_commit": "5d3f99931075fd6a6f81f91f4aa49352b851b798",
+  "boundaries": {
+    "not_exercised": [
+      "core workflow replay",
+      "activity effect reconciliation",
+      "native hosts",
+      "browser",
+      "delivery",
+      "provider",
+      "production Temporal",
+      "amd64",
+      "telemetry",
+      "distribution",
+      "isolated CI runner"
+    ],
+    "real": [
+      "official Temporal CLI and embedded development server",
+      "SQLite volume across killed-server restart",
+      "Docker isolated gateway internal network",
+      "fresh controller process SIGTERM and independent resource readback"
+    ],
+    "scripted": [
+      "unpolled synthetic workflow; no worker",
+      "failure schedule and corrupted preparation fixtures"
+    ]
+  },
+  "checks": [
+    {
+      "boundary_tests": 7,
+      "command": "RUNSPINDLE_TEMPORAL_PREPARED=\"$PWD/local/temporal-prepared\" python3 -m unittest discover -s tests -v",
+      "existing_fixture_tests": 6,
+      "real_lane_tests": 5,
+      "skipped": 0,
+      "status": "passed",
+      "tests": 18
+    },
+    {
+      "command": "python3 tools/check_temporal_mutations.py",
+      "mutations_detected": [
+        "floating_image",
+        "missing_volume_cleanup"
+      ],
+      "status": "passed"
+    },
+    {
+      "command": "python3 tools/check_scaffold.py",
+      "evidence_class": "scaffold_structure",
+      "status": "passed"
+    },
+    {
+      "command": "python3 tools/temporal_lane.py prepare --directory local/temporal-prepared (twice)",
+      "observation": "identical immutable image IDs after repeated offline rebuild from verified download cache",
+      "status": "passed"
+    }
+  ],
+  "cleanup_observation": "No synthetic-labeled containers, networks or volumes remain after success/failure/readiness-deadline/client-timeout/SIGTERM tests; prepared download/image cache retained for offline reuse.",
+  "evidence_class": "isolated_temporal_development_integration",
+  "github_ci": "not_run",
+  "live_acceptance": "not_run",
+  "observed_at": "2026-11-13T19:17:38.437161+00:00",
+  "preparation": {
+    "architecture": "arm64",
+    "archive_sha256": "6e526d2f089bf5acead2129f1f63e303b848410d5d9d86b9255359dcea6eaaa8",
+    "binary_sha256": "1d08e4e0ec7ce5397681aefe14a4ee9b738a56ca974974bfaf5a18ea922c0bc5",
+    "image": "sha256:f7d5589e604551906f44c50d0036fd9fb71b72664ca87b8ee824aef78b5c43e0",
+    "pins_sha256": "8318dcd9ecd49755203d45caf3b8b444b01b0f8358fc292be9a61ecb8519772e",
+    "schema_version": 1,
+    "version": "temporal version 1.10.0 (Server 1.32.2, UI 2.56.1)"
+  },
+  "production_deployment": "not_run",
+  "remaining_issue_criteria": "Platform #1 remains partial: other upstream dependencies, telemetry whole-envelope privacy including schema URL gap/readback, distribution/rollback qualification and safe runner provisioning are not implemented. No service activation or deployment authority follows.",
+  "review_regressions": [
+    "failed client deletion retains tracked cleanup ownership",
+    "existing unrelated image in mutable metadata blocked before image execution by verified offline scratch rebuild",
+    "Python prerequisite corrected to tested3.9+"
+  ],
+  "schema_version": 1,
+  "smoke": {
+    "assertions": [
+      "real readiness",
+      "workflow history persisted across killed server",
+      "internal network only",
+      "no host port bindings",
+      "read-only root"
+    ],
+    "cleanup": "independently_absent",
+    "evidence_class": "isolated_temporal_development_integration",
+    "image": "sha256:f7d5589e604551906f44c50d0036fd9fb71b72664ca87b8ee824aef78b5c43e0",
+    "status": "passed",
+    "workflow_events": 2
+  },
+  "source_files_sha256": {
+    "temporal/dependencies.json": "8318dcd9ecd49755203d45caf3b8b444b01b0f8358fc292be9a61ecb8519772e",
+    "tests/test_temporal_lane.py": "e17b9748309634c57adc39af700dc035bdfad5e56f05bf157787ea30cf5c9480",
+    "tools/check_temporal_mutations.py": "cccdf8e276ae1f223b02b7b79f1cc70c6418e0029e775c4422cf64596fe49d6d",
+    "tools/temporal_lane.py": "dec0202067f292950b31b03f519b70df91e625c954c99c46d401f32b0900fdb9"
+  },
+  "toolchain": {
+    "docker": "29.9.2",
+    "engine_architecture": "aarch64",
+    "engine_os": "linux",
+    "python": "3.9.6"
+  }
+}

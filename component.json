@@ -2,8 +2,8 @@
   "api_version": "runspindle.v1alpha0",
   "component": "platform",
   "description": "Dependency composition, local runners, distribution and deploy overlays",
-  "implementation_language": "contract",
+  "implementation_language": "python",
   "repository": "newdarwindev/runspindle-platform",
   "schema_version": 1,
-  "stage": "scaffold"
+  "stage": "temporal_lane_candidate"
 }

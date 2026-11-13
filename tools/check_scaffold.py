@@ -7,8 +7,9 @@ for name in required:
     assert (root/name).is_file(), f'Missing {name}'
 c = json.loads((root/'component.json').read_text())
 s = json.loads((root/'STATUS.json').read_text())
-assert c['stage'] == 'scaffold'
-assert s['implementation'] == 'not_implemented'
+assert c['stage'] == 'temporal_lane_candidate'
+assert s['stage'] == c['stage']
+assert s['implementation'] == 'partial_temporal_development_lane'
 assert s['live_acceptance'] == 'not_run'
 p = json.loads((root/'provenance.json').read_text())
 for item in p['sources']:

@@ -14,6 +14,8 @@ This repository is one boundary of [Runspindle](https://github.com/newdarwindev/
 
 No old repository is retired by this scaffold. Migration and archival are separate verified gates.
 
+A bounded [disposable Temporal development lane](docs/TEMPORAL_LANE.md) now has pinned preparation, real persistence/restart and cleanup evidence. Other platform adapters and product acceptance remain incomplete.
+
 ## Runner fleet preparation
 
 See [readiness tooling and remaining deployment work](docs/RUNNER_FLEET.md).
