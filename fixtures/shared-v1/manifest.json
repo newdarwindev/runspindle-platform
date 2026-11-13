@@ -1,0 +1,12 @@
+{
+  "component": "platform",
+  "files": {
+    "artifact.txt": "5d331381d2f6ae517386fdda84eb4f92011915473935b57385c69648cc85bbc8",
+    "contract.json": "f707f1d2b7147797042292b6374afd34aecc39c09916ec7a809ae7587ee556a9",
+    "fixturekit.py": "1bd6d10ae7105a44a0d583a8974230dde56af603c6ed2b75f67fe3f1fb16319f",
+    "golden.json": "2423a15fd198f9ed32e452e2ac6f04177d5687c65e5cb7b42230c4986a1e40d6",
+    "vectors.json": "411863e6484c0dec8a9271afb390629af09f72af2cf289ef0af644539543e351"
+  },
+  "origin_manifest_sha256": "1dd35d045064056dd66e6da3619ff100549e1c3e81c928f076cfd4109a524d81",
+  "schema": "runspindle.fixture.v1"
+}
