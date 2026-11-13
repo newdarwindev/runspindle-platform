@@ -1,6 +1,6 @@
 # platform specification
 
-Status: planned contract, implementation and live acceptance not verified.
+Status: bounded Temporal development lane locally tested; remaining platform implementation and live acceptance not verified.
 
 ## Responsibility
 
@@ -21,6 +21,6 @@ Preserve explicit authority and unknown outcomes. Distinguish request admission,
 3. Bounded live acceptance in an authorized target.
 4. Failure, restart, uncertain-effect reconciliation and rollback evidence.
 
-None of these product gates has been run for this scaffold.
+A pinned Linux arm64 Temporal development lane now has real readiness, killed-server persistence and cleanup tests. This is bounded development evidence, not the full platform gates. See [lane instructions](../docs/TEMPORAL_LANE.md) and [exact observations](../docs/temporal-lane-evidence.json).
 
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).

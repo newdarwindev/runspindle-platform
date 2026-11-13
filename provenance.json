@@ -1,6 +1,6 @@
 {
   "license_status": "No blanket license is granted to imported material. See LEGAL.md.",
-  "new_files": "New scaffolding and adapted specifications; no old Git history imported.",
+  "new_files": "Original Python disposable Temporal development lane and synthetic tests; official CLI and embedded-server MIT notices preserved under temporal/. No legacy executable source or Git history imported; downloaded CLI artifacts remain ignored preparation assets.",
   "provenance_policy": "Public IDs resolve to a privately retained source record containing repository, exact commit, path, source hash and review notes. Private repository names, URLs and operational details are omitted.",
   "schema_version": 1,
   "sources": [
@@ -30,5 +30,15 @@
     "path": "fixtures/v1",
     "pin": "fixtures/shared-v1.pin.json",
     "repository": "newdarwindev/runspindle"
+  },
+  "temporal_development_dependency": {
+    "adaptation": "Unmodified official release executable acquired only into ignored local preparation; no executable distribution in repository.",
+    "manifest": "temporal/dependencies.json",
+    "notices": [
+      "temporal/LICENSE-CLI",
+      "temporal/LICENSE-SERVER"
+    ],
+    "source": "https://github.com/temporalio/cli",
+    "source_revision": "eace324a13f6a9161af1e201e1ca45b67b50b620"
   }
 }

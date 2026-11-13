@@ -2,12 +2,15 @@
   "dev_deployment": "not_run",
   "fixture_conformance": "passed",
   "fixture_evidence": "docs/SHARED_FIXTURES.md",
-  "implementation": "not_implemented",
+  "github_ci": "not_run",
+  "implementation": "partial_temporal_development_lane",
   "legacy_archival": "not_started",
   "live_acceptance": "not_run",
   "production_deployment": "not_run",
   "runner_capacity": "unverified",
-  "runtime_adapter_tests": "not_implemented",
+  "runtime_adapter_tests": "passed_bounded_temporal_development_lane",
   "selected_source_migration": "partial",
-  "stage": "scaffold"
+  "stage": "temporal_lane_candidate",
+  "temporal_lane": "locally_tested_linux_arm64",
+  "temporal_lane_evidence": "docs/temporal-lane-evidence.json"
 }
