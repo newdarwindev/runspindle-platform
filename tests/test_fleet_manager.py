@@ -84,6 +84,35 @@ class ManagerTests(unittest.TestCase):
                 self.assertEqual(manager.state.active()[0]['phase'], 'uncertain')
                 self.assertEqual(manager.state.get('peak_slots'), 1)
 
+    def test_old_queued_run_completion_is_watched_beyond_recent_runs(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manager, backend = self.manager(directory)
+            resource = self.resource(manager, 'running', registered_at=time.time())
+            repo = 'runspindle-platform'
+            manager.state.set('watch_runs', {repo: [900]})
+            run = {'id': 900, 'event': 'push', 'head_branch': 'ci/old', 'status': 'completed',
+                   'head_sha': 'a'*40, 'head_repository': {'full_name': 'newdarwindev/' + repo}}
+            job = {'id': 901, 'status': 'completed', 'runner_name': resource['runner_name']}
+            def inventory_pages(path, key):
+                return [job] if path.endswith('/900/jobs') else []
+            with patch('runner_fleet.manager.pages', side_effect=inventory_pages), patch('runner_fleet.manager.gh', return_value=run) as api:
+                queue, jobs = manager.inventory()
+                api.assert_called_once_with('repos/newdarwindev/runspindle-platform/actions/runs/900')
+            self.assertEqual(queue, [])
+            self.assertEqual(jobs[0]['id'], 901)
+            self.assertEqual(manager.state.get('watch_runs')[repo], [])
+
+    def test_lifecycle_ticks_do_not_allocate_twice_from_stale_queue(self):
+        with tempfile.TemporaryDirectory() as directory:
+            manager, backend = self.manager(directory)
+            job = {'repository': 'runspindle-platform', 'id': 1,
+                   'labels': config()['lanes']['strix-linux-x64']['labels']}
+            manager.state.set('queue', [job])
+            manager.state.set('drained', False)
+            manager.consumed.add(('runspindle-platform', 1))
+            manager.tick(poll=False)
+            backend.create.assert_not_called()
+
     def test_only_same_repository_main_or_ci_push_and_dispatch_are_trusted(self):
         full = 'newdarwindev/runspindle-platform'
         run = {'event': 'push', 'head_branch': 'ci/probe', 'head_repository': {'full_name': full}}

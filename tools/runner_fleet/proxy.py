@@ -48,7 +48,11 @@ class Handler(socketserver.StreamRequestHandler):
                     raise ValueError('Invalid headers')
                 if header == b'\r\n':
                     break
-            addresses = destination(target, self.server.policy)
+            policy = self.server.policy
+            if getattr(self.server, 'policy_path', None):
+                with open(self.server.policy_path) as stream:
+                    policy = json.load(stream)['https_domains']
+            addresses = destination(target, policy)
             # Connect directly to a validated numeric IP; no second DNS lookup.
             for address in addresses:
                 try:
@@ -91,6 +95,7 @@ def main():
     policy = json.load(open(sys.argv[1]))['https_domains']
     with Server((sys.argv[2], 3128), Handler) as server:
         server.policy = policy
+        server.policy_path = sys.argv[1]
         server.serve_forever()
 
 

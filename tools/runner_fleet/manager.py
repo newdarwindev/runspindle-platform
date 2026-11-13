@@ -6,6 +6,7 @@ from pathlib import Path
 import signal
 import subprocess
 import time
+from urllib.parse import quote
 
 from .backend import Backend, execute, helper, digest
 from .model import choose_jobs
@@ -40,27 +41,52 @@ class Manager:
         self.state = State(directory)
         self.backend = backend or Backend(self.state)
         self.stopping = False
+        self.jobs = []
+        self.consumed = set()
 
     def inventory(self):
         queue, jobs = [], []
+        previous = self.state.get('watch_runs', {})
+        watch = {}
+        active = self.state.active()
         for repo in self.cfg['repositories']:
             full = self.cfg['owner'] + '/' + repo
-            # Include in_progress workflow runs containing queued sibling jobs.
-            runs = gh(f'repos/{full}/actions/runs?per_page=30')['workflow_runs']
-            for run in runs:
+            runs = {}
+            # Paginate both states: an old queued workflow must never disappear
+            # behind a fixed-size list of recent runs.
+            for status in ('queued', 'in_progress'):
+                for run in pages(f'repos/{full}/actions/runs?status={status}', 'workflow_runs'):
+                    runs[run['id']] = run
+            resources = [r for r in active if r['repository'] == repo]
+            ids = set(previous.get(repo, []))
+            ids.update(j['run_id'] for j in self.state.get('queue', []) if j['repository'] == repo)
+            for resource in resources:
+                claimed = resource['details'].get('claimed_job', {})
+                if claimed.get('run_id'):
+                    ids.add(claimed['run_id'])
+            if resources:
+                earliest = min(r['created'] for r in resources) - 60
+                since = datetime.fromtimestamp(earliest, timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
+                for run in pages(f'repos/{full}/actions/runs?created=' + quote('>=' + since, safe=''), 'workflow_runs'):
+                    runs[run['id']] = run
+                # A previously queued old run can finish between polls. Keep
+                # watching it until its terminal jobs have been observed once.
+                for identity in ids - set(runs):
+                    runs[identity] = gh(f'repos/{full}/actions/runs/{identity}')
+            watch[repo] = []
+            for run in runs.values():
                 if not trusted(run, full):
                     continue
-                active = [r for r in self.state.active() if r['repository'] == repo]
-                if run['status'] == 'completed':
-                    updated = datetime.fromisoformat(run['updated_at'].replace('Z', '+00:00')).timestamp()
-                    if not active or updated < min(r['created'] for r in active) - 120:
-                        continue
+                if run['status'] != 'completed':
+                    watch[repo].append(run['id'])
                 for job in pages(f'repos/{full}/actions/runs/{run["id"]}/jobs', 'jobs'):
                     job = job | {'repository': repo, 'run_id': run['id'], 'head_sha': run['head_sha'],
                                  'event': run['event'], 'head_branch': run['head_branch']}
                     jobs.append(job)
                     if job['status'] == 'queued':
                         queue.append(job)
+        self.state.set('watch_runs', watch)
+        queue.sort(key=lambda job: (job.get('created_at', ''), job['id']))
         return queue, jobs
 
     def registrations(self, repo):
@@ -75,7 +101,9 @@ class Manager:
             raise RuntimeError('Runner registration still present')
 
     def cleanup(self, resource, reason):
-        self.state.update(resource, 'cleaning', cleanup_reason=reason)
+        conclusion = resource['details'].get('claimed_job', {}).get('conclusion')
+        status = 'passed' if reason == 'job success' else ('failed' if conclusion in ('failure', 'cancelled', 'timed_out') or 'execution timeout' in reason or 'forced guest termination' in reason else 'blocked')
+        self.state.update(resource, 'cleaning', cleanup_reason=reason, operational_status=status)
         try:
             self.state.update(resource, 'cleaning', observed_guest=helper('observe', resource['slot']))
             self.backend.diagnostics(resource)
@@ -83,7 +111,7 @@ class Manager:
             self.remove_registration(resource)
             self.state.update(resource, 'destroyed', cleanup_verified=True)
         except Exception as error:
-            self.state.update(resource, 'uncertain', cleanup_error=str(error))
+            self.state.update(resource, 'uncertain', cleanup_error=str(error), operational_status='blocked')
 
     def reconcile(self):
         occupied = self.state.active()
@@ -145,6 +173,13 @@ class Manager:
                 if claimed:
                     job = claimed[0]
                     self.state.update(resource, 'running', claimed_job=job)
+                    self.consumed.add((resource['repository'], job['id']))
+                    if now - resource['details'].get('diagnostic_at', 0) >= 30:
+                        try:
+                            self.backend.diagnostics(resource)
+                            self.state.update(resource, 'running', diagnostic_at=now)
+                        except Exception as error:
+                            self.state.update(resource, 'running', diagnostic_error=str(error))
                     if job['status'] == 'completed':
                         self.state.update(resource, 'finishing', claimed_job=job, finish_deadline=now + 120)
                     elif helper('observe', resource['slot']).get('ActiveState') != 'active':
@@ -162,19 +197,25 @@ class Manager:
         except Exception as error:
             self.state.update(resource, 'uncertain', error=str(error))
 
-    def tick(self):
-        queue, jobs = self.inventory()
-        self.state.set('queue', queue)
-        self.state.set('poll_at', time.time())
+    def tick(self, poll=True):
+        if poll:
+            queue, self.jobs = self.inventory()
+            self.state.set('queue', queue)
+            self.state.set('poll_at', time.time())
+            self.consumed.clear()
+        else:
+            queue = self.state.get('queue', [])
+        jobs = self.jobs
         for resource in self.state.active():
             self.advance(resource, jobs)
         active = self.state.active()
         reserved_jobs = {(r['repository'], r['requested_job']) for r in active}
-        queue = [j for j in queue if (j['repository'], j['id']) not in reserved_jobs]
+        queue = [j for j in queue if (j['repository'], j['id']) not in reserved_jobs | self.consumed]
         selected, cursor = choose_jobs(self.cfg, 'strix', queue, active,
-                                       self.state.get('cursor', 0), self.state.get('drained', True))
+                                       self.state.get('cursor', 0), self.state.get('drained', True) or bool(self.state.get('error')))
         for job in selected:
             resource = self.state.reserve(job)
+            self.consumed.add((job['repository'], job['id']))
             # Cursor is persisted alongside each actual reservation, before boot.
             index = self.cfg['repositories'].index(job['repository'])
             self.state.set('cursor', (index + 1) % len(self.cfg['repositories']))
@@ -190,13 +231,25 @@ class Manager:
         with self.state.lock():
             signal.signal(signal.SIGTERM, lambda *args: setattr(self, 'stopping', True))
             self.reconcile()
+            next_poll = 0
             while not self.stopping:
+                poll = time.monotonic() >= next_poll
                 try:
-                    self.tick()
-                    self.state.set('error', None)
+                    if poll:
+                        next_poll = time.monotonic() + self.cfg['poll_seconds']
+                        # Successful inventory is required to clear API errors.
+                        queue, self.jobs = self.inventory()
+                        self.state.set('queue', queue)
+                        self.state.set('poll_at', time.time())
+                        self.consumed.clear()
+                        self.state.set('error', None)
+                    self.tick(poll=False)
+                    if poll:
+                        repos = {r['repository'] for r in self.state.active()}
+                        self.state.set('runners', {repo: [r for r in self.registrations(repo) if r['name'].startswith('runspindle-fleet-')] for repo in repos})
                 except Exception as error:
                     self.state.set('error', str(error))
-                for _ in range(self.cfg['poll_seconds']):
+                for _ in range(2):
                     if self.stopping:
                         break
                     time.sleep(1)

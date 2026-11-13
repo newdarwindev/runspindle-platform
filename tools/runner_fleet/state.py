@@ -14,6 +14,7 @@ class State:
         os.umask(0o077)
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+        self.directory.chmod(0o700)
         self.db = sqlite3.connect(self.directory / 'fleet.sqlite', timeout=30)
         os.chmod(self.directory / 'fleet.sqlite', 0o600)
         self.db.row_factory = sqlite3.Row

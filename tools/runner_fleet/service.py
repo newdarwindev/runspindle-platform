@@ -26,7 +26,7 @@ def observed(directory):
             'service': fields, 'heartbeat': heartbeat, 'error': state.get('error'),
             'drained': state.get('drained', True), 'resources': state.active(),
             'guests': [helper('observe', slot) for slot in range(2)],
-            'queue': state.get('queue', []), 'reconciled_at': state.get('reconciled_at'),
+            'queue': state.get('queue', []), 'runners': state.get('runners', {}), 'reconciled_at': state.get('reconciled_at'),
             'peak_slots': state.get('peak_slots', 0), 'startup_enabled': fields.get('UnitFileState') == 'enabled'}
 
 
