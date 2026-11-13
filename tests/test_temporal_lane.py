@@ -10,6 +10,7 @@ import sys
 import tempfile
 import time
 import unittest
+import uuid
 from unittest.mock import patch
 
 MODULE_PATH = pathlib.Path(__file__).resolve().parents[1] / 'tools/temporal_lane.py'
@@ -72,6 +73,19 @@ class BoundaryTests(unittest.TestCase):
                 self.assertIn(('volume', 'rm', '--force', lane.volume), calls)
                 self.assertIn(('network', 'rm', lane.network), calls)
 
+    def test_failed_client_delete_retains_cleanup_ownership(self):
+        lane = object.__new__(lane_module.Lane)
+        name = 'synthetic-client'
+        lane.clients = {name}
+        def fake(*args, **kwargs):
+            if args[0] == 'rm':
+                return subprocess.CompletedProcess(args, 1, '', 'synthetic transient deletion denial')
+            return subprocess.CompletedProcess(args, 0, '0', '')
+        with patch.object(lane, 'spawn_client', return_value=name), patch.object(lane_module, 'docker', fake):
+            with self.assertRaisesRegex(RuntimeError, 'client cleanup incomplete'):
+                lane.run_client('sha256:' + '0'*64, ['synthetic'])
+        self.assertIn(name, lane.clients)
+
     def test_cleanup_failure_does_not_report_success(self):
         lane = object.__new__(lane_module.Lane)
         lane._created, lane._handlers, lane.clients = True, {}, set()
@@ -89,6 +103,26 @@ class RealLaneTests(unittest.TestCase):
     def absent(self, lane):
         for kind, name in [('container', lane.server), ('volume', lane.volume), ('network', lane.network)]:
             self.assertNotEqual(lane_module.docker(kind, 'inspect', name, check=False).returncode, 0)
+
+    def test_existing_unrelated_image_cannot_replace_prepared_release(self):
+        with tempfile.TemporaryDirectory() as context, tempfile.TemporaryDirectory() as modified:
+            context_path, directory = pathlib.Path(context), pathlib.Path(modified)
+            (context_path / 'Dockerfile').write_text('FROM scratch\nLABEL synthetic.unrelated=' + uuid.uuid4().hex + '\n')
+            lane_module.docker('build', '--network', 'none', '--pull=false', '--provenance=false',
+                               '--iidfile', context_path / 'image.id', context_path, timeout=60)
+            unrelated = (context_path / 'image.id').read_text().strip()
+            try:
+                prepared = pathlib.Path(PREPARED)
+                metadata = json.loads((prepared / 'prepared.json').read_text())
+                metadata['image'] = unrelated
+                (directory / 'prepared.json').write_text(json.dumps(metadata))
+                artifact = lane_module.read_pins()['cli']['artifacts'][metadata['architecture']]['filename']
+                for name in ('temporal', 'LICENSE', artifact):
+                    (directory / name).symlink_to(prepared / name)
+                with self.assertRaisesRegex(lane_module.Blocked, 'image does not match'):
+                    lane_module.Lane(directory)
+            finally:
+                lane_module.docker('image', 'rm', '--force', unrelated, check=False)
 
     def test_real_restart_persistence_and_success_cleanup(self):
         result = lane_module.smoke(PREPARED)

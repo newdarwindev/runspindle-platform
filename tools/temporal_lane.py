@@ -10,6 +10,7 @@ import re
 import signal
 import subprocess
 import tarfile
+import tempfile
 import time
 import uuid
 
@@ -44,6 +45,40 @@ def read_pins():
     return pins
 
 
+def build_verified_image(binary, license_bytes, architecture):
+    """Build only verified bytes and a fixed recipe, with no executable RUN steps."""
+    with tempfile.TemporaryDirectory(prefix='runspindle-verified-temporal-') as context:
+        directory = pathlib.Path(context)
+        for name, data, mode in [('temporal', binary, 0o755), ('LICENSE', license_bytes, 0o644)]:
+            target = directory / name
+            target.write_bytes(data)
+            target.chmod(mode)
+            os.utime(target, (0, 0))
+        (directory / 'Dockerfile').write_text(
+            'FROM scratch\nCOPY temporal /temporal\nCOPY LICENSE /LICENSE\nENTRYPOINT ["/temporal"]\n')
+        docker('build', '--network', 'none', '--pull=false', '--provenance=false',
+               '--build-arg', 'SOURCE_DATE_EPOCH=0', '--platform', f'linux/{architecture}',
+               '--iidfile', directory / 'image.id', directory, timeout=120)
+        return (directory / 'image.id').read_text().strip()
+
+
+def verified_assets(directory, architecture, pins):
+    cli = pins['cli']
+    artifact = cli['artifacts'][architecture]
+    archive = directory / artifact['filename']
+    if digest(archive) != artifact['sha256']:
+        raise Blocked('Temporal artifact checksum mismatch')
+    license_bytes = (directory / 'LICENSE').read_bytes()
+    if hashlib.sha256(license_bytes).hexdigest() != cli['license_sha256']:
+        raise Blocked('Temporal license checksum mismatch')
+    with tarfile.open(archive) as source:
+        member = source.getmember('temporal')
+        if not member.isfile():
+            raise Blocked('expected regular Temporal executable')
+        binary = source.extractfile(member).read()
+    return binary, license_bytes
+
+
 def prepare(directory, architecture):
     """Explicit acquisition only. Reuses only checksum-verified downloads."""
     pins = read_pins()
@@ -66,21 +101,14 @@ def prepare(directory, architecture):
     if digest(license_path) != cli['license_sha256']:
         raise Blocked('Temporal license checksum mismatch')
     # Do not extract arbitrary paths or links from a release archive.
-    with tarfile.open(archive) as source:
-        member = source.getmember('temporal')
-        if not member.isfile():
-            raise Blocked('expected regular Temporal executable')
-        (directory / 'temporal').write_bytes(source.extractfile(member).read())
+    binary, license_bytes = verified_assets(directory, architecture, pins)
+    (directory / 'temporal').write_bytes(binary)
     (directory / 'temporal').chmod(0o755)
     # Stable file metadata gives repeatable scratch layers across preparation.
     os.utime(directory / 'temporal', (0, 0))
     os.utime(license_path, (0, 0))
-    dockerfile = directory / 'Dockerfile'
-    dockerfile.write_text('FROM scratch\nCOPY temporal /temporal\nCOPY LICENSE /LICENSE\nENTRYPOINT ["/temporal"]\n')
-    docker('build', '--network', 'none', '--pull=false', '--provenance=false',
-           '--build-arg', 'SOURCE_DATE_EPOCH=0', '--platform', f'linux/{architecture}',
-           '--iidfile', directory / 'image.id', directory, timeout=120)
-    image = (directory / 'image.id').read_text().strip()
+    image = build_verified_image(binary, license_bytes, architecture)
+    (directory / 'image.id').write_text(image + '\n')
     version = docker('run', '--rm', '--network', 'none', '--pull', 'never', image, '--version').stdout.strip()
     if '1.10.0' not in version:
         raise Blocked('unexpected CLI executable version')
@@ -102,13 +130,21 @@ class Lane:
     def __init__(self, prepared_dir, readiness_deadline=60):
         self.directory = pathlib.Path(prepared_dir).resolve()
         self.metadata = json.loads((self.directory / 'prepared.json').read_text())
-        read_pins()
+        pins = read_pins()
         if self.metadata['pins_sha256'] != digest(PINS):
             raise Blocked('prepared dependency manifest changed; prepare again')
         if self.metadata['binary_sha256'] != digest(self.directory / 'temporal'):
             raise Blocked('prepared executable changed')
         self.image = self.metadata['image']
         self._image(self.image)
+        binary, license_bytes = verified_assets(self.directory, self.metadata['architecture'], pins)
+        if hashlib.sha256(binary).hexdigest() != self.metadata['binary_sha256']:
+            raise Blocked('prepared executable does not match pinned release archive')
+        # Metadata is editable local data. Rebuild from the verified release bytes
+        # without network or RUN instructions before executing any claimed image.
+        expected_image = build_verified_image(binary, license_bytes, self.metadata['architecture'])
+        if self.image != expected_image:
+            raise Blocked('prepared image does not match pinned release bytes and recipe')
         self.name = 'runspindle-temporal-' + uuid.uuid4().hex
         self.network = self.name + '-net'
         self.volume = self.name + '-db'
@@ -226,8 +262,13 @@ class Lane:
                 raise RuntimeError(f'client failed with exit {result.stdout.strip()}: {logs.stderr}')
             return logs
         finally:
-            docker('rm', '--force', name, check=False)
-            self.clients.discard(name)
+            removed = docker('rm', '--force', name, check=False)
+            if removed.returncode == 0 or 'No such container' in removed.stderr:
+                self.clients.discard(name)
+            else:
+                # Retain ownership for context cleanup; an unacknowledged delete
+                # must never turn a surviving client into an untracked process.
+                raise RuntimeError('client cleanup incomplete: ' + removed.stderr.strip())
 
     def close(self):
         errors = []

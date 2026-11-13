@@ -27,13 +27,13 @@
   },
   "checks": [
     {
-      "boundary_tests": 6,
+      "boundary_tests": 7,
       "command": "RUNSPINDLE_TEMPORAL_PREPARED=\"$PWD/local/temporal-prepared\" python3 -m unittest discover -s tests -v",
       "existing_fixture_tests": 6,
-      "real_lane_tests": 4,
+      "real_lane_tests": 5,
       "skipped": 0,
       "status": "passed",
-      "tests": 16
+      "tests": 18
     },
     {
       "command": "python3 tools/check_temporal_mutations.py",
@@ -58,7 +58,7 @@
   "evidence_class": "isolated_temporal_development_integration",
   "github_ci": "not_run",
   "live_acceptance": "not_run",
-  "observed_at": "2026-11-13T19:13:10.697184+00:00",
+  "observed_at": "2026-11-13T19:17:38.437161+00:00",
   "preparation": {
     "architecture": "arm64",
     "archive_sha256": "6e526d2f089bf5acead2129f1f63e303b848410d5d9d86b9255359dcea6eaaa8",
@@ -70,6 +70,11 @@
   },
   "production_deployment": "not_run",
   "remaining_issue_criteria": "Platform #1 remains partial: other upstream dependencies, telemetry whole-envelope privacy including schema URL gap/readback, distribution/rollback qualification and safe runner provisioning are not implemented. No service activation or deployment authority follows.",
+  "review_regressions": [
+    "failed client deletion retains tracked cleanup ownership",
+    "existing unrelated image in mutable metadata blocked before image execution by verified offline scratch rebuild",
+    "Python prerequisite corrected to tested3.9+"
+  ],
   "schema_version": 1,
   "smoke": {
     "assertions": [
@@ -87,9 +92,9 @@
   },
   "source_files_sha256": {
     "temporal/dependencies.json": "8318dcd9ecd49755203d45caf3b8b444b01b0f8358fc292be9a61ecb8519772e",
-    "tests/test_temporal_lane.py": "0de8e943f01fe9d27baf8452943efffdf05e0faa5c2bad06513147b231189071",
+    "tests/test_temporal_lane.py": "e17b9748309634c57adc39af700dc035bdfad5e56f05bf157787ea30cf5c9480",
     "tools/check_temporal_mutations.py": "cccdf8e276ae1f223b02b7b79f1cc70c6418e0029e775c4422cf64596fe49d6d",
-    "tools/temporal_lane.py": "2fce23dde6bf25ede52f97ae0172fc2a28d3b40ecf9d4a57c965cd4ddff45cce"
+    "tools/temporal_lane.py": "dec0202067f292950b31b03f519b70df91e625c954c99c46d401f32b0900fdb9"
   },
   "toolchain": {
     "docker": "29.9.2",

@@ -9,7 +9,7 @@ qualification. Production and live acceptance remain not run.
 
 ## Preparation and execution
 
-Prerequisites: Python 3.10+, curl, and an available Linux Docker engine supporting
+Prerequisites: Python 3.9+, curl, and an available Linux Docker engine supporting
 internal networks, volumes, read-only roots, resource limits and arm64 execution.
 No alternate service or floating version is selected when these are unavailable.
 The amd64 official archive is pinned but has not been exercised here.
@@ -25,8 +25,11 @@ local immutable image ID are recorded in ignored `prepared.json`.
 python3 tools/temporal_lane.py prepare --architecture arm64 --directory local/temporal-prepared
 ```
 
-After preparation, both commands below run without downloads. Missing images or
-changed prepared bytes/manifests block; Docker runs always use `--pull never`.
+After preparation, the commands below run without downloads. Missing images or
+changed prepared bytes/manifests block. Before any CLI image execution, the lane
+rechecks archive/license pins, compares executable bytes to the verified archive,
+and rebuilds the fixed scratch recipe offline to require the prepared image ID
+to match. Mutable metadata cannot substitute an unrelated local image; Docker runs always use `--pull never`.
 
 ```sh
 RUNSPINDLE_TEMPORAL_PREPARED="$PWD/local/temporal-prepared" python3 -m unittest discover -s tests -v
@@ -36,7 +39,7 @@ python3 tools/check_scaffold.py
 ```
 
 Without `RUNSPINDLE_TEMPORAL_PREPARED`, the Python suite runs fast boundary and
-fixture tests and explicitly skips four real-lane cases. Skips are not integration
+fixture tests and explicitly skips five real-lane cases. Skips are not integration
 evidence. The operational `tools/acceptance_gate.py` still fails closed.
 
 ## Runtime and component API
