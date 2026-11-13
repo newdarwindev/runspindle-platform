@@ -1,5 +1,16 @@
 {
   "license_status": "No blanket license is granted to imported material. See LEGAL.md.",
+  "maintained_offline_source": {
+    "Collector_dependencies": "telemetry/dependencies.json",
+    "blocked_Langfuse_preparation": "telemetry/langfuse-qualification.json",
+    "classification": "original_bounded_test_tools_and_development_metadata_installer",
+    "composition_contract_commit": "445cc8c",
+    "contract": "runspindle.maintained-evidence.v1",
+    "legacy_executable_import": "none",
+    "mapping": "specs/maintained-offline.md",
+    "notices": "telemetry/notices; original upstream rights retained; no blanket relicensing",
+    "upstream_SPDX": "telemetry/collector-sbom.json"
+  },
   "new_files": "Original Python disposable Temporal development lane and synthetic tests; official CLI and embedded-server MIT notices preserved under temporal/. No legacy executable source or Git history imported; downloaded CLI artifacts remain ignored preparation assets.",
   "provenance_policy": "Public IDs resolve to a privately retained source record containing repository, exact commit, path, source hash and review notes. Private repository names, URLs and operational details are omitted.",
   "schema_version": 1,

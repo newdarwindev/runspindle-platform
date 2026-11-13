@@ -24,3 +24,5 @@ Preserve explicit authority and unknown outcomes. Distinguish request admission,
 A pinned Linux arm64 Temporal development lane now has real readiness, killed-server persistence and cleanup tests. This is bounded development evidence, not the full platform gates. See [lane instructions](../docs/TEMPORAL_LANE.md) and [exact observations](../docs/temporal-lane-evidence.json).
 
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).
+
+[Bounded maintained-workflow qualification](maintained-offline.md) covers separate synthetic standard-Collector diagnostics and disposable development-metadata installation. Langfuse/native/full-product gates remain blocked.

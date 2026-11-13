@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "status": "blocked",
+  "evidence_class": "read_only_dependency_preparation",
+  "version": "3.63.0",
+  "source_revision": "a136ac8184b876a90afafe8cd2ebfef8a7b05858",
+  "source": "https://github.com/langfuse/langfuse/tree/a136ac8184b876a90afafe8cd2ebfef8a7b05858",
+  "target": "linux/arm64",
+  "images": {
+    "web": "langfuse/langfuse@sha256:8e3f2d016c39a2877644c8998fe9bff92a584380228df682ae5fcfbba94e32c6",
+    "worker": "langfuse/langfuse-worker@sha256:1bfe82e958cb4ba8f880314f5e395967cbab954a2d722ac503bf04b400fe3e8d",
+    "postgres": "postgres@sha256:51a22dd7011534315b3c3f641e4a27204e90ce543674c945072176147824834e",
+    "redis": "redis@sha256:4da694ba727afad9a027c075a3e32356affea4db13482d489822107dcf09d4ed",
+    "clickhouse": "clickhouse/clickhouse-server@sha256:a0132c162b7c1d51f16be38a2fe626eec58b95b3fa8b45d8ffaac1e914498543",
+    "minio": null
+  },
+  "lock_sha256": "bbba609593873058923d25238461fb3f4e829f1368a661a4daae23bc14f76f94",
+  "upstream_compose_sha256": "5af83f917688b34805190ba06e1c42b07bd5adcfcf7009b4a2a29f616d8a2ddd",
+  "rights": "MIT core; separate EE terms retained; no EE use or binary redistribution authorized by this evidence",
+  "web_packages_observed": 884,
+  "execution": "not_run",
+  "backend_readback": "not_run",
+  "blocking_observations": [
+    {
+      "dependency": "MinIO RELEASE.2025-04-22T22-12-26Z",
+      "location": "docker.io/minio/minio",
+      "result": "public manifest denied: insufficient_scope"
+    },
+    {
+      "dependency": "same exact MinIO release",
+      "location": "quay.io/minio/minio",
+      "result": "public manifest HEAD returned 401 Unauthorized"
+    },
+    {
+      "dependency": "same exact MinIO release",
+      "location": "https://dl.min.io/server/minio/release/linux-arm64/archive/",
+      "result": "official binary checksum and signature URLs returned HTTP 410 Gone"
+    }
+  ],
+  "remaining_preparation": [
+    "available immutable MinIO artifact plus matching rights/source",
+    "complete worker, OS, database and storage dependency inventories before execution"
+  ],
+  "no_new_credentials": true,
+  "no_substitute_backend": true
+}
