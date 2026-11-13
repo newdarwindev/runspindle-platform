@@ -18,8 +18,8 @@
     "license": "MIT OR Apache-2.0; upstream COPYRIGHT and component licenses retained in image"
   },
   "offline_rust_dependencies": {
-    "core": "6da71ca0aa666bc9c8d0f055f6f0b99097bc15c3",
-    "host": "140bc43bd73de72a209072855605f9d568200566",
+    "core": "ceabd0a92a944722ca774723b996298599f5b30b",
+    "host": "a56e5d7c18611b07c1c28da425db7c14227b3e76",
     "policy": "Fetch committed Cargo.lock closures, including core's pinned host Git source, in an isolated preparation guest; test both checkouts offline and retain crate checksums and licenses in the guest manifest."
   },
   "policy": "Mutable URLs are accepted only when bytes match these fixed digests. Never refresh digests automatically. Derived image manifest records all installed package versions and copyright hashes. Binaries remain outside Git.",
