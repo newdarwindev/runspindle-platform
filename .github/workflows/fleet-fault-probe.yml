@@ -1,0 +1,40 @@
+name: fleet-fault-probe
+on:
+  push:
+    branches: [ci/qualification-probes]
+  workflow_dispatch:
+    inputs:
+      hold_seconds:
+        type: choice
+        options: ['90', '240', '0']
+        default: '90'
+      architecture_probe:
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  strix-fault-probe:
+    if: ${{ !inputs.architecture_probe }}
+    runs-on: [self-hosted, linux, x64, runspindle-isolated, strix]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run implemented validation
+        run: python3 tools/validate.py
+      - name: Hold for lifecycle fault injection
+        env:
+          HOLD_SECONDS: ${{ inputs.hold_seconds || '90' }}
+        run: sleep "$HOLD_SECONDS"
+  incompatible-arm64-probe:
+    if: ${{ inputs.architecture_probe }}
+    runs-on: [self-hosted, linux, ARM64, runspindle-isolated, macbook]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run implemented validation
+        run: python3 tools/validate.py

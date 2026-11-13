@@ -30,3 +30,5 @@ Update evidence for implemented stories and their remaining gaps. Do not mark se
 ![validation](https://github.com/newdarwindev/runspindle-platform/actions/workflows/validation.yml/badge.svg) [validation](https://github.com/newdarwindev/runspindle-platform/actions/workflows/validation.yml)
 
 ![fleet-qualification](https://github.com/newdarwindev/runspindle-platform/actions/workflows/fleet-qualification.yml/badge.svg) [fleet-qualification](https://github.com/newdarwindev/runspindle-platform/actions/workflows/fleet-qualification.yml)
+
+![Fleet fault probes](https://github.com/newdarwindev/runspindle-platform/actions/workflows/fleet-fault-probe.yml/badge.svg) [Fleet fault probes](https://github.com/newdarwindev/runspindle-platform/actions/workflows/fleet-fault-probe.yml)

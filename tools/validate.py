@@ -11,6 +11,7 @@ import time
 
 ROOT = Path(__file__).resolve().parents[1]
 os.chdir(ROOT)
+raise SystemExit("Deliberate qualification failure: fix commit must remove this line")
 
 
 def run(argv):
