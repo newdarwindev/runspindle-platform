@@ -140,10 +140,38 @@ def stop(slot, identity):
     os.chown(directory, operator.pw_uid, pwd.getpwnam(f'runspindle-vm{slot}').pw_gid)
 
 
+def teardown():
+    for slot in range(2):
+        if observe(slot).get('ActiveState') in ('active', 'activating', 'deactivating'):
+            raise RuntimeError('Guest still active; refusing network teardown')
+        if run('pgrep', '-u', f'runspindle-vm{slot}', check=False).returncode == 0:
+            raise RuntimeError('Untracked dedicated-account process; teardown blocked')
+    services = [f'runspindle-proxy-{slot}.service' for slot in range(2)]
+    services += ['runspindle-host-canary.service', 'runspindle-lan-canary.service']
+    for service in services:
+        run('systemctl', 'stop', service, check=False)
+        Path('/etc/systemd/system', service).unlink(missing_ok=True)
+    for slot in range(2):
+        interface = f'rsvm{slot}'
+        if run('ip', 'link', 'show', interface, check=False).returncode == 0:
+            link = json.loads(run('ip', '-j', '-d', 'link', 'show', interface).stdout)[0]
+            if link.get('linkinfo', {}).get('info_kind') != 'tun':
+                raise RuntimeError('Unexpected interface ownership')
+            run('ip', 'link', 'delete', interface)
+    run('ip', 'netns', 'delete', 'runspindle-canary', check=False)
+    run('ip', 'link', 'delete', 'rscan0', check=False)
+    run('nft', 'delete', 'table', 'inet', 'runspindle_fleet', check=False)
+    run('systemctl', 'daemon-reload')
+
+
 def main():
     if os.geteuid() != 0:
         raise SystemExit('Requires root-owned installation')
     command = sys.argv[1]
+    if command == 'teardown' and len(sys.argv) == 2:
+        teardown()
+        print(json.dumps({'status': 'removed', 'retained': ['logs', 'images', 'dedicated account identities']}))
+        return
     if command == 'network' and len(sys.argv) == 2:
         network()
         print(json.dumps({'status': 'applied'}))

@@ -6,6 +6,7 @@ fallback. TLS remains end to end. DNS answers are never trusted across requests.
 import ipaddress
 import json
 import select
+import re
 import socket
 import socketserver
 import sys
@@ -31,6 +32,7 @@ class Handler(socketserver.StreamRequestHandler):
     def handle(self):
         self.connection.settimeout(15)
         remote = None
+        target = ""
         try:
             first = self.rfile.readline(4097)
             if len(first) > 4096:
@@ -66,7 +68,10 @@ class Handler(socketserver.StreamRequestHandler):
                     if not data:
                         return
                     (remote if source is self.connection else self.connection).sendall(data)
-        except (OSError, ValueError, UnicodeError):
+        except (OSError, ValueError, UnicodeError) as error:
+            hostname = target.rpartition(':')[0]
+            if re.fullmatch(r'[a-zA-Z0-9.-]{1,253}', hostname):
+                print(json.dumps({'decision': 'deny', 'hostname': hostname, 'reason': str(error)}), flush=True)
             try:
                 self.wfile.write(b'HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
             except OSError:

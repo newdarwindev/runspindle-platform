@@ -34,7 +34,7 @@ def main():
                 if time.monotonic() > deadline:
                     raise RuntimeError('Preparation boot timeout')
                 time.sleep(2)
-            backend.isolation(resource)
+            backend.isolation(resource, check_tooling=False)
             result = backend.ssh(resource, (SOURCE / 'tools/runner_fleet/prepare_image.sh').read_text(), timeout=1200, check=False)
             log = backend.directory(resource) / 'image-build.log'
             log.write_text(result.stdout + result.stderr)

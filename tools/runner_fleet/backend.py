@@ -1,4 +1,5 @@
 """Disposable QEMU lifecycle. All external mutations follow a durable reservation."""
+import base64
 import hashlib
 import json
 import os
@@ -107,7 +108,7 @@ class Backend:
         result = self.ssh(resource, 'test -f /var/lib/cloud/instance/boot-finished\n', timeout=10, check=False)
         return result.returncode == 0
 
-    def isolation(self, resource):
+    def isolation(self, resource, check_tooling=True):
         # Both canaries must be alive from host before denial is meaningful.
         for address, port in [(f'10.231.{resource["slot"]}.1', 18081), ('198.18.231.2', 18082)]:
             with socket.create_connection((address, port), timeout=3):
@@ -139,6 +140,9 @@ GUEST
         if result.returncode:
             raise RuntimeError('Guest isolation or freshness probe failed')
         checks = json.loads(result.stdout)
+        if check_tooling:
+            self.ssh(resource, 'docker buildx inspect >/dev/null', timeout=30)
+            checks['guest_docker_builder'] = True
         self.state.update(resource, 'isolated', isolation=checks)
 
     def register(self, resource, repository, token, labels):
@@ -158,6 +162,9 @@ echo $! > /home/runner/runner.pid
         if result.returncode:
             raise RuntimeError('Runner registration failed; retained redacted diagnostics')
 
+    def runner_exited(self, resource):
+        return self.ssh(resource, 'test -f /home/runner/runner.pid && ! kill -0 "$(cat /home/runner/runner.pid)" 2>/dev/null', timeout=10, check=False).returncode == 0
+
     def diagnostics(self, resource):
         directory = self.directory(resource)
         serial = self.slot(resource) / 'serial.log'
@@ -165,14 +172,23 @@ echo $! > /home/runner/runner.pid
             shutil.copyfile(serial, directory / 'serial.log')
         try:
             result = self.ssh(resource, 'cat /home/runner/job.log 2>/dev/null; tail -n 300 /home/runner/runner/_diag/*.log 2>/dev/null', timeout=15, check=False)
-            (directory / 'guest-diagnostics.log').write_text(result.stdout + result.stderr)
+            if result.returncode == 0:
+                (directory / 'guest-diagnostics.log').write_text(result.stdout + result.stderr)
+                archive = self.ssh(resource, 'set -o pipefail; tar -czf - -C /home/runner runner/_diag job.log 2>/dev/null | base64 -w0', timeout=25, check=False)
+                if archive.returncode == 0:
+                    (directory / 'guest-diagnostics.tar.gz').write_bytes(base64.b64decode(archive.stdout, validate=True))
+            else:
+                with (directory / 'diagnostic-errors.log').open('a') as stream:
+                    stream.write(result.stderr)
         except (RuntimeError, subprocess.TimeoutExpired):
             pass
         execute(['sudo', '-n', 'journalctl', '-u', f'runspindle-vm-{resource["slot"]}.service', '--no-pager', '-n', '200'], check=False)
 
     def destroy(self, resource):
         helper('stop', resource['slot'], resource['id'])
-        self.diagnostics(resource)
+        serial = self.slot(resource) / 'serial.log'
+        if serial.exists():
+            shutil.copyfile(serial, self.directory(resource) / 'serial.log')
         for name in ('disk.qcow2', 'seed.iso', 'serial.log'):
             path = self.slot(resource) / name
             path.unlink(missing_ok=True)

@@ -179,10 +179,11 @@ def uninstall(cfg, directory):
             if guest.get('ActiveState') in ('active', 'activating', 'deactivating'):
                 helper('stop', slot, guest['resource_id'])
             execute(['sudo', '-n', 'systemctl', 'stop', f'runspindle-proxy-{slot}.service'])
+        helper('teardown')
         execute(['sudo', '-n', 'systemctl', 'disable', UNIT], check=False)
         execute(['sudo', '-n', 'rm', '-f', '/etc/systemd/system/' + UNIT])
         execute(['sudo', '-n', 'systemctl', 'daemon-reload'])
-    return {'status': 'passed', 'action': 'fleet manager and guests removed; private logs and images retained; isolation rules retained'}
+    return {'status': 'passed', 'action': 'fleet manager and guests removed; private logs and images retained; fleet network and auxiliary units removed'}
 
 
 def qualify(cfg, revisions, directory, ref):

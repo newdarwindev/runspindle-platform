@@ -35,7 +35,7 @@ def main():
                 '--home-dir', '/nonexistent', '--shell', '/usr/sbin/nologin', name)
     run('usermod', '-aG', 'runspindle-fleet', 'standard')
     CODE.mkdir(mode=0o755, exist_ok=True)
-    for relative in ('tools', 'fleet', 'temporal'):
+    for relative in ('tools', 'fleet', 'temporal', 'tests'):
         shutil.copytree(SOURCE / relative, CODE / relative, dirs_exist_ok=True,
                         ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
     for path in CODE.rglob('*'):

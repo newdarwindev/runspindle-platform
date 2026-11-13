@@ -100,7 +100,7 @@ class Manager:
                         path.rename(archive)
         for resource in self.state.active():
             observed = helper('observe', resource['slot'])
-            if resource['phase'] != 'running' or observed.get('ActiveState') != 'active':
+            if resource['phase'] not in ('running', 'finishing') or observed.get('ActiveState') != 'active':
                 self.cleanup(resource, 'restart reconciliation')
         names = {r['runner_name'] for r in self.state.active()}
         for repo in self.cfg['repositories']:
@@ -128,6 +128,16 @@ class Manager:
                     if not registration:
                         raise RuntimeError('Registration not observed')
                     self.state.update(resource, 'running', runner_id=registration['id'], registered_at=time.time())
+            elif resource['phase'] == 'finishing':
+                job = resource['details']['claimed_job']
+                exited = self.backend.runner_exited(resource)
+                if exited or now > resource['details']['finish_deadline']:
+                    try:
+                        result = execute(['gh', 'api', f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/jobs/{job["id"]}/logs'], timeout=45)
+                        (self.backend.directory(resource) / 'github-job.log').write_text(result.stdout)
+                    except Exception as error:
+                        self.state.update(resource, 'finishing', log_error=str(error))
+                    self.cleanup(resource, 'job ' + str(job.get('conclusion')) + ('' if exited else '; runner exit deadline exceeded'))
             elif resource['phase'] == 'running':
                 claimed = [j for j in jobs if j.get('runner_name') == resource['runner_name']]
                 if len(claimed) > 1:
@@ -136,12 +146,7 @@ class Manager:
                     job = claimed[0]
                     self.state.update(resource, 'running', claimed_job=job)
                     if job['status'] == 'completed':
-                        try:
-                            result = execute(['gh', 'api', f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/jobs/{job["id"]}/logs'], timeout=45)
-                            (self.backend.directory(resource) / 'github-job.log').write_text(result.stdout)
-                        except Exception as error:
-                            self.state.update(resource, 'running', log_error=str(error))
-                        self.cleanup(resource, 'job ' + str(job.get('conclusion')))
+                        self.state.update(resource, 'finishing', claimed_job=job, finish_deadline=now + 120)
                     elif helper('observe', resource['slot']).get('ActiveState') != 'active':
                         gh(f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/runs/{job["run_id"]}/cancel', 'POST')
                         self.cleanup(resource, 'forced guest termination during job')

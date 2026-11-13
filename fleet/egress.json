@@ -13,7 +13,8 @@
     "static.rust-lang.org",
     "archive.ubuntu.com",
     "security.ubuntu.com",
-    "nodejs.org"
+    "nodejs.org",
+    "*.blob.core.windows.net"
   ],
   "ports": [
     443
@@ -21,5 +22,7 @@
   "dns": "host resolution per connection; reject entire answer set on any non-global IPv4; numeric dial only",
   "ipv6": "blocked at guest tap",
   "http": "denied",
-  "purpose": "GitHub runner control, source/action archives, and image dependency preparation"
+  "purpose": "GitHub runner control, source/action archives, and image dependency preparation",
+  "github_endpoint_source": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners#accessible-domains-by-function",
+  "blob_storage_purpose": "GitHub-documented job log, summary, artifact and cache transport; HTTPS only, public IPv4 validation still mandatory"
 }
