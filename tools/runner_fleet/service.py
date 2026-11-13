@@ -175,7 +175,9 @@ def uninstall(cfg, directory):
             return {'status': 'blocked', 'reason': 'Uncertain resources retained', 'resources': state.active()}
         manager.reconcile()
         for slot in range(2):
-            helper('stop', slot)
+            guest = helper('observe', slot)
+            if guest.get('ActiveState') in ('active', 'activating', 'deactivating'):
+                helper('stop', slot, guest['resource_id'])
             execute(['sudo', '-n', 'systemctl', 'stop', f'runspindle-proxy-{slot}.service'])
         execute(['sudo', '-n', 'systemctl', 'disable', UNIT], check=False)
         execute(['sudo', '-n', 'rm', '-f', '/etc/systemd/system/' + UNIT])

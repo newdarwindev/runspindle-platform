@@ -21,10 +21,12 @@ def execute(argv, *, timeout=60, input=None, check=True):
     return result
 
 
-def helper(command, slot=None):
+def helper(command, slot=None, identity=None):
     argv = ['sudo', '-n', 'python3', HELPER, command]
     if slot is not None:
         argv.append(str(slot))
+    if identity is not None:
+        argv.append(identity)
     return json.loads(execute(argv).stdout)
 
 
@@ -99,7 +101,7 @@ class Backend:
         (directory / 'network-config').write_text(json.dumps(network))
         execute(['cloud-localds', '--network-config=' + str(directory / 'network-config'),
                  str(slot / 'seed.iso'), str(directory / 'user-data'), str(directory / 'meta-data')])
-        helper('start', resource['slot'])
+        helper('start', resource['slot'], resource['id'])
 
     def ready(self, resource):
         result = self.ssh(resource, 'test -f /var/lib/cloud/instance/boot-finished\n', timeout=10, check=False)
@@ -115,7 +117,7 @@ import json, os, pathlib, socket
 checks = {}
 for name, address, port in [
     ('host', 'GATEWAY', 18081), ('lan', '198.18.231.2', 18082),
-    ('management', '192.168.100.9', 22), ('peer', 'PEER', 22),
+    ('management', 'GATEWAY', 22), ('peer', 'PEER', 22),
     ('internet', '1.1.1.1', 443), ('dns', '1.1.1.1', 53)]:
     try:
         with socket.create_connection((address, port), timeout=1): pass
@@ -169,7 +171,7 @@ echo $! > /home/runner/runner.pid
         execute(['sudo', '-n', 'journalctl', '-u', f'runspindle-vm-{resource["slot"]}.service', '--no-pager', '-n', '200'], check=False)
 
     def destroy(self, resource):
-        helper('stop', resource['slot'])
+        helper('stop', resource['slot'], resource['id'])
         self.diagnostics(resource)
         for name in ('disk.qcow2', 'seed.iso', 'serial.log'):
             path = self.slot(resource) / name

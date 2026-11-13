@@ -4,7 +4,9 @@
 Only two fixed slots and fleet-owned units/interfaces are accepted. No caller
 supplied paths, shell fragments, QEMU flags or service names cross this boundary.
 """
+import fcntl
 import json
+import re
 import os
 from pathlib import Path
 import pwd
@@ -70,15 +72,26 @@ def observe(slot):
     result = run('systemctl', 'show', unit(slot), '--property=ActiveState,SubState,MainPID,ExecMainStatus,ControlGroup,MemoryPeak,CPUUsageNSec', check=False)
     fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
     fields['slot'] = slot
+    owner = ROOT / 'owners' / str(slot)
+    fields['resource_id'] = owner.read_text().strip() if owner.exists() else None
     return fields
 
 
-def start(slot):
+def start(slot, identity):
     directory = ROOT / 'slots' / str(slot)
     account = pwd.getpwnam(f'runspindle-vm{slot}')
     state = observe(slot)
     if state.get('ActiveState') in ('active', 'activating', 'deactivating'):
         raise RuntimeError('Slot already has a service; reconcile before boot')
+    owners = ROOT / 'owners'
+    owners.mkdir(mode=0o755, exist_ok=True)
+    owner = owners / str(slot)
+    temporary = owners / (str(slot) + '.new')
+    with temporary.open('w') as stream:
+        stream.write(identity + '\n')
+        stream.flush()
+        os.fsync(stream.fileno())
+    os.replace(temporary, owner)
     for name in ('disk.qcow2', 'seed.iso'):
         path = directory / name
         if path.is_symlink() or not path.is_file():
@@ -105,7 +118,10 @@ def start(slot):
         '-sandbox', 'on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny')
 
 
-def stop(slot):
+def stop(slot, identity):
+    owner = observe(slot).get('resource_id')
+    if owner != identity:
+        raise RuntimeError('Resource ownership mismatch; refusing stale stop')
     run('systemctl', 'stop', unit(slot), check=False)
     state = observe(slot)
     if state.get('ActiveState') not in ('inactive', 'failed', None) or int(state.get('MainPID', 0)) != 0:
@@ -132,15 +148,21 @@ def main():
         network()
         print(json.dumps({'status': 'applied'}))
         return
-    if command not in ('start', 'stop', 'observe') or len(sys.argv) != 3 or sys.argv[2] not in ('0', '1'):
+    if command == 'observe' and len(sys.argv) == 3 and sys.argv[2] in ('0', '1'):
+        print(json.dumps(observe(int(sys.argv[2]))))
+        return
+    if command not in ('start', 'stop') or len(sys.argv) != 4 or sys.argv[2] not in ('0', '1') or not re.fullmatch('[0-9a-f]{32}', sys.argv[3]):
         raise SystemExit('Unsupported fixed-scope operation')
     slot = int(sys.argv[2])
     if command == 'start':
-        start(slot)
+        start(slot, sys.argv[3])
     elif command == 'stop':
-        stop(slot)
+        stop(slot, sys.argv[3])
     print(json.dumps(observe(slot)))
 
 
 if __name__ == '__main__':
-    main()
+    descriptor = os.open('/run/lock/runspindle-fleet.lock', os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, 'w') as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        main()

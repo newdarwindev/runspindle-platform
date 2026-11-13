@@ -47,7 +47,7 @@ def main():
                 if time.monotonic() > deadline:
                     raise RuntimeError('Image preparation did not shut down')
                 time.sleep(2)
-            helper('stop', resource['slot'])
+            helper('stop', resource['slot'], resource['id'])
             candidate = state.directory / 'candidate.qcow2'
             execute(['qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=180)
             manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest, 'build_log_sha256': digest(log)}

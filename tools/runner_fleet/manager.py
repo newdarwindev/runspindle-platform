@@ -91,7 +91,7 @@ class Manager:
             observed = helper('observe', slot)
             if observed.get('ActiveState') in ('active', 'activating', 'deactivating') and not any(r['slot'] == slot for r in occupied):
                 # No replacement may launch while an untracked service exists.
-                helper('stop', slot)
+                helper('stop', slot, observed['resource_id'])
                 directory = Path('/var/lib/runspindle-fleet/slots') / str(slot)
                 for name in ('disk.qcow2', 'seed.iso', 'serial.log'):
                     path = directory / name
