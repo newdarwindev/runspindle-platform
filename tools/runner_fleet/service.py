@@ -1,5 +1,6 @@
 """Observed Strix service controls, fresh preflight and bounded qualification."""
 import json
+from datetime import datetime
 import os
 from pathlib import Path
 import platform
@@ -203,7 +204,11 @@ def qualify(cfg, revisions, directory, ref):
     while time.monotonic() < deadline:
         terminal = True
         for repo, item in dispatched.items():
+            if item.get('terminal'):
+                continue
             full = cfg['owner'] + '/' + repo
+            cell = next(c for c in report['coverage'] if c['repository'] == full and c['lane'] == 'strix-linux-x64')
+            expired = time.monotonic() - start >= cfg['queue_timeout_seconds']
             if item['id'] is None:
                 candidates = [r for r in gh(f'repos/{full}/actions/workflows/fleet-qualification.yml/runs?per_page=30')['workflow_runs']
                               if r['id'] not in item['before'] and r['head_sha'] == item['sha'] and r['event'] == 'workflow_dispatch']
@@ -212,29 +217,43 @@ def qualify(cfg, revisions, directory, ref):
                 if candidates:
                     item['id'] = candidates[0]['id']
             if item['id'] is None:
-                terminal = False
+                if expired:
+                    cell.update(status='blocked', reason='30-minute queue deadline exceeded before dispatch was observed')
+                    item['terminal'] = True
+                else:
+                    terminal = False
                 continue
             run = gh(f'repos/{full}/actions/runs/{item["id"]}')
             jobs = pages(f'repos/{full}/actions/runs/{item["id"]}/jobs', 'jobs')
-            cell = next(c for c in report['coverage'] if c['repository'] == full and c['lane'] == 'strix-linux-x64')
             cell.update({'jobs': jobs, 'run_id': item['id'], 'url': run['html_url']})
             matching = [j for j in jobs if j['name'] == 'strix-linux-x64']
-            if len(matching) != 1:
-                terminal = False
+            if len(matching) != 1 or matching[0]['status'] == 'queued':
+                if expired:
+                    cell.update(status='blocked', reason='30-minute queue deadline exceeded')
+                    if run['status'] != 'completed':
+                        gh(f'repos/{full}/actions/runs/{item["id"]}/cancel', 'POST')
+                    item['terminal'] = True
+                else:
+                    terminal = False
                 continue
             job = matching[0]
-            if job['status'] == 'queued' and time.monotonic() - start > cfg['queue_timeout_seconds']:
-                cell.update(status='blocked', reason='30-minute queue deadline exceeded')
-            elif run['status'] == 'completed':
+            if run['status'] == 'completed':
                 from .model import classify_job
                 status, reason = classify_job(job | {'head_sha': run['head_sha']}, item['sha'], cfg['lanes']['strix-linux-x64'])
                 cell.update(status=status, reason=reason)
-                if job['status'] == 'completed':
+                try:
                     log = execute(['gh', 'api', f'repos/{full}/actions/jobs/{job["id"]}/logs'], timeout=45)
                     path = Path(directory) / f'qualification-{repo}-{job["id"]}.log'
                     path.write_text(log.stdout)
                     path.chmod(0o600)
                     cell['log_path'] = str(path)
+                except Exception as error:
+                    cell.update(status='blocked', reason='Authoritative job logs unavailable: ' + str(error))
+                item['terminal'] = True
+            elif job.get('started_at') and time.time() - datetime.fromisoformat(job['started_at'].replace('Z', '+00:00')).timestamp() >= cfg['job_timeout_seconds']:
+                gh(f'repos/{full}/actions/runs/{item["id"]}/cancel', 'POST')
+                cell.update(status='failed', reason='15-minute execution deadline exceeded')
+                item['terminal'] = True
             else:
                 terminal = False
         path = Path(directory) / 'qualification.json'
@@ -246,4 +265,6 @@ def qualify(cfg, revisions, directory, ref):
     # Mac lanes and fault scenarios remain explicitly pending even if all
     # dispatched workloads passed. This is a workload report, not rollout proof.
     report['dispatch_elapsed_seconds'] = time.monotonic() - start
+    requested_cells = [c for c in report['coverage'] if c['lane'] == 'strix-linux-x64' and c['repository'].split('/')[-1] in revisions]
+    report['workload_status'] = 'passed' if requested_cells and all(c['status'] == 'passed' for c in requested_cells) else 'blocked'
     return report
