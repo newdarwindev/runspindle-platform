@@ -44,7 +44,17 @@ def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
     if drained:
         return [], cursor
     slots = max(0, cfg["hosts"][host]["capacity"] - len(active))
-    remaining = list(queued)
+    # GitHub may still report a booting reservation as queued. Job IDs are
+    # repository scoped; unidentifiable entries cannot reserve infrastructure.
+    reserved = {(j.get("repository"), j.get("id")) for j in active if "id" in j}
+    remaining = []
+    seen = set(reserved)
+    for job in queued:
+        identity = (job.get("repository"), job.get("id"))
+        if type(identity[1]) is not int or identity[1] <= 0 or identity in seen:
+            continue
+        seen.add(identity)
+        remaining.append(job)
     selected = []
     repos = cfg["repositories"]
     while slots:
