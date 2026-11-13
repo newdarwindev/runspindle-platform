@@ -19,6 +19,8 @@ v['versions'].update({n:subprocess.check_output([n,'--version'],text=True).strip
 v['packages']=subprocess.check_output(['dpkg-query','-W','-f=${Package}\t${Version}\n'],text=True).splitlines()
 v['license_sha256']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in pathlib.Path('/usr/share/doc').glob('*/copyright') if p.is_file()}
 v['temporal']=json.loads(pathlib.Path('/opt/runspindle-temporal/prepared.json').read_text())
+v['rust_dependencies']=json.loads(pathlib.Path('/opt/runspindle-rust-dependencies.json').read_text())
+v['identity'] += '-rust-closure'
 print(json.dumps(v,sort_keys=True))
 PY
 sudo -E env RUNSPINDLE_TEMPORAL_PREPARED=/opt/runspindle-temporal python3 -m unittest discover -s /opt/runspindle-image-tools/tests -v

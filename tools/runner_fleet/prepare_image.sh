@@ -31,14 +31,45 @@ licenses={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in pathlib.Pat
 versions={name:subprocess.check_output([name,'--version'],text=True).strip() for name in ['python3','git','rustc','cargo','node']}
 print(json.dumps({'schema_version':1,'identity':'strix-ubuntu24.04-runner2.338.2-rust1.93.0-v1','versions':versions,'packages':packages.splitlines(),'license_sha256':licenses,'runner_sha256':'baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40','ubuntu_sha256':'04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94','rust_sha256':'b9d9f01a96a2542852ccfddd82194276ba1c86bc76353309ff636b737fc0a772'},sort_keys=True))
 PY
-# Verify the offline Rust components without pulling any crate.
-mkdir -p /tmp/offline-probe/src
-printf '[package]\nname="offline-probe"\nversion="0.0.0"\nedition="2021"\n' > /tmp/offline-probe/Cargo.toml
-printf 'pub fn ready() -> bool { true }\n' > /tmp/offline-probe/src/lib.rs
-cd /tmp/offline-probe
-cargo test --offline
-cargo clippy --offline -- -D warnings
-sudo rm -rf /home/runner/preparation /tmp/offline-probe
+# Pin real source trees before fetching their committed dependency closures.
+for pair in "core:$RUNSPINDLE_CORE_SHA" "host:$RUNSPINDLE_HOST_SHA"; do
+  name=${pair%%:*}
+  revision=${pair#*:}
+  git clone "https://github.com/newdarwindev/runspindle-$name.git" "/home/runner/preparation/$name"
+  cd "/home/runner/preparation/$name"
+  git checkout --detach "$revision"
+  test "$(git rev-parse HEAD)" = "$revision"
+  test -f Cargo.lock
+  cargo fetch --locked
+done
+for name in host core; do
+  cd "/home/runner/preparation/$name"
+  CARGO_NET_OFFLINE=true cargo test --offline --locked
+  CARGO_NET_OFFLINE=true cargo clippy --offline --locked --all-targets -- -D warnings
+done
+python3 - <<'PY' | sudo tee /opt/runspindle-rust-dependencies.json >/dev/null
+import hashlib, json, os, pathlib, subprocess, tomllib
+root = pathlib.Path('/home/runner/preparation')
+crates = []
+for source in pathlib.Path('/home/runner/.cargo/registry/src').glob('*/*'):
+    manifest = source / 'Cargo.toml'
+    if manifest.is_file():
+        package = tomllib.loads(manifest.read_text()).get('package', {})
+        crates.append({'name': package.get('name'), 'version': package.get('version'),
+                       'license': package.get('license'), 'license_file': package.get('license-file')})
+archives = {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+            for p in pathlib.Path('/home/runner/.cargo/registry/cache').glob('*/*.crate')}
+projects = {}
+for name in ('core', 'host'):
+    path = root / name
+    projects[name] = {'commit': subprocess.check_output(['git', '-C', str(path), 'rev-parse', 'HEAD'], text=True).strip(),
+                      'lock_sha256': hashlib.sha256((path / 'Cargo.lock').read_bytes()).hexdigest(),
+                      'packages': tomllib.loads((path / 'Cargo.lock').read_text())['package']}
+print(json.dumps({'schema_version': 1, 'projects': projects, 'crates': sorted(crates, key=lambda x:(x['name'], x['version'])),
+                  'archive_sha256': archives}, sort_keys=True))
+PY
+cd /home/runner
+sudo rm -rf /home/runner/preparation
 sudo apt-get clean
 sudo systemctl disable apt-daily.timer apt-daily-upgrade.timer
 bash /opt/runspindle-image-tools/tools/runner_fleet/prepare_temporal.sh
