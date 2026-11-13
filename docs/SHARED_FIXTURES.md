@@ -17,3 +17,13 @@ Golden envelopes are checked against independent original identity/state/receipt
 This is Python fixture-format conformance only. No cross-language/runtime producer-consumer mapping, authenticated authority, external effects, durable restart, upstream compatibility, isolated integration, GitHub CI, live acceptance or deployment is established. Operational acceptance entrypoints and workflows are unchanged.
 
 Remaining #1 blocker: Qualified upstream source/image/toolchain pins, permitted telemetry/client surfaces, real backend readback and disposable target installer/store adapters are unselected. The schema-URL masking gap stays unresolved. No service, install plan or installed-byte rollback is qualified. The test schema is provisional and does not decide these runtime interfaces. Fixture pins can be consumed in isolation; actual component adapter suites must be implemented and reviewed separately. No passing fixture can replace their blocked gates.
+
+## Verified loader correction
+
+The consumer executes the exact in-memory source snapshot verified against the
+pin chain. It bypasses Python bytecode caches, which are not part of the fixture
+manifest. A regression plants valid timestamp/size-matching unreviewed bytecode
+that raises if executed; fixture conformance still passes using the reviewed
+source. This fixes a test-loader trust gap without changing fixture or runtime
+contracts. Six consumer tests now pass. Historical adoption evidence remains
+unchanged; `verified-loader-evidence.json` records this correction.
