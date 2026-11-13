@@ -24,3 +24,10 @@ Preserve explicit authority and unknown outcomes. Distinguish request admission,
 A pinned Linux arm64 Temporal development lane now has real readiness, killed-server persistence and cleanup tests. This is bounded development evidence, not the full platform gates. See [lane instructions](../docs/TEMPORAL_LANE.md) and [exact observations](../docs/temporal-lane-evidence.json).
 
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).
+
+## Engineering direction
+
+[Desired intent](desired-intent.md) connects this component to scoped access,
+managed sessions, explicit human exceptions and evaluated maintained workflows.
+It adds design and verification obligations without changing runtime schemas,
+existing acceptance results or operational permissions.

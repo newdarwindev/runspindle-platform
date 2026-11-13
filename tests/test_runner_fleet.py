@@ -37,7 +37,7 @@ class SchedulingTests(unittest.TestCase):
     def test_round_robin_and_shared_capacity(self):
         jobs = [
             self.job(repo, identity=i)
-            for i, repo in enumerate(self.cfg["repositories"])
+            for i, repo in enumerate(self.cfg["repositories"], start=1)
         ]
         cursor = 0
         seen = []
@@ -49,6 +49,22 @@ class SchedulingTests(unittest.TestCase):
         self.assertEqual(choose_jobs(self.cfg, "strix", jobs, [{}, {}])[0], [])
         self.assertEqual(len(choose_jobs(self.cfg, "strix", jobs, [{}])[0]), 1)
         self.assertEqual(choose_jobs(self.cfg, "strix", jobs, [], drained=True)[0], [])
+
+    def test_duplicate_and_already_reserved_jobs_cannot_reserve_again(self):
+        job = self.job("runspindle", identity=123)
+        self.assertEqual(
+            len(choose_jobs(self.cfg, "strix", [job, dict(job)], [])[0]), 1
+        )
+        for state in ("booting", "unknown", "running"):
+            self.assertEqual(
+                choose_jobs(self.cfg, "strix", [job], [dict(job, state=state)])[0], []
+            )
+        other = self.job("runspindle-core", identity=123)
+        self.assertEqual(choose_jobs(self.cfg, "strix", [other], [job])[0], [other])
+        for identity in (None, True, 0, -1, "123"):
+            self.assertEqual(
+                choose_jobs(self.cfg, "strix", [dict(job, id=identity)], [])[0], []
+            )
 
     def test_mac_linux_and_native_share_one_slot(self):
         jobs = [
