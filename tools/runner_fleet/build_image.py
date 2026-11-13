@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 import json
+import os
 import shlex
 from pathlib import Path
 import subprocess
@@ -53,7 +54,8 @@ def main():
                 time.sleep(2)
             helper('stop', resource['slot'], resource['id'])
             candidate = state.directory / 'candidate.qcow2'
-            execute(['qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=180)
+            execute(['sudo', '-n', 'qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=600)
+            execute(['sudo', '-n', 'chown', f'{os.getuid()}:{os.getgid()}', str(candidate)])
             manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest, 'build_log_sha256': digest(log)}
             path = state.directory / 'candidate.json'
             path.write_text(json.dumps(manifest, indent=2))
