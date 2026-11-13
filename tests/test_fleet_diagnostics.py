@@ -7,13 +7,19 @@ import time
 import unittest
 from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'tools'))
-from runner_fleet.backend import Backend
+from runner_fleet.backend import Backend, execute
 from runner_fleet.manager import Manager
 from runner_fleet.model import config
 from runner_fleet.state import State
 
 
 class DiagnosticsTests(unittest.TestCase):
+    def test_unbounded_guest_output_fails_closed_before_host_exhaustion(self):
+        with self.assertRaisesRegex(RuntimeError, 'output limit'):
+            execute([sys.executable, '-c', "import sys; sys.stdout.write('x' * 1000000)"], output_limit=4096)
+        result = execute([sys.executable, '-c', "print('small diagnostic')"], output_limit=4096)
+        self.assertEqual(result.stdout.strip(), 'small diagnostic')
+
     def test_failed_ssh_does_not_overwrite_captured_logs(self):
         with tempfile.TemporaryDirectory() as temporary:
             state = State(Path(temporary) / 'state')

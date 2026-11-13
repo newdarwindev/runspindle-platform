@@ -3,6 +3,8 @@ import base64
 import hashlib
 import json
 import os
+import resource as process_resource
+import tempfile
 from pathlib import Path
 import shlex
 import shutil
@@ -14,8 +16,24 @@ ROOT = Path('/var/lib/runspindle-fleet')
 HELPER = '/opt/runspindle-fleet/tools/runner_fleet/host_helper.py'
 
 
-def execute(argv, *, timeout=60, input=None, check=True):
-    result = subprocess.run(argv, input=input, text=True, capture_output=True, timeout=timeout)
+def execute(argv, *, timeout=60, input=None, check=True, output_limit=None):
+    if output_limit is None:
+        result = subprocess.run(argv, input=input, text=True, capture_output=True, timeout=timeout)
+    else:
+        # Guest-controlled stdout must not become unbounded host memory/disk.
+        # RLIMIT_FSIZE applies to the host SSH process, never guest workloads.
+        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+            def bounded_files():
+                process_resource.setrlimit(process_resource.RLIMIT_FSIZE, (output_limit, output_limit))
+            completed = subprocess.run(argv, input=input, text=True, stdout=stdout,
+                                       stderr=stderr, timeout=timeout, preexec_fn=bounded_files)
+            if max(os.fstat(stdout.fileno()).st_size, os.fstat(stderr.fileno()).st_size) >= output_limit:
+                raise RuntimeError('Guest diagnostic output limit exceeded')
+            stdout.seek(0)
+            stderr.seek(0)
+            result = subprocess.CompletedProcess(argv, completed.returncode,
+                stdout.read(output_limit).decode('utf-8', errors='replace'),
+                stderr.read(output_limit).decode('utf-8', errors='replace'))
     if check and result.returncode:
         # Never embed input (registration token) or argv in an exception.
         raise RuntimeError(f'{Path(argv[0]).name} failed ({result.returncode}): {result.stderr[-2000:]}')
@@ -61,7 +79,7 @@ class Backend:
                         '-o', 'ConnectTimeout=3', '-o', 'ForwardAgent=no',
                         '-o', 'ClearAllForwardings=yes',
                         f'runner@10.231.{resource["slot"]}.2', 'bash', '-s'],
-                       input=script, timeout=timeout, check=check)
+                       input=script, timeout=timeout, check=check, output_limit=32 * 1024**2)
 
     def create(self, resource, prepare=False):
         directory = self.directory(resource)
