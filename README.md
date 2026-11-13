@@ -13,3 +13,8 @@ This repository is one boundary of [Runspindle](https://github.com/newdarwindev/
 - No credentials, real sessions, messages, datasets, browser profiles or live host inventory belong here.
 
 No old repository is retired by this scaffold. Migration and archival are separate verified gates.
+
+## Runner fleet preparation
+
+See [readiness tooling and remaining deployment work](docs/RUNNER_FLEET.md).
+No fleet deployment or live qualification is claimed.

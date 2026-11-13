@@ -20,3 +20,5 @@ jobs:
           persist-credentials: false
       - name: Validate scaffold only
         run: python3 tools/check_scaffold.py
+      - name: Test implemented platform contracts
+        run: python3 -m unittest discover -s tests -v
