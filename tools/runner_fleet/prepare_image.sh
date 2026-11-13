@@ -68,6 +68,7 @@ for name in ('core', 'host'):
 print(json.dumps({'schema_version': 1, 'projects': projects, 'crates': sorted(crates, key=lambda x:(x['name'], x['version'])),
                   'archive_sha256': archives}, sort_keys=True))
 PY
+cd /home/runner
 sudo rm -rf /home/runner/preparation
 sudo apt-get clean
 sudo systemctl disable apt-daily.timer apt-daily-upgrade.timer
