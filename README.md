@@ -13,3 +13,5 @@ This repository is one boundary of [Runspindle](https://github.com/newdarwindev/
 - No credentials, real sessions, messages, datasets, browser profiles or live host inventory belong here.
 
 No old repository is retired by this scaffold. Migration and archival are separate verified gates.
+
+A bounded [disposable Temporal development lane](docs/TEMPORAL_LANE.md) now has pinned preparation, real persistence/restart and cleanup evidence. Other platform adapters and product acceptance remain incomplete.
