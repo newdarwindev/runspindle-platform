@@ -300,17 +300,16 @@ class FailureBoundaryTests(unittest.TestCase):
                 self.assertEqual(checks["disk"]["status"], "blocked")
                 self.assertEqual(checks["memory"]["status"], "blocked")
 
-    def test_control_commands_never_claim_observed_drain_or_uninstall(self):
-        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(
-            io.StringIO()
-        ):
+    def test_strix_controls_use_observed_service_backend(self):
+        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
             args = ["--host", "strix", "--state-dir", directory]
-            self.assertEqual(fleet.main(["resume", *args]), 0)
-            self.assertEqual(fleet.main(["status", *args]), 2)
-            self.assertEqual(fleet.main(["uninstall", *args]), 2)
-            control = json.loads((Path(directory) / "strix-control.json").read_text())
-            self.assertEqual(control["observed_state"], "not_installed")
-            self.assertEqual(control["desired_state"], "running")
+            with patch("runner_fleet.service.control", return_value={"status": "blocked"}) as control:
+                self.assertEqual(fleet.main(["resume", *args]), 2)
+                control.assert_called_once()
+            with patch("runner_fleet.service.observed", return_value={"status": "blocked"}):
+                self.assertEqual(fleet.main(["status", *args]), 2)
+            with patch("runner_fleet.service.uninstall", return_value={"status": "blocked"}):
+                self.assertEqual(fleet.main(["uninstall", *args]), 2)
 
     def test_reject_unknown_or_unpinned_revisions(self):
         with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(

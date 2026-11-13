@@ -1,0 +1,28 @@
+{
+  "https_domains": [
+    "github.com",
+    "api.github.com",
+    "codeload.github.com",
+    "objects.githubusercontent.com",
+    "release-assets.githubusercontent.com",
+    "raw.githubusercontent.com",
+    "github-releases.githubusercontent.com",
+    "*.actions.githubusercontent.com",
+    "*.actions.github.com",
+    "results-receiver.actions.githubusercontent.com",
+    "static.rust-lang.org",
+    "archive.ubuntu.com",
+    "security.ubuntu.com",
+    "nodejs.org",
+    "*.blob.core.windows.net"
+  ],
+  "ports": [
+    443
+  ],
+  "dns": "host resolution per connection; reject entire answer set on any non-global IPv4; numeric dial only",
+  "ipv6": "blocked at guest tap",
+  "http": "denied",
+  "purpose": "GitHub runner control, source/action archives, and image dependency preparation",
+  "github_endpoint_source": "https://docs.github.com/en/actions/reference/runners/self-hosted-runners#accessible-domains-by-function",
+  "blob_storage_purpose": "GitHub-documented dynamic storage-account family for job logs, summaries, artifacts and cache transport; observed accounts rotate between jobs. HTTPS/public IPv4 checks remain mandatory."
+}

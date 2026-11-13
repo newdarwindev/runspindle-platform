@@ -12,7 +12,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   scaffold-structure:
-    runs-on: [self-hosted, linux, x64, runspindle-isolated]
+    runs-on: [self-hosted, linux, x64, runspindle-isolated, strix]
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -21,4 +21,4 @@ jobs:
       - name: Validate scaffold only
         run: python3 tools/check_scaffold.py
       - name: Test implemented platform contracts
-        run: python3 -m unittest discover -s tests -v
+        run: python3 tools/validate.py

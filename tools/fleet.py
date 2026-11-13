@@ -2,7 +2,7 @@
 """Readiness and evidence commands for the isolated runner fleet.
 
 Exit 2 means blocked, never successful deployment. No runner is registered by
-this preparation tool; lifecycle backends and service installation are pending.
+the Mac preparation tools; Strix uses the disposable host manager.
 """
 import argparse
 import json
@@ -34,6 +34,7 @@ def main(argv=None):
     parser.add_argument(
         "command",
         choices=(
+            "manage",
             "preflight",
             "install",
             "status",
@@ -57,12 +58,27 @@ def main(argv=None):
         type=Path,
         help="JSON map of owner/repo/lane to GitHub run ID; fetched and verified",
     )
+    parser.add_argument("--ref", default="ci/strix-push-validation", help="Trusted qualification branch")
     args = parser.parse_args(argv)
     cfg = config()
     state = args.state_dir.expanduser().resolve()
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
     control = state / (args.host + "-control.json")
-    if args.command in ("drain", "resume"):
+    if args.host == "strix" and args.command in ("manage", "install", "preflight", "status", "drain", "resume", "uninstall"):
+        from runner_fleet import service
+        if args.command == "manage":
+            from runner_fleet.manager import Manager
+            Manager(cfg, state).run()
+            return 0
+        if args.command in ("preflight", "install", "uninstall"):
+            result = getattr(service, args.command)(cfg, state)
+        elif args.command == "status":
+            result = service.observed(state)
+        else:
+            result = service.control(cfg, state, args.command)
+    elif args.command == "manage":
+        result = {"status": "blocked", "reason": "Mac managers remain pending"}
+    elif args.command in ("drain", "resume"):
         # This is desired state only. Never advertise drained until a real
         # manager confirms that active resources and registrations are absent.
         result = {
@@ -117,6 +133,9 @@ def main(argv=None):
             if not isinstance(receipts, dict) or not set(receipts) <= valid_keys:
                 parser.error("receipts contain an unknown repository/lane")
             result = collect(cfg, revisions, receipts, state)
+        elif args.host == "strix" and revisions:
+            from runner_fleet.service import qualify
+            result = qualify(cfg, revisions, state, args.ref)
         else:
             result = empty_report(cfg, revisions)
         write_json(state / "qualification.json", result)
@@ -125,4 +144,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except (OSError, RuntimeError, ValueError) as error:
+        print(json.dumps({"status": "blocked", "reason": str(error)}))
+        sys.exit(2)

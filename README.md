@@ -16,9 +16,11 @@ No old repository is retired by this scaffold. Migration and archival are separa
 
 A bounded [disposable Temporal development lane](docs/TEMPORAL_LANE.md) now has pinned preparation, real persistence/restart and cleanup evidence. Other platform adapters and product acceptance remain incomplete.
 
-## Runner fleet preparation
+## Disposable Strix runners
 
 See [readiness tooling and remaining deployment work](docs/RUNNER_FLEET.md).
+The QEMU backend, transactional systemd manager and shared push validation entrypoint are implemented. Live rollout is gated on private execution, cleanup and recovery evidence; startup and required checks remain disabled until qualification. Both Mac lanes remain pending.
+
 No fleet deployment or live qualification is claimed.
 
 ## Desired technical direction

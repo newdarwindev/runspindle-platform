@@ -1,103 +1,124 @@
-# Isolated runner fleet preparation
+# Disposable runner fleet
 
-This is a partial implementation of the approved fleet deployment plan.
-No fleet manager, service or runner has been installed. No GitHub job has
-qualified a lane. Existing acceptance gates and repository protections are
-unchanged. Production deployment remains unimplemented.
+Strix has a QEMU/KVM execution backend and a transactional manager. Live push,
+cleanup, recovery and unattended qualification must pass before startup is
+enabled or branch protections require `validation / strix-linux-x64`. Source
+implementation and synthetic tests alone do not establish deployment evidence.
+Both Mac lanes remain pending with their original memory reserves and gates.
 
-## Implemented and tested locally
+## Execution boundary
 
-- `fleet/config.json` defines the eight repository allowlist, three lane labels,
-  resource budgets, shared host capacities and queue/job timeout policy.
-- `tools/runner_fleet/model.py` selects explicitly labelled queued jobs fairly
-  across repositories. Unknown and booting resources consume capacity. Both Mac
-  lanes share one slot. This pure scheduler is not yet wired to a manager.
-- `tools/fleet.py preflight --host strix|macbook` checks local host identity,
-  installed executables, usable KVM, disk and conservative memory headroom, and
-  administration access to all eight repositories using the existing `gh` login.
-  It must run on the named physical host, under the intended service account.
-- `qualify` creates a 24-cell report (eight repositories, three lanes) with all
-  nine operational scenarios explicitly blocked until exercised. With receipts,
-  it fetches authoritative GitHub workflow and job data, verifies the requested
-  SHA, event, workflow path, lane labels, fleet runner identity and workload step,
-  and preserves completed job logs privately. A passing workload cell cannot
-  certify disposable isolation, recovery, fairness or the overall fleet.
-- Reports and logs use atomic replacement and mode 0600. Raw evidence belongs
-  outside Git; public code and tests use synthetic identifiers only.
+Two fixed slots each reserve 4 vCPU and 6 GiB. Starting, cleaning and uncertain
+resources occupy capacity. SQLite WAL transactions persist reservations before
+external effects; an exclusive process lock prevents competing managers.
+Dedicated unprivileged VM accounts run QEMU through bounded transient systemd
+units. Guests receive an ephemeral SSH public key and a repository registration
+token over SSH stdin. Account credentials remain in host-side `gh`.
 
-The existing platform CI now runs all implemented Python tests. Its configured
-workflow has not been run on a qualified fleet runner.
+`host_helper.py` is installed root-owned under `/opt/runspindle-fleet`. Its
+accepted operations and slot paths are fixed. Fleet TAPs never bridge existing
+networks. The fleet-owned nftables table is installed atomically before boot;
+it denies host, LAN, peer and Internet traffic except each slot's own HTTPS
+CONNECT proxy and replies to host administration. IPv6 is denied. No existing
+firewall tables are flushed. `fleet/egress.json` records domain permissions.
+The proxy resolves every connection, rejects any private/reserved/multicast
+answer and dials a validated numeric address without another DNS lookup.
 
-## Commands
+Live synthetic host and LAN canaries must first be reachable from the host,
+then unreachable from the guest before runner registration. Pre-registration
+probes also verify absent personal mounts, management keys, Docker sockets and
+previous workspaces. Failures retain diagnostics and occupy capacity until
+cleanup is established. No guest is a personal/persistent runner.
 
-Run from the component checkout. Default state is
-`~/.local/state/runspindle-fleet`; use `--state-dir` on the intended volume.
-Exit 2 means blocked. Reports always distinguish preparation from deployment.
+## Image preparation
+
+`fleet/image-inputs.json` pins Ubuntu, runner, Rust and Node checksums and
+licenses. A changed download fails verification. The guest package/license
+manifest records all package versions and copyright hashes. Core currently has
+no external Rust crates; offline test/Clippy probes run in the image build.
+Future external crates require a pinned offline vendor closure in the image.
+No image binaries belong in Git.
+
+On Strix, after reviewing source and prerequisites:
 
 ```sh
+sudo python3 tools/runner_fleet/bootstrap_host.py
+python3 tools/runner_fleet/build_image.py
 python3 tools/fleet.py preflight --host strix
+python3 tools/fleet.py install --host strix
 python3 tools/fleet.py status --host strix
-python3 tools/fleet.py qualify --host strix --revisions /private/revisions.json
-python3 tools/fleet.py qualify --host strix --revisions /private/revisions.json --receipts /private/receipts.json
+python3 tools/fleet.py resume --host strix
 ```
 
-`revisions.json` maps each short repository name to its exact lowercase
-40-character commit SHA. Receipt keys are `newdarwindev/REPOSITORY/LANE` and
-values are positive numeric workflow run IDs. Collection requires revisions for
-all eight repositories. Only jobs named exactly after the configured lane from
-`.github/workflows/fleet-qualification.yml` are eligible. That workflow is not
-yet installed in any repository; existing unrelated workflows cannot qualify.
-Raw logs may contain private build data and must remain private.
+The bootstrap installs only fleet accounts, root-owned code, TAPs, rules,
+proxies and canaries. Image preparation shares the manager's capacity ledger.
+The base image is sealed root-owned/read-only, and its digest is checked before
+preflight and resume. Installation runs a fresh disposable guest probe, checks
+resources and all repository permissions, and probes existing `gh` credentials
+in the actual systemd User/DBus context. Missing background credentials block
+installation; credentials are never replaced. The manager starts drained and
+startup remains disabled. `resume` requires a recent successful preflight.
 
-`drain` and `resume` currently write **desired state only**; they cannot control
-resources without a manager and report observed state as `not_installed`.
-`install` always refuses while backend and isolation prerequisites remain
-unimplemented/unqualified. `uninstall` reports blocked and touches no external
-resources, since this tool has installed none. Logs are retained.
+## Operation and reconciliation
 
-## Private readiness evidence
+The manager polls every 30 seconds, selecting explicitly labelled trusted
+`main`/`ci/*` push/manual jobs round-robin across the eight repositories. Labels
+cannot bind a runner to one queued job: the actual claimed job, SHA and runner
+ID are persisted independently from the triggering queue reservation. Runners
+register repository-scoped, ephemeral, with updates disabled against the pinned
+image. Every runner executes at most one job.
 
-Run the probes on both hosts and retain the JSON reports outside Git. Do not
-publish operational inventory or raw job logs in public commits. Interactive
-GitHub access is not evidence of credential access from systemd/launchd. A
-pre-existing pilot image is not a qualified fleet image.
-
-## Work still required before deployment
-
-1. Implement QEMU/KVM, Lima and Tart lifecycle drivers, durable reservations,
-   registration/removal, diagnostics, cancellation and restart reconciliation.
-2. Prepare architecture-specific, digest-pinned images, runner archives and
-   toolchains, including Rust offline dependencies; record image/tool licensing.
-3. Enforce host-side network allowlists and deny host/LAN canaries. Disable
-   personal mounts, host sockets, forwarded credentials and management access.
-   A default Lima/Tart/QEMU configuration is not isolation evidence.
-4. Implement systemd/launchd managers and check credential access in their real
-   background context. Startup remains disabled until complete qualification.
-5. Add portable validation in isolated branches for all eight repositories,
-   native Mac host validation and release candidate gates. Preserve all blocked
-   acceptance conclusions, trusted triggers and existing unrelated protections.
-6. Implement dispatch, terminal-state following, queue timeout, workload/image
-   identity attestation and all nine live scenario exercises. The collector is
-   not yet a dispatch or fault-injection harness. Configured 900/1800-second
-   timeout values are policy, not implemented live timeout enforcement.
-7. Qualify Strix first, then Mac Linux, then Mac native. Record 16 Linux and eight
-   native Mac executions, exact SHAs, job URLs, runner identities, resource use,
-   freshness/canaries, fairness and recovery. A named successful step alone does
-   not prove its contents; qualify the pinned workflow/image implementation too.
-8. Only after success, enable startup and the agreed passing Strix requirements,
-   merge normally and update the composition submodule pin and lockfile together.
-
-The partial implementation deliberately does not expose an option to assert that
-missing isolation/background/image checks passed. No account credentials enter
-guests; no guests are created by these preparation commands.
-
-## Validation
+Boot is bounded to 240 seconds, registration to 90 seconds, waiting for a claim
+to 180 seconds, job execution to 900 seconds and guest lifetime to 1500 seconds.
+Cleanup operations have bounded subprocess deadlines. Timeouts record failed
+or blocked reasons. Diagnostics, GitHub logs and the ownership ledger remain
+outside guests under the private state directory. Cleanup must confirm stopped
+VMs, absent disks/seeds and absent runner registrations before releasing a slot.
+A lost reply preserves uncertain ownership. On restart, interrupted boot or
+cleanup is reconciled before replacements; live running guests can continue.
+Untracked fleet services are stopped and their disks archived before allocation.
 
 ```sh
-python3 tools/check_scaffold.py
-python3 tools/check_shared_fixtures.py
-python3 -m unittest discover -s tests -v
+python3 tools/fleet.py drain --host strix
+python3 tools/fleet.py status --host strix
+python3 tools/fleet.py resume --host strix
+python3 tools/fleet.py qualify --host strix --ref ci/strix-push-validation --revisions /private/revisions.json
+python3 tools/fleet.py uninstall --host strix
 ```
 
-These are scaffold, fixture and synthetic unit tests. They do not establish
-integration, live runner qualification or product acceptance.
+Drain blocks allocations while current jobs finish. Status observes the service,
+heartbeat, guests, durable resources, queue, errors and reconciliation timestamp.
+Uninstall stops fleet work and removes the manager service, preserving logs,
+images and protective network rules. Qualification dispatches real workloads,
+follows terminal states and retains logs. Its queue limit is 1800 seconds;
+expired or ambiguous execution remains blocked. Mac coverage and the operational
+scenario matrix are never inferred from green workload jobs. Existing receipt
+collection remains available through `--receipts` with all exact revisions.
+
+## Workloads and rollout
+
+`tools/validate.py` is the shared push/qualification entrypoint. It executes
+structural, artifact, reference, mutation, fixture, Python, Rust and JavaScript
+checks where present. Rust tests and Clippy run offline. It prints the checkout
+SHA, image/tool versions, command exit codes, elapsed times, artifact checksums
+and remaining implementation gaps. Unimplemented builds are reported explicitly.
+The fleet image includes the prepared x64 Temporal dependency and a guest-local Docker daemon, so its real integration suite runs in canonical fleet validation. Local runs without that prepared environment explicitly report the integration skips. No host Docker socket is mounted.
+Acceptance workflows keep their failing gates separately.
+
+First qualify a platform `ci/*` push at its exact SHA, then all eight repositories.
+Prove deliberate failure/fix, two-slot capacity and fairness, guest freshness,
+registration cleanup, cancellation, guest loss, manager restart during work and
+cleanup, drain/resume and incompatible architecture exclusion. Retain private
+SHAs, job URLs, runner IDs, conclusions, logs, image IDs and peak usage. Merge
+through existing rules, verify all eight actual `main` pushes, and update the
+composition platform pin plus lockfile together after the platform merge. Only
+complete observed Strix qualification authorizes startup and required checks.
+
+## Local checks
+
+```sh
+python3 tools/validate.py
+```
+
+These local/synthetic checks do not certify live qualification or product
+acceptance. Both Mac lanes and product release gates remain separate.
