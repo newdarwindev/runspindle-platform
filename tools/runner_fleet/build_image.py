@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 import json
+import shlex
 from pathlib import Path
 import subprocess
 import sys
@@ -35,7 +36,10 @@ def main():
                     raise RuntimeError('Preparation boot timeout')
                 time.sleep(2)
             backend.isolation(resource, check_tooling=False)
-            result = backend.ssh(resource, (SOURCE / 'tools/runner_fleet/prepare_image.sh').read_text(), timeout=1200, check=False)
+            closure = pins['offline_rust_dependencies']
+            exports = ''.join(f'export {name}={shlex.quote(closure[key])}\n' for name, key in
+                              (('RUNSPINDLE_CORE_SHA', 'core'), ('RUNSPINDLE_HOST_SHA', 'host')))
+            result = backend.ssh(resource, exports + (SOURCE / 'tools/runner_fleet/prepare_image.sh').read_text(), timeout=3600, check=False)
             log = backend.directory(resource) / 'image-build.log'
             log.write_text(result.stdout + result.stderr)
             manifests = [line.removeprefix('RUNSPINDLE_IMAGE=') for line in result.stdout.splitlines() if line.startswith('RUNSPINDLE_IMAGE=')]
@@ -53,12 +57,9 @@ def main():
             manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest, 'build_log_sha256': digest(log)}
             path = state.directory / 'candidate.json'
             path.write_text(json.dumps(manifest, indent=2))
-            execute(['sudo', '-n', 'install', '-m', '0444', str(candidate), str(ROOT / 'images/qualified.qcow2')])
-            execute(['sudo', '-n', 'install', '-m', '0444', str(path), str(ROOT / 'images/qualified.json')])
-            candidate.unlink()
             backend.destroy(resource)
             state.update(resource, 'destroyed', cleanup_verified=True, image_sha256=manifest['sha256'])
-            print(json.dumps({'status': 'passed', 'image_sha256': manifest['sha256'], 'qualification': 'pending'}))
+            print(json.dumps({'status': 'candidate', 'image_sha256': manifest['sha256'], 'qualification': 'pending'}))
         except BaseException as error:
             state.update(resource, 'uncertain', error=str(error))
             raise

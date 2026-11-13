@@ -34,10 +34,15 @@ cleanup is established. No guest is a personal/persistent runner.
 
 `fleet/image-inputs.json` pins Ubuntu, runner, Rust and Node checksums and
 licenses. A changed download fails verification. The guest package/license
-manifest records all package versions and copyright hashes. Core currently has
-no external Rust crates; offline test/Clippy probes run in the image build.
-Future external crates require a pinned offline vendor closure in the image.
-No image binaries belong in Git.
+manifest records package versions and copyright hashes. The image recipe pins
+the current core and host validation commits, fetches their committed
+`Cargo.lock` closures (including core's pinned host Git dependency), and runs
+their actual test and Clippy commands with Cargo offline. The manifest records
+checkout and lock hashes, registry archive checksums and crate license fields.
+The build writes `candidate.qcow2` and `candidate.json` to the private state
+directory. Promote those bytes to `qualified.qcow2` only after fresh-guest
+workload, integrity, isolation and cleanup checks pass. No image binaries
+belong in Git.
 
 On Strix, after reviewing source and prerequisites:
 
