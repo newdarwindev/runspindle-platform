@@ -1,0 +1,58 @@
+{
+  "evidence_class": "local_synthetic_fixture_loader_regression",
+  "observed_at": "2026-11-13T18:48:10.269611+00:00",
+  "base_commit": "9afd8a5aa9dd218ed740d8adbc477504d377cc10",
+  "python_version": "Python 3.9.6",
+  "input_sha256": {
+    "tools/check_shared_fixtures.py": "ae1709e8de4d40df1c50019985843fb663f236e0cd964158b982a66fcfcf3fe1",
+    "tests/test_shared_fixtures.py": "8e799313f2a7e6c7092bcc7be9e4ec9e789f880bcaa69904ab818a048cd5bf88",
+    "docs/SHARED_FIXTURES.md": "39ae8e2cb20b29fc9e4e7f73a876fd15ed5624dfd557a4d48c0ca219319a489d"
+  },
+  "results": [
+    {
+      "command": [
+        "python3",
+        "tools/check_shared_fixtures.py"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"component\": \"platform\", \"evidence_class\": \"synthetic_fixture_conformance\", \"golden\": 2, \"integration\": \"not_run\", \"live_acceptance\": \"not_run\", \"negative_vectors\": 4, \"runtime_adapter\": \"not_implemented\", \"status\": \"passed\"}",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": "test_all_pinned_vectors_without_network (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_corrupt_validator_rejected_before_import (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_matching_unreviewed_bytecode_cache_is_never_executed (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_self_rehashed_tampering_does_not_update_reviewed_pin (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_unexpected_bundle_file_rejected (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_wrong_origin_pin_rejected (test_shared_fixtures.SharedFixtureTests) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.026s\n\nOK"
+    },
+    {
+      "command": [
+        "python3",
+        "tools/check_scaffold.py"
+      ],
+      "exit_code": 0,
+      "stdout": "{\"evidence_class\": \"scaffold_structure\", \"product_acceptance\": \"not_run\", \"repository\": \"newdarwindev/runspindle-platform\", \"status\": \"passed\"}",
+      "stderr": ""
+    },
+    {
+      "command": [
+        "git",
+        "diff",
+        "--check"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "github_ci": "not_run",
+  "runtime_adapter": "not_implemented",
+  "live_acceptance": "not_run"
+}
