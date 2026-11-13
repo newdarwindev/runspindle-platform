@@ -1,0 +1,8 @@
+{
+  "schema": "runspindle.fixture.v1",
+  "component": "platform",
+  "repository": "newdarwindev/runspindle",
+  "source_commit": "e8cd5779968fede213443db13a591c992cd0e183",
+  "origin_manifest_sha256": "1dd35d045064056dd66e6da3619ff100549e1c3e81c928f076cfd4109a524d81",
+  "subset_manifest_sha256": "d6685f1c3bfa9951158ba8c2ecf106f1183365c0b935420f39aeebf986e8ebe9"
+}

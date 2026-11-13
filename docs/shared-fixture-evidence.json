@@ -1,0 +1,63 @@
+{
+  "component_base": "373a56196cee275efca8597ea79a0ba4c14bf7a8",
+  "evidence_class": "local_synthetic_fixture_conformance",
+  "github_ci": "not_run",
+  "input_sha256": {
+    "STATUS.json": "972bed9abef04fc3f0374186dce2fa98b43baf276d5fe1bb519075063aa8f8ec",
+    "docs/SHARED_FIXTURES.md": "026bda02dd3a992e4392e22c915026e34435e609d1ec14eb5fb57871658c7d09",
+    "fixtures/shared-v1.pin.json": "ce4e43faf9ad319a319ce52861b6df49bad5fdebee29ad74a9a23be91bacb69b",
+    "fixtures/shared-v1/artifact.txt": "5d331381d2f6ae517386fdda84eb4f92011915473935b57385c69648cc85bbc8",
+    "fixtures/shared-v1/contract.json": "f707f1d2b7147797042292b6374afd34aecc39c09916ec7a809ae7587ee556a9",
+    "fixtures/shared-v1/fixturekit.py": "1bd6d10ae7105a44a0d583a8974230dde56af603c6ed2b75f67fe3f1fb16319f",
+    "fixtures/shared-v1/golden.json": "2423a15fd198f9ed32e452e2ac6f04177d5687c65e5cb7b42230c4986a1e40d6",
+    "fixtures/shared-v1/manifest.json": "d6685f1c3bfa9951158ba8c2ecf106f1183365c0b935420f39aeebf986e8ebe9",
+    "fixtures/shared-v1/vectors.json": "411863e6484c0dec8a9271afb390629af09f72af2cf289ef0af644539543e351",
+    "provenance.json": "e49cb151c44baec8f9f777945d1316479c18c2929db9a6f91064e59a2f9d5baf",
+    "tests/test_shared_fixtures.py": "5afd6503f98c6155e759c757f02c84b8ea61f08fd570c1daee74f8b6ef0d1089",
+    "tools/check_shared_fixtures.py": "7011533014b5fa77a82490e3f5a159b430ad71adced564838fb8c09e02916adf"
+  },
+  "isolated_integration": "not_run",
+  "live_acceptance": "not_run",
+  "observed_at": "2026-11-13T18:43:09.483615+00:00",
+  "operational_negative_control": {
+    "command": "python3 tools/acceptance_gate.py fixture-adoption",
+    "exit_code": 78,
+    "output": "{\"gate\": \"fixture-adoption\", \"reason\": \"Implementation, qualified local capacity and acceptance evidence are not yet available.\", \"status\": \"blocked\"}"
+  },
+  "python_version": "Python 3.9.6",
+  "results": [
+    {
+      "command": [
+        "python3",
+        "tools/check_shared_fixtures.py"
+      ],
+      "exit_code": 0,
+      "output": "{\"component\": \"platform\", \"evidence_class\": \"synthetic_fixture_conformance\", \"golden\": 2, \"integration\": \"not_run\", \"live_acceptance\": \"not_run\", \"negative_vectors\": 4, \"runtime_adapter\": \"not_implemented\", \"status\": \"passed\"}",
+      "test_summary": ""
+    },
+    {
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "output": "",
+      "test_summary": "test_all_pinned_vectors_without_network (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_corrupt_validator_rejected_before_import (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_self_rehashed_tampering_does_not_update_reviewed_pin (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_unexpected_bundle_file_rejected (test_shared_fixtures.SharedFixtureTests) ... ok\ntest_wrong_origin_pin_rejected (test_shared_fixtures.SharedFixtureTests) ... ok\n\n----------------------------------------------------------------------\nRan 5 tests in 0.018s\n\nOK"
+    },
+    {
+      "command": [
+        "python3",
+        "tools/check_scaffold.py"
+      ],
+      "exit_code": 0,
+      "output": "{\"evidence_class\": \"scaffold_structure\", \"product_acceptance\": \"not_run\", \"repository\": \"newdarwindev/runspindle-platform\", \"status\": \"passed\"}",
+      "test_summary": ""
+    }
+  ],
+  "source_commit": "e8cd5779968fede213443db13a591c992cd0e183"
+}
