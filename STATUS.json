@@ -8,6 +8,15 @@
   "live_acceptance": "not_run",
   "production_deployment": "not_run",
   "runner_capacity": "unverified",
+  "runner_fleet_preparation": {
+    "configuration": "fleet/config.json",
+    "disposable_backends": "not_implemented",
+    "documentation": "docs/RUNNER_FLEET.md",
+    "host_managers": "not_implemented",
+    "qualification": "blocked",
+    "required_checks": "unchanged",
+    "status": "locally_tested_readiness_and_evidence_tools"
+  },
   "runtime_adapter_tests": "passed_bounded_temporal_development_lane",
   "selected_source_migration": "partial",
   "stage": "temporal_lane_candidate",

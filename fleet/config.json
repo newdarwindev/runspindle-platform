@@ -1,0 +1,17 @@
+{
+  "schema_version": 1,
+  "owner": "newdarwindev",
+  "repositories": ["runspindle", "runspindle-core", "runspindle-host", "runspindle-browser", "runspindle-tether", "runspindle-refinery", "runspindle-console", "runspindle-platform"],
+  "poll_seconds": 30,
+  "job_timeout_seconds": 900,
+  "queue_timeout_seconds": 1800,
+  "hosts": {
+    "strix": {"capacity": 2, "reserve_memory_gib": 6, "minimum_disk_gib": 30},
+    "macbook": {"capacity": 1, "reserve_memory_gib": 6, "minimum_disk_gib": 40}
+  },
+  "lanes": {
+    "strix-linux-x64": {"host": "strix", "backend": "qemu-kvm", "os": "Linux", "architecture": "X64", "cpus": 4, "memory_gib": 6, "labels": ["self-hosted", "linux", "x64", "runspindle-isolated", "strix"]},
+    "macbook-linux-arm64": {"host": "macbook", "backend": "lima", "os": "Linux", "architecture": "ARM64", "cpus": 2, "memory_gib": 3, "labels": ["self-hosted", "linux", "ARM64", "runspindle-isolated", "macbook"]},
+    "macbook-macos-arm64": {"host": "macbook", "backend": "tart", "os": "macOS", "architecture": "ARM64", "cpus": 2, "memory_gib": 4, "labels": ["self-hosted", "macOS", "ARM64", "runspindle-isolated", "macbook"]}
+  }
+}
