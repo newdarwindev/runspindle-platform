@@ -57,6 +57,17 @@
       "timeout_seconds": 300
     },
     {
+      "id": "check-fleet-lifecycle-mutations",
+      "command": [
+        "python3",
+        "tools/check_fleet_lifecycle_mutations.py"
+      ],
+      "required_files": [
+        "tools/check_fleet_lifecycle_mutations.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
       "id": "python-tests",
       "command": [
         "python3",

@@ -8,11 +8,11 @@ import time
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Any, Callable, ContextManager, cast
+from typing import Any, Iterator
 
 
 class State:
-    def __init__(self, directory):
+    def __init__(self, directory: Any) -> None:
         os.umask(0o077)
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -39,7 +39,7 @@ class State:
         """)
 
     @contextmanager
-    def lock(self):
+    def lock(self) -> Iterator[None]:
         with (self.directory / "manager.lock").open("a") as stream:
             fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
             try:
@@ -48,7 +48,7 @@ class State:
                 fcntl.flock(stream, fcntl.LOCK_UN)
 
     @contextmanager
-    def transaction(self):
+    def transaction(self) -> Iterator[None]:
         self.db.execute("BEGIN IMMEDIATE")
         try:
             yield
@@ -57,19 +57,19 @@ class State:
             self.db.rollback()
             raise
 
-    def get(self, key, default=None):
+    def get(self, key: Any, default: Any = None) -> Any:
         row = self.db.execute(
             "SELECT value FROM control WHERE key=?", (key,)
         ).fetchone()
         return json.loads(row[0]) if row else default
 
-    def set(self, key, value):
+    def set(self, key: Any, value: Any) -> None:
         with self.db:
             self.db.execute(
                 "INSERT OR REPLACE INTO control VALUES(?,?)", (key, json.dumps(value))
             )
 
-    def active(self):
+    def active(self) -> list[dict[str, Any]]:
         return [
             dict(row) | {"details": json.loads(row["details"])}
             for row in self.db.execute(
@@ -85,11 +85,8 @@ class State:
     ) -> dict[str, Any]:
         if capacity != 2:
             raise ValueError("Strix capacity must be exactly two")
-        transaction = cast(Callable[[], ContextManager[None]], self.transaction)
-        active = cast(Callable[[], list[dict[str, Any]]], self.active)
-        event = cast(Callable[..., None], self._event)
-        with transaction():
-            occupied = active()
+        with self.transaction():
+            occupied = self.active()
             if len(occupied) >= capacity:
                 raise RuntimeError("Capacity exhausted, including uncertain resources")
             slot = next(
@@ -109,19 +106,32 @@ class State:
                     "reserved",
                     now,
                     now,
-                    json.dumps(details or {}),
+                    json.dumps(
+                        (details or {})
+                        | {
+                            "requested_source": {
+                                key: job.get(key)
+                                for key in (
+                                    "head_sha",
+                                    "run_id",
+                                    "event",
+                                    "head_branch",
+                                )
+                            }
+                        }
+                    ),
                 ),
             )
-            event(identity, "reserved", {"job": job, "slot": slot})
-        return next(r for r in active() if r["id"] == identity)
+            self._event(identity, "reserved", {"job": job, "slot": slot})
+        return next(r for r in self.active() if r["id"] == identity)
 
-    def _event(self, identity: str, kind: str, details: dict[str, Any]) -> None:
+    def _event(self, identity: Any, kind: Any, details: Any) -> None:
         self.db.execute(
             "INSERT INTO events(at,resource,kind,details) VALUES(?,?,?,?)",
             (time.time(), identity, kind, json.dumps(details, sort_keys=True)),
         )
 
-    def update(self, resource, phase, **details):
+    def update(self, resource: dict[str, Any], phase: str, **details: Any) -> None:
         with self.transaction():
             row = self.db.execute(
                 "SELECT details FROM resources WHERE id=?", (resource["id"],)

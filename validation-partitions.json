@@ -29,6 +29,8 @@
       "maintained-mutations"
     ],
     "mutation_3": [],
-    "mutation_4": []
+    "mutation_4": [
+      "check-fleet-lifecycle-mutations"
+    ]
   }
 }

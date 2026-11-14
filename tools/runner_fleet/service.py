@@ -4,6 +4,7 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 import time
 from datetime import datetime
 from pathlib import Path
@@ -14,9 +15,10 @@ from . import manager as _manager
 from . import model as _model
 from . import state as _state
 from .identity import binding
+from .lifecycle import capacity_snapshot
 
-# Legacy process/state adapters return dynamic JSON. Keep that boundary explicit
-# without weakening the typed image-binding validator.
+# Legacy process adapters have dynamic JSON/process return values. Keep those
+# boundaries explicit while typing the new observation contract independently.
 ROOT = _backend.ROOT
 Backend: Any = _backend.Backend
 digest: Any = _backend.digest
@@ -48,19 +50,17 @@ def observed(directory):
         line.split("=", 1) for line in service.stdout.splitlines() if "=" in line
     )
     heartbeat = state.get("heartbeat")
-    live = (
-        fields.get("ActiveState") == "active"
-        and heartbeat
-        and time.time() - heartbeat < 120
-    )
+    guests = [helper("observe", slot) for slot in range(2)]
+    capacity = capacity_snapshot(state, guests, fields, time.time())
     return {
-        "status": "passed" if live and not state.get("error") else "blocked",
+        "status": capacity["status"],
+        "capacity": capacity,
         "service": fields,
         "heartbeat": heartbeat,
         "error": state.get("error"),
         "drained": state.get("drained", True),
         "resources": state.active(),
-        "guests": [helper("observe", slot) for slot in range(2)],
+        "guests": guests,
         "queue": state.get("queue", []),
         "runners": state.get("runners", {}),
         "reconciled_at": state.get("reconciled_at"),
@@ -72,7 +72,7 @@ def observed(directory):
 def preflight(cfg, directory):
     result: dict[str, Any] = {"status": "blocked", "host": "strix", "checks": []}
 
-    def check(name: str, function: Callable[..., Any]) -> None:
+    def check(name: str, function: Callable[[], Any]) -> None:
         try:
             detail = function()
             if detail is False:
@@ -92,7 +92,13 @@ def preflight(cfg, directory):
         "tools",
         lambda: all(
             shutil.which(tool)
-            for tool in ("qemu-system-x86_64", "qemu-img", "cloud-localds", "ssh", "gh")
+            for tool in (
+                "qemu-system-x86_64",
+                "qemu-img",
+                "cloud-localds",
+                "ssh",
+                "gh",
+            )
         ),
     )
     check("kvm", lambda: os.access("/dev/kvm", os.R_OK | os.W_OK))
@@ -102,7 +108,7 @@ def preflight(cfg, directory):
         >= cfg["hosts"]["strix"]["minimum_disk_gib"] * 1024**3,
     )
 
-    def memory():
+    def memory() -> dict[str, Any]:
         available = (
             int(
                 next(
@@ -125,7 +131,7 @@ def preflight(cfg, directory):
 
     check("memory", memory)
 
-    def image():
+    def image() -> Any:
         path = ROOT / "images/qualified.qcow2"
         manifest = json.loads((ROOT / "images/qualified.json").read_text())
         if path.stat().st_uid != 0 or path.stat().st_mode & 0o222:
@@ -141,12 +147,10 @@ def preflight(cfg, directory):
     for repo in cfg["repositories"]:
         check(
             "admin:" + repo,
-            lambda repo=repo: gh(f"repos/{cfg['owner']}/{repo}")["permissions"][
-                "admin"
-            ],
+            lambda: gh(f"repos/{cfg['owner']}/{repo}")["permissions"]["admin"],
         )
 
-    def background():
+    def background() -> Any:
         value = execute(
             [
                 "sudo",
@@ -431,7 +435,11 @@ def qualify(cfg, revisions, directory, ref):
                 cell.update(status=status, reason=reason)
                 try:
                     log = execute(
-                        ["gh", "api", f"repos/{full}/actions/jobs/{job['id']}/logs"],
+                        [
+                            "gh",
+                            "api",
+                            f"repos/{full}/actions/jobs/{job['id']}/logs",
+                        ],
                         timeout=45,
                     )
                     path = Path(directory) / f"qualification-{repo}-{job['id']}.log"
