@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 import json
-import os
 import shlex
 from pathlib import Path
 import subprocess
@@ -81,7 +80,10 @@ def main():
             helper('stop', resource['slot'], resource['id'])
             candidate = state.directory / 'candidate.qcow2'
             execute(['sudo', '-n', 'qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=600)
-            execute(['sudo', '-n', 'chown', f'{os.getuid()}:{os.getgid()}', str(candidate)])
+            execute(['sudo', '-n', 'chown', 'root:root', str(candidate)])
+            execute(['sudo', '-n', 'chmod', '0444', str(candidate)])
+            if candidate.stat().st_uid != 0 or candidate.stat().st_mode & 0o222:
+                raise RuntimeError('Candidate image was not sealed read-only')
             manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest,
                         'build_log_sha256': digest(log), 'source_sha': source_sha,
                         **source_binding}
