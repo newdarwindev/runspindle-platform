@@ -78,13 +78,16 @@ def main():
                     raise RuntimeError('Image preparation did not shut down')
                 time.sleep(2)
             helper('stop', resource['slot'], resource['id'])
-            candidate = state.directory / 'candidate.qcow2'
+            candidate = ROOT / 'images' / f'candidate-{source_sha[:12]}.qcow2'
+            if candidate.exists():
+                raise RuntimeError('Exact-source candidate image already exists')
             execute(['sudo', '-n', 'qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=600)
             execute(['sudo', '-n', 'chown', 'root:root', str(candidate)])
             execute(['sudo', '-n', 'chmod', '0444', str(candidate)])
             if candidate.stat().st_uid != 0 or candidate.stat().st_mode & 0o222:
                 raise RuntimeError('Candidate image was not sealed read-only')
-            manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest,
+            manifest = {'sha256': digest(candidate), 'candidate_path': str(candidate),
+                        'inputs': pins, 'guest': manifest,
                         'build_log_sha256': digest(log), 'source_sha': source_sha,
                         **source_binding}
             path = state.directory / 'candidate.json'
