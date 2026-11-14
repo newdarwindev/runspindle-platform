@@ -229,6 +229,52 @@ class InstalledStreamingTests(unittest.TestCase):
             self.target.verify_installed(PINS)
         path.unlink()
 
+    def test_metadata_and_stream_journals_cannot_cross_payload_kinds(self):
+        from tools.development_bundle import DisposableTarget, VERSION as OLD_VERSION
+        from test_development_bundle import bundle as metadata_bundle, PINS as OLD_PINS
+
+        # Both objects can be opened on an empty journal. A later competing
+        # installation must still fence the other payload family before intent.
+        metadata_target = DisposableTarget(self.target.root)
+        try:
+            archive, _, _ = make(self.tmp.name)
+            self.target.install(
+                b.VERSION, archive, component_commits=PINS, expected_generation=0
+            )
+            prior = self.target.state()
+            with self.assertRaisesRegex(ValueError, "journal payload kind"):
+                metadata_target.install(
+                    OLD_VERSION,
+                    metadata_bundle(),
+                    component_commits=OLD_PINS,
+                    expected_generation=1,
+                )
+            self.assertEqual(self.target.state(), prior)
+            with self.assertRaisesRegex(ValueError, "journal payload kind"):
+                DisposableTarget(self.target.root)
+        finally:
+            metadata_target.close()
+        metadata_target = DisposableTarget.create()
+        streaming_target = b.StreamingTarget(metadata_target.root)
+        try:
+            metadata_target.install(
+                OLD_VERSION,
+                metadata_bundle(),
+                component_commits=OLD_PINS,
+                expected_generation=0,
+            )
+            prior = metadata_target.state()
+            with self.assertRaisesRegex(ValueError, "journal payload kind"):
+                streaming_target.install(
+                    b.VERSION, archive, component_commits=PINS, expected_generation=1
+                )
+            self.assertEqual(metadata_target.state(), prior)
+            with self.assertRaisesRegex(ValueError, "journal payload kind"):
+                b.StreamingTarget(metadata_target.root)
+        finally:
+            streaming_target.close()
+            metadata_target.cleanup()
+
     def test_concurrent_ownership_and_stale_generation(self):
         first, _, digest = make(self.tmp.name)
         script = "import sys;sys.path.insert(0,'tests');from test_streaming_bundle import PINS;from tools.streaming_bundle import StreamingTarget,VERSION;t=StreamingTarget(sys.argv[1]);t.install(VERSION,sys.argv[2],component_commits=PINS,expected_generation=0);t.close()"
