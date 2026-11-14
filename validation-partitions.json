@@ -21,8 +21,13 @@
       "distributable-build"
     ],
     "rust": [],
-    "mutation": [
+    "mutation_1": [
       "check-temporal-mutations"
-    ]
+    ],
+    "mutation_2": [
+      "maintained-mutations"
+    ],
+    "mutation_3": [],
+    "mutation_4": []
   }
 }
