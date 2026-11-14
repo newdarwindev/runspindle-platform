@@ -37,10 +37,11 @@
   "schema_version": 1,
   "source_sha256": {
     "fleet/config.json": "ac4730659c3eb42182432d761c7396e6cc0e6d959ace8173035fdb9e4749f195",
-    "fleet/image-inputs.json": "52d59a2afdb94ca012e24885f5c90a5692bf2e06ce38c3ab539fe583ff6c0ae3",
-    "tests/test_fleet_lifecycle.py": "3bd1d2157b24309b8fef908947c511b6057739a8723a4cac2c2dda4c22eb56f2",
+    "fleet/image-inputs.json": "aeaeb8e75e14d3e58a119acfc00727cb5c76bb1ec041fbdd191b7cc47da564f9",
+    "tests/test_fleet_lifecycle.py": "0564dd0c887620495b9eb5791883932a3e802f558e4a1d71150449a67763ba9f",
     "tools/check_fleet_lifecycle_mutations.py": "46f195ed7e07db0f470b838a313e980cedb1b9617b0d514da17b1ba87aef26f3",
-    "tools/runner_fleet/lifecycle.py": "93fa342c5041060c1893b44052509f01f22271d0b0d3cc499849a06b42a9a1af"
+    "tools/runner_fleet/lifecycle.py": "93fa342c5041060c1893b44052509f01f22271d0b0d3cc499849a06b42a9a1af",
+    "tools/runner_fleet/state.py": "141e417536e9302fe1d9b1fa187e4c3edf5474e00123cabd4952481cb1c3a950"
   },
   "synthetic_boundaries": [
     "image bytes and build manifest",

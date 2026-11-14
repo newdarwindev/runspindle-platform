@@ -77,7 +77,12 @@ class State:
             )
         ]
 
-    def reserve(self, job: dict[str, Any], capacity: int = 2) -> dict[str, Any]:
+    def reserve(
+        self,
+        job: dict[str, Any],
+        capacity: int = 2,
+        details: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         if capacity != 2:
             raise ValueError("Strix capacity must be exactly two")
         with self.transaction():
@@ -102,7 +107,8 @@ class State:
                     now,
                     now,
                     json.dumps(
-                        {
+                        (details or {})
+                        | {
                             "requested_source": {
                                 key: job.get(key)
                                 for key in (

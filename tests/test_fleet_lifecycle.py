@@ -68,7 +68,15 @@ class LifecycleTests(unittest.TestCase):
                 "event": "push",
                 "head_branch": "ci/synthetic",
             }
-            first = state.reserve(requested)
+            candidate_details = {
+                "candidate_campaign": "synthetic-campaign",
+                "candidate_sha256": "c" * 64,
+                "requested_source": {"head_sha": "forged"},
+            }
+            first = state.reserve(requested, details=candidate_details)
+            self.assertEqual(
+                candidate_details["requested_source"], {"head_sha": "forged"}
+            )
             state.update(first, "uncertain", image_sha256="b" * 64)
             second = state.reserve(requested | {"id": 56})
             state.update(second, "cleaning")
@@ -94,6 +102,13 @@ print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot
             source = observed["resources"][0]["details"]["requested_source"]
             self.assertEqual(source["head_sha"], requested["head_sha"])
             self.assertEqual(source["run_id"], 7)
+            self.assertEqual(
+                observed["resources"][0]["details"]["candidate_campaign"],
+                "synthetic-campaign",
+            )
+            self.assertEqual(
+                observed["resources"][0]["details"]["candidate_sha256"], "c" * 64
+            )
             self.assertNotIn("claimed_job", observed["resources"][0]["details"])
 
     def test_guest_loss_foreign_guest_and_missing_observation_block_capacity(
