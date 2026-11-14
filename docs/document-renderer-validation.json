@@ -3,14 +3,17 @@
   "checks": {
     "focused_unittest_normal": 16,
     "focused_unittest_optimized": 16,
-    "full_platform_suite": "not_claimed; 105 inspected synthetic tests passed; 13 native tests explicitly excluded",
-    "inspected_synthetic_suite_normal": 105,
-    "inspected_synthetic_suite_optimized": 105,
+    "full_platform_suite": "not_claimed; 108 inspected synthetic tests passed; 13 native tests explicitly excluded",
+    "inspected_synthetic_suite_normal": 108,
+    "inspected_synthetic_suite_optimized": 108,
     "inspected_synthetic_suite_skips": 0,
+    "preparation_source_inventory_tests_normal": 3,
+    "preparation_source_inventory_tests_optimized": 3,
     "ruff_0.14.5": "passed_four_new_or_typed_touched_files",
     "scaffold": "passed",
     "shell_syntax": "passed",
-    "strict_mypy_1.18.2": "passed_four_new_or_typed_touched_files"
+    "strict_mypy_1.18.2": "passed_four_new_or_typed_touched_files",
+    "strict_mypy_1_18_2_preparation_source_regression": "passed_with_MYPYPATH_tools_and_existing_typed_document_modules"
   },
   "classification": "source_only_prerequisite_local_synthetic_validation",
   "evidence_limits": [
@@ -39,6 +42,7 @@
   "source_review": {
     "existing_local_metadata_observation": "The existing ReportLab wheel metadata is py3-none-any/purelib; Pillow and charset-normalizer report cp312 manylinux x86_64/platlib tags matching the selected artifact tags. Their installed RECORD inventories show no .data paths; charset-normalizer additionally has the pip-generated ../../../bin/normalizer entry point.",
     "installed_wheel_mapping": "Immutable wheel members are mapped relative to the installed distribution site-packages directory. Purelib and platlib use this directory in the target Linux venv. Unexpected wheel .data relocation would fail the comparison rather than be silently accepted.",
+    "preparation_inventory_regression": "Actual Backend.create(prepare=True) cloud-init generation is exercised with all commands and privileged helpers mocked. Captured guest files include documents.py, document-closure.json, requirements-documents.txt and DOCUMENT_NOTICES.md. A separate isolated Python process imports staging/documents/quality only from the captured source and loads the real hashed closure. Removing verifier/helper/closure/requirements files fails without host-repository fallback. No guest or installation runs.",
     "preparation_order": "Host staging verification precedes guest transfer. Guest staging verification precedes package installation. Exact Python check precedes document venv creation; hash-constrained offline install precedes installed-file comparison and receipt emission. Shell pipefail prevents a failed verifier from yielding successful preparation.",
     "relocation_evidence_limit": "Installed metadata is not inspection of the selected archive bytes. Rewritten RECORD and generated entry-point scripts are outside the immutable archive-file comparison. Actual selected-wheel installation/layout and whole-image identity still require qualification; no wheel was downloaded or installed for this check."
   },
@@ -48,6 +52,8 @@
     "fleet/image-inputs.json": "7b9b07611dcac1a7351c7aebe4140dd20c9935cb28a66d9083dce525903ca757",
     "requirements-documents.txt": "3b6bc74014f8c9e9e70daf0893822c627f093f1bf281d2a36a630302cc4e70fa",
     "tests/test_document_closure.py": "a42b4bd2010df04a3e9f686889458a296e55505d4bfdae1ac970847e4bd79501",
+    "tests/test_preparation_source_closure.py": "d88ce3567ef4f589f2e63d400cfa9c9b01120365044349cfcb7bbe96e8e3f140",
+    "tools/runner_fleet/backend.py": "896e8caf294fb53615c3d017abd15baf02acbd6f0ec8e22f42d23a6d7fb5e686",
     "tools/runner_fleet/build_image.py": "504e4a38910c982a2c43080edbe99519a398463518dca068f6fb548bb9afcc1d",
     "tools/runner_fleet/documents.py": "f4d0b9e4266284a59c7ead944179f35f22ea5bc269e75eca0dc0f5fcb0bc1201",
     "tools/runner_fleet/identity.py": "0866c5c7e6b1521d66a7d2616201287e369f7063758b727ad07374e1560bb426",
@@ -71,10 +77,10 @@
       "test_temporal_lane.RealLaneTests.test_real_restart_persistence_and_success_cleanup": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle.",
       "test_temporal_lane.RealLaneTests.test_sigterm_cleanup_in_fresh_process": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle."
     },
-    "normal_log_sha256": "d432872a29471f4895658d9017be9739593d75c23b0bc9cfc7cd60dd853d8c9d",
-    "optimized_log_sha256": "dbea779a31826279b3b98292ba7d3b990979450b7ce91e28b6956cf3392bb4c1",
-    "selected_test_ids_sha256": "224dca11cffeff911fbb3a662ee4984e6c1c1145df135a875b0c92fae507e7c4",
+    "normal_log_sha256": "993e574e4c3f6d3adada1dc4ce73d5be38f8a2172d116421d7eb64574bf1688b",
+    "optimized_log_sha256": "b65aedb66e960c450d2e14088e4062677d7bd5fe229479d9650191ef735cac9f",
+    "selected_test_ids_sha256": "0b6ced003731a2aa67cafebc029e5e95ce9ae69da9080842b38490ba6ce3eaa1",
     "selection": "All discovered tests except the three native classes listed below; no skipped tests counted as passes.",
-    "source_commit": "f3a8b252414b7ae552e8f9628ba0235c7bec12cd"
+    "source_binding": "Exact tested file bytes are recorded in source_sha256; preparation inventory delta is based on local 6a2981cfc88f464632bb32d423aab601008df363 / published d51c3aff29140c6554e3b6b36291fce4a70c35b2."
   }
 }
