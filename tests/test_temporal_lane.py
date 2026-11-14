@@ -20,6 +20,13 @@ spec.loader.exec_module(lane_module)
 
 
 class BoundaryTests(unittest.TestCase):
+    def test_offline_preparation_never_downloads_missing_archive(self):
+        with tempfile.TemporaryDirectory() as directory:
+            with patch.object(lane_module, 'command') as command:
+                with self.assertRaisesRegex(lane_module.Blocked, 'offline Temporal archive missing'):
+                    lane_module.prepare(directory, 'amd64', offline=True)
+                command.assert_not_called()
+
     def test_floating_image_denied_before_docker(self):
         with patch.object(lane_module, 'docker') as docker:
             with self.assertRaises(lane_module.Blocked):

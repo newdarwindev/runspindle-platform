@@ -1,0 +1,54 @@
+{
+  "architecture": "linux/x86_64",
+  "node": {
+    "bytes": 9417683,
+    "lock_sha256": "8f74da4ed2179fc535f4d8a261d1a46683f3e244ad02362e53336e39b30f48db",
+    "modules_archive_sha256": "ec040b616152ddaecc4d8324639e2097b320078aafbe3ed08bb90f92d09dda23",
+    "package_json_sha256": "728009d6ffdd0ae4629f8d55c43e8ac43c7a90ba9925b92fbdafb86e7092f752"
+  },
+  "python": "3.12",
+  "requirements_sha256": "9cbe1331549216b953f2922f1e8321357ca82bb985e1ea595c87fcee8a8fdc84",
+  "schema_version": 1,
+  "wheels": [
+    {
+      "bytes": 13348562,
+      "filename": "mypy-1.18.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "sha256": "01199871b6110a2ce984bde85acd481232d17413868c9807e95c1b0739a58914"
+    },
+    {
+      "bytes": 5114,
+      "filename": "mypy_extensions-1.2.0-py3-none-any.whl",
+      "sha256": "993e7a20aa5671eb41a7132cf555af30062da99729601601b9a8382b11cae768"
+    },
+    {
+      "bytes": 57328,
+      "filename": "pathspec-1.1.1-py3-none-any.whl",
+      "sha256": "a00ce642f577bf7f473932318056212bc4f8bfdf53128c78bbd5af0b9b20b189"
+    },
+    {
+      "bytes": 807870,
+      "filename": "pyyaml-6.0.3-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "sha256": "ba1cc08a7ccde2d2ec775841541641e4548226580ab850948cbfda66a1befcdc"
+    },
+    {
+      "bytes": 13825656,
+      "filename": "ruff-0.14.5-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+      "sha256": "7497d19dce23976bdaca24345ae131a1d38dcfe1b0850ad8e9e6e4fa321a6e19"
+    },
+    {
+      "bytes": 3800600,
+      "filename": "shellcheck_py-0.11.0.1-py2.py3-none-manylinux1_x86_64.manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_5_x86_64.whl",
+      "sha256": "1b274df81de5b000ff78db433e7328b87e52e3c38481c60f8e488c3095beef05"
+    },
+    {
+      "bytes": 45571,
+      "filename": "typing_extensions-4.16.0-py3-none-any.whl",
+      "sha256": "481caa481374e813c1b176ada14e97f1f67a4539ce9cfeb3f350d78d6370c2e8"
+    },
+    {
+      "bytes": 68813,
+      "filename": "yamllint-1.37.1-py3-none-any.whl",
+      "sha256": "364f0d79e81409f591e323725e6a9f4504c8699ddf2d7263d8d2b539cd66a583"
+    }
+  ]
+}

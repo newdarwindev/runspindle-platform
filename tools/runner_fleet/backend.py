@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import resource as process_resource
 import tempfile
 from pathlib import Path
@@ -81,6 +82,27 @@ class Backend:
                         f'runner@10.231.{resource["slot"]}.2', 'bash', '-s'],
                        input=script, timeout=timeout, check=check, output_limit=32 * 1024**2)
 
+    def copy_prepared(self, resource, source, relative):
+        """Transfer one preverified archive through the guest's existing SSH identity."""
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*', relative):
+            raise ValueError('unsafe preparation destination')
+        source = Path(source)
+        if not source.is_file() or source.is_symlink():
+            raise ValueError('missing preparation archive')
+        directory = self.directory(resource)
+        target = '/home/runner/preparation/' + relative
+        parent = target.rsplit('/', 1)[0]
+        self.ssh(resource, 'mkdir -p ' + shlex.quote(parent), timeout=15)
+        result = execute(['scp', '-F', '/dev/null', '-i', str(directory / 'key'),
+                          '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                          '-o', 'StrictHostKeyChecking=yes',
+                          '-o', 'UserKnownHostsFile=' + str(directory / 'known_hosts'),
+                          '-o', 'ConnectTimeout=3', '-o', 'ClearAllForwardings=yes',
+                          str(source), f'runner@10.231.{resource["slot"]}.2:{target}'],
+                         timeout=600, check=False)
+        if result.returncode:
+            raise RuntimeError('verified preparation transfer failed')
+
     def create(self, resource, prepare=False):
         directory = self.directory(resource)
         slot = self.slot(resource)
@@ -107,7 +129,7 @@ class Backend:
         }
         if prepare:
             source = Path(__file__).resolve().parents[2]
-            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py'):
+            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py'):
                 cloud['write_files'].append({'path': '/opt/runspindle-image-tools/' + relative,
                                              'content': (source / relative).read_text(), 'permissions': '0644'})
         network = {'version': 2, 'ethernets': {'fleet': {
@@ -171,6 +193,7 @@ cd /home/runner/runner
 set -a
 . /etc/environment
 set +a
+export PATH=/opt/runspindle-quality/bin:$PATH
 ./config.sh --unattended --ephemeral --disableupdate --url https://github.com/{repository} --token {shlex.quote(token)} --name {resource['runner_name']} --labels {shlex.quote(','.join(labels))} --work _work
 nohup env -u SSH_AUTH_SOCK ./run.sh > /home/runner/job.log 2>&1 < /dev/null &
 echo $! > /home/runner/runner.pid

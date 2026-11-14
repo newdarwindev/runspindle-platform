@@ -83,7 +83,7 @@ def verified_assets(directory, architecture, pins):
     return binary, license_bytes
 
 
-def prepare(directory, architecture):
+def prepare(directory, architecture, offline=False):
     """Explicit acquisition only. Reuses only checksum-verified downloads."""
     pins = read_pins()
     cli = pins['cli']
@@ -93,12 +93,16 @@ def prepare(directory, architecture):
     archive = directory / artifact['filename']
     base = f"https://github.com/temporalio/cli/releases/download/v{cli['version']}"
     if not archive.exists():
+        if offline:
+            raise Blocked('offline Temporal archive missing')
         command(['curl', '--fail', '--location', '--max-time', '600', '--retry', '2',
                  f"{base}/{artifact['filename']}", '--output', str(archive)], timeout=1810)
     if digest(archive) != artifact['sha256']:
         raise Blocked('Temporal artifact checksum mismatch')
     license_path = directory / 'LICENSE'
     if not license_path.exists():
+        if offline:
+            raise Blocked('offline Temporal license missing')
         command(['curl', '--fail', '--location', '--max-time', '60',
                  f"https://raw.githubusercontent.com/temporalio/cli/{cli['revision']}/LICENSE",
                  '--output', str(license_path)], timeout=65)
@@ -331,9 +335,10 @@ def main():
     parser.add_argument('action', choices=('prepare', 'smoke'))
     parser.add_argument('--directory', default='local/temporal-prepared')
     parser.add_argument('--architecture', choices=('arm64', 'amd64'), default='arm64')
+    parser.add_argument('--offline', action='store_true', help='require staged verified bytes; never download')
     options = parser.parse_args()
     try:
-        result = prepare(options.directory, options.architecture) if options.action == 'prepare' else smoke(options.directory)
+        result = prepare(options.directory, options.architecture, options.offline) if options.action == 'prepare' else smoke(options.directory)
         print(json.dumps(result, sort_keys=True))
     except (Blocked, OSError, subprocess.SubprocessError, ValueError, KeyError) as exc:
         print(json.dumps({'status': 'blocked', 'reason': str(exc), 'live_acceptance': 'not_run'}))

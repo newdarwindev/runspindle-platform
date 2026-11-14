@@ -11,6 +11,7 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runner_fleet.backend import Backend, ROOT, digest, execute, helper
 from runner_fleet.model import config, ROOT as SOURCE
+from runner_fleet.staging import verify as verify_staged
 from runner_fleet.state import State
 
 
@@ -26,6 +27,7 @@ def main():
             execute(['curl', '-fL', '--retry', '2', pins['ubuntu']['url'], '-o', str(download)], timeout=600)
         if digest(download) != pins['ubuntu']['sha256']:
             raise SystemExit('Pinned Ubuntu checksum mismatch; no guest booted')
+        verify_staged(SOURCE, download.parent)
         execute(['sudo', '-n', 'install', '-m', '0444', str(download), str(ROOT / 'images/ubuntu-base.qcow2')])
         resource = state.reserve({'repository': 'runspindle-platform', 'id': -2})
         backend = Backend(state, ROOT / 'images/ubuntu-base.qcow2')
@@ -37,6 +39,24 @@ def main():
                     raise RuntimeError('Preparation boot timeout')
                 time.sleep(2)
             backend.isolation(resource, check_tooling=False)
+            staged = [
+                'requirements-quality.txt',
+                'quality-node/package.json',
+                'quality-node/package-lock.json',
+                'quality-node-modules.tar.gz',
+                'actions-runner-linux-x64-2.338.2.tar.gz',
+                'rust-1.94.1-x86_64-unknown-linux-gnu.tar.xz',
+                'node.tar.xz',
+                pins['temporal']['filename'],
+                'LICENSE-CLI',
+                'core-source.tar.gz',
+                'host-source.tar.gz',
+                'cargo-closure.tar.gz',
+            ]
+            staged.extend('quality-wheels/' + row['filename'] for row in
+                          json.loads((SOURCE / pins['quality']['closure']).read_text())['wheels'])
+            for relative in staged:
+                backend.copy_prepared(resource, download.parent / relative, relative)
             closure = pins['offline_rust_dependencies']
             exports = ''.join(f'export {name}={shlex.quote(closure[key])}\n' for name, key in
                               (('RUNSPINDLE_CORE_SHA', 'core'), ('RUNSPINDLE_HOST_SHA', 'host')))
