@@ -158,7 +158,7 @@ class Backend:
         }
         if prepare:
             source = Path(__file__).resolve().parents[2]
-            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'fleet/builder-closure.json', 'fleet/builder-x64.Containerfile', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py'):
+            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'fleet/builder-closure.json', 'fleet/builder-x64.Containerfile', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py', 'tools/runner_fleet/documents.py', 'fleet/document-closure.json', 'requirements-documents.txt', 'fleet/DOCUMENT_NOTICES.md'):
                 cloud['write_files'].append({'path': '/opt/runspindle-image-tools/' + relative,
                                              'content': (source / relative).read_text(), 'permissions': '0644'})
         network = {'version': 2, 'ethernets': {'fleet': {

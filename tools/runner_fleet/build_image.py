@@ -45,6 +45,7 @@ def main():
             backend.isolation(resource, check_tooling=False)
             staged = [
                 'requirements-quality.txt',
+                'requirements-documents.txt',
                 'quality-node/package.json',
                 'quality-node/package-lock.json',
                 'quality-node-modules.tar.gz',
@@ -60,6 +61,8 @@ def main():
             ]
             staged.extend('quality-wheels/' + row['filename'] for row in
                           json.loads((SOURCE / pins['quality']['closure']).read_text())['wheels'])
+            staged.extend('document-wheels/' + row['filename'] for row in
+                          json.loads((SOURCE / pins['documents']['closure']).read_text())['wheels'])
             for relative in staged:
                 backend.copy_prepared(resource, download.parent / relative, relative)
             closure = pins['offline_rust_dependencies']

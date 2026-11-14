@@ -44,11 +44,12 @@ v['temporal']=json.loads(pathlib.Path('/opt/runspindle-temporal/prepared.json').
 v['rust_dependencies']=json.loads(pathlib.Path('/opt/runspindle-rust-dependencies.json').read_text())
 v['quality_closure']=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/quality-closure.json').read_text())
 v['rust_closure_sha256']=hashlib.sha256(pathlib.Path('/opt/runspindle-image-tools/fleet/rust-closure.json').read_bytes()).hexdigest()
+v['documents']=json.loads(pathlib.Path('/opt/runspindle-documents/verified.json').read_text())
 v['quality_python_packages']=subprocess.check_output(['/opt/runspindle-quality/bin/pip','freeze'],text=True).splitlines()
 v['quality_node_archive_sha256']=v['quality_closure']['node']['modules_archive_sha256']
 v['runtime_builder']=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/builder-closure.json').read_text())
 v['quality_license_sha256']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for base in [pathlib.Path('/opt/runspindle-quality/lib'),pathlib.Path('/opt/runspindle-quality-node/node_modules')] for p in base.rglob('*') if p.is_file() and p.name.upper().startswith(('LICENSE','COPYING','NOTICE'))}
-v['identity'] += '-rust-closure'
+v['identity'] += '-rust-closure-documents-v1'
 print(json.dumps(v,sort_keys=True))
 PY
 sudo -E env RUNSPINDLE_TEMPORAL_PREPARED=/opt/runspindle-temporal python3 -m unittest discover -s /opt/runspindle-image-tools/tests -v
