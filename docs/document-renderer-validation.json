@@ -3,7 +3,10 @@
   "checks": {
     "focused_unittest_normal": 16,
     "focused_unittest_optimized": 16,
-    "full_platform_suite": "not_run_runtime_suites_not_authorized",
+    "full_platform_suite": "not_claimed; 105 inspected synthetic tests passed; 13 native tests explicitly excluded",
+    "inspected_synthetic_suite_normal": 105,
+    "inspected_synthetic_suite_optimized": 105,
+    "inspected_synthetic_suite_skips": 0,
     "ruff_0.14.5": "passed_four_new_or_typed_touched_files",
     "scaffold": "passed",
     "shell_syntax": "passed",
@@ -33,6 +36,12 @@
   "repository": "newdarwindev/runspindle-platform",
   "schema_version": 1,
   "selected_wheel_closure_sha256": "7cfe6b9eb076efb723cb7e986c9429ace15eebc7ab6e3536d3fbce8c3aa72b7d",
+  "source_review": {
+    "existing_local_metadata_observation": "The existing ReportLab wheel metadata is py3-none-any/purelib; Pillow and charset-normalizer report cp312 manylinux x86_64/platlib tags matching the selected artifact tags. Their installed RECORD inventories show no .data paths; charset-normalizer additionally has the pip-generated ../../../bin/normalizer entry point.",
+    "installed_wheel_mapping": "Immutable wheel members are mapped relative to the installed distribution site-packages directory. Purelib and platlib use this directory in the target Linux venv. Unexpected wheel .data relocation would fail the comparison rather than be silently accepted.",
+    "preparation_order": "Host staging verification precedes guest transfer. Guest staging verification precedes package installation. Exact Python check precedes document venv creation; hash-constrained offline install precedes installed-file comparison and receipt emission. Shell pipefail prevents a failed verifier from yielding successful preparation.",
+    "relocation_evidence_limit": "Installed metadata is not inspection of the selected archive bytes. Rewritten RECORD and generated entry-point scripts are outside the immutable archive-file comparison. Actual selected-wheel installation/layout and whole-image identity still require qualification; no wheel was downloaded or installed for this check."
+  },
   "source_sha256": {
     "fleet/DOCUMENT_NOTICES.md": "457023e5fb4e10876d4e5ef1a060fdf7e811adf418e44f5dffc43abd7cb48960",
     "fleet/document-closure.json": "7cfe6b9eb076efb723cb7e986c9429ace15eebc7ab6e3536d3fbce8c3aa72b7d",
@@ -45,5 +54,27 @@
     "tools/runner_fleet/prepare_image.sh": "b2ea82ae4719eb81d36a0d121f58cdcc1998f8015c80f12b025ec2168bd333d4",
     "tools/runner_fleet/prepare_temporal.sh": "35398a4fb2b73215405f278fd215c09b32c85a65d283190e9ae508beeb7d0453",
     "tools/runner_fleet/staging.py": "ca6c1fa78f0274485ca847936c1c93bd190617416d81d4c053f5cdbe73fa1ec9"
+  },
+  "synthetic_test_selection": {
+    "excluded_tests": {
+      "test_development_bundle.InstalledTests.test_fresh_process_interrupted_upgrade_pointer_and_rollback": "Requires native Linux arm64 disposable target installation/recovery; not a synthetic parser or byte-readback test.",
+      "test_development_bundle.InstalledTests.test_real_installed_bytes_and_empty_history_concurrent_generation": "Requires native Linux arm64 disposable target installation/recovery; not a synthetic parser or byte-readback test.",
+      "test_development_bundle.InstalledTests.test_unavailable_rollback_bytes_preserves_installed_pointer": "Requires native Linux arm64 disposable target installation/recovery; not a synthetic parser or byte-readback test.",
+      "test_streaming_bundle.InstalledStreamingTests.test_concurrent_ownership_and_stale_generation": "Requires native Linux arm64 disposable target installation and payload execution.",
+      "test_streaming_bundle.InstalledStreamingTests.test_conflicting_readback_unavailable_predecessor_and_failed_rollback": "Requires native Linux arm64 disposable target installation and payload execution.",
+      "test_streaming_bundle.InstalledStreamingTests.test_fresh_process_upgrade_rollback_and_independent_execution": "Requires native Linux arm64 disposable target installation and payload execution.",
+      "test_streaming_bundle.InstalledStreamingTests.test_installed_corruption_and_unsafe_links": "Requires native Linux arm64 disposable target installation and payload execution.",
+      "test_streaming_bundle.InstalledStreamingTests.test_metadata_and_stream_journals_cannot_cross_payload_kinds": "Requires native Linux arm64 disposable target installation and payload execution.",
+      "test_temporal_lane.RealLaneTests.test_exception_and_client_failure_cleanup_and_egress_denial": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle.",
+      "test_temporal_lane.RealLaneTests.test_existing_unrelated_image_cannot_replace_prepared_release": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle.",
+      "test_temporal_lane.RealLaneTests.test_readiness_deadline_cleanup": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle.",
+      "test_temporal_lane.RealLaneTests.test_real_restart_persistence_and_success_cleanup": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle.",
+      "test_temporal_lane.RealLaneTests.test_sigterm_cleanup_in_fresh_process": "Requires separately prepared Temporal/Docker dependencies and actual container/network/image lifecycle."
+    },
+    "normal_log_sha256": "d432872a29471f4895658d9017be9739593d75c23b0bc9cfc7cd60dd853d8c9d",
+    "optimized_log_sha256": "dbea779a31826279b3b98292ba7d3b990979450b7ce91e28b6956cf3392bb4c1",
+    "selected_test_ids_sha256": "224dca11cffeff911fbb3a662ee4984e6c1c1145df135a875b0c92fae507e7c4",
+    "selection": "All discovered tests except the three native classes listed below; no skipped tests counted as passes.",
+    "source_commit": "f3a8b252414b7ae552e8f9628ba0235c7bec12cd"
   }
 }
