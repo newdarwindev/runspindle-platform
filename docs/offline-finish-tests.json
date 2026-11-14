@@ -2,24 +2,26 @@
   "schema_version": 1,
   "reconciled_main": "9cb7530",
   "source_hashes": {
-    "tools/streaming_bundle.py": "0c812e6c5d44eb2956c7b25d1eddcbdf928a8de24cb671640bd06e994e424979",
+    "tools/streaming_bundle.py": "5d9ddf00a3c2c0ac3e190169636487993158c81756ca20160d40911e981d1e21",
     "tools/minio_source_qualification.py": "8566f5dd5dfbf90d9f0754ebe4f3c8ee848d37e95c6197c3d23ff37daf723870",
-    "tools/check_maintained_mutations.py": "7cfcb13e5a4d380c5c65d0cfe17e80f62b20b85c819e138222f7908e25952fe9",
-    "tests/test_streaming_bundle.py": "b9ede46a88ac786c9015711fb8f69ade1b98970bbaa296132cb4f8772fedabed",
-    "tests/test_minio_source_qualification.py": "e92fa66a7b05a91b05c67fff7922e1851e2b8479bae09d25439314a215460529"
+    "tools/check_maintained_mutations.py": "79d10cfea6a95fde9791e91ec71e3e5e434a0b51cb575c484f673ddf92216a64",
+    "tests/test_streaming_bundle.py": "a64c8ab0fc31d1a42f8b4c94c9ca2999724066ae1f218d434d73491c1a997104",
+    "tests/test_minio_source_qualification.py": "e92fa66a7b05a91b05c67fff7922e1851e2b8479bae09d25439314a215460529",
+    "tools/development_bundle.py": "c2c4f4ab80d8317c93c83c670569cc904ab4c29f8e01e090c53b43af7168b735"
   },
   "checks": {
     "prepared_Temporal_and_host_suite": {
-      "run": 67,
+      "run": 68,
       "passed": 60,
-      "skipped": 7
+      "skipped": 8
     },
     "Linux_arm64_metadata_and_streaming_bundle_suite": {
-      "run": 11,
-      "passed": 11,
+      "run": 12,
+      "passed": 12,
       "skipped": 0
     },
     "behavioral_mutations": {
+      "journal_family_fence_disabled": true,
       "stream_checksum_ignored": true,
       "stream_installed_modes_ignored": true,
       "fabricated_persistence": true,
@@ -83,5 +85,17 @@
   },
   "independent_review": "user_waived_no_review_performed",
   "full_system": "blocked",
-  "live_acceptance": "not_run"
+  "live_acceptance": "not_run",
+  "previous_source_hashes": {
+    "tools/streaming_bundle.py": "0c812e6c5d44eb2956c7b25d1eddcbdf928a8de24cb671640bd06e994e424979",
+    "tools/minio_source_qualification.py": "8566f5dd5dfbf90d9f0754ebe4f3c8ee848d37e95c6197c3d23ff37daf723870",
+    "tools/check_maintained_mutations.py": "7cfcb13e5a4d380c5c65d0cfe17e80f62b20b85c819e138222f7908e25952fe9",
+    "tests/test_streaming_bundle.py": "b9ede46a88ac786c9015711fb8f69ade1b98970bbaa296132cb4f8772fedabed",
+    "tests/test_minio_source_qualification.py": "e92fa66a7b05a91b05c67fff7922e1851e2b8479bae09d25439314a215460529"
+  },
+  "journal_family_regression": {
+    "before_fix": "actual Linux negative test failed: old API accepted streaming journal on an already-open installer",
+    "after_fix": "both payload directions and already-open objects reject before writing intent; constructors reject unsupported journal family",
+    "metadata_format": "canonical encoding, limits and validation unchanged; all five existing metadata tests still pass"
+  }
 }

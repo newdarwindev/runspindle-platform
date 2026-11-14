@@ -10,6 +10,12 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = {
+    "journal_family_fence_disabled": (
+        "development_bundle.py",
+        "def state(self):\n        self._check_journal_kind()",
+        "def state(self):\n        # deliberately bypass journal family fence",
+        "test_streaming_bundle.InstalledStreamingTests.test_metadata_and_stream_journals_cannot_cross_payload_kinds",
+    ),
     "stream_checksum_ignored": (
         "streaming_bundle.py",
         'check(h.hexdigest() == item["sha256"], "bundle checksum mismatch")',

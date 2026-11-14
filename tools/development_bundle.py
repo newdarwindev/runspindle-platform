@@ -210,6 +210,8 @@ def actual_target():
 
 
 class DisposableTarget:
+    JOURNAL_STATES = ("intent", "verified")
+
     def __init__(self, path):
         root = Path(path)
         check(
@@ -266,6 +268,7 @@ class DisposableTarget:
                     "CREATE TRIGGER bundle_retained BEFORE DELETE ON installs BEGIN SELECT RAISE(ABORT,'retained bundle'); END"
                 )
                 self.db.execute("PRAGMA user_version=1")
+            self._check_journal_kind()
             self.db.commit()
         except BaseException:
             self.db.rollback()
@@ -292,7 +295,21 @@ class DisposableTarget:
         self.close()
         shutil.rmtree(self.root)
 
+    def _check_journal_kind(self):
+        placeholders = ",".join("?" for _ in self.JOURNAL_STATES)
+        check(
+            self.db.execute(
+                "SELECT count(*) FROM installs WHERE state NOT IN ("
+                + placeholders
+                + ")",
+                self.JOURNAL_STATES,
+            ).fetchone()[0]
+            == 0,
+            "unsupported installation journal payload kind",
+        )
+
     def state(self):
+        self._check_journal_kind()
         generation, active, pending = self.db.execute(
             "SELECT generation,active,pending FROM state WHERE id=1"
         ).fetchone()

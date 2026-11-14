@@ -308,6 +308,8 @@ class StreamingTarget(DisposableTarget):
     Journal ownership covers staging/readback; generations fence competing owners.
     """
 
+    JOURNAL_STATES = ("stream_intent", "stream_verified")
+
     def _archive(self, digest, pins):
         check(
             type(digest) is str and re.fullmatch("[0-9a-f]{64}", digest),

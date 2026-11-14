@@ -121,3 +121,12 @@ actual API export/outage/restart readback remain required after that blocker.
 
 The user waived independent review for this offline tranche. No independent
 review is recorded as having occurred. Full-product and live gates remain blocked.
+
+The installation journal now fences payload families at construction and at each
+state read inside owned transactions. Metadata and streaming installers cannot
+reinterpret each other's retained payloads, including objects opened before a
+competing installation. A real Linux regression first demonstrated acceptance
+through an already-open incompatible installer; tests now reject both directions
+before intent and preserve the active pointer/generation. Existing metadata
+encoding, validation limits and valid journal behavior are unchanged. A fifth
+behavioral mutation disables this fence and must be caught by that regression.
