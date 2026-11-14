@@ -7,6 +7,7 @@ import json
 import tarfile
 from pathlib import Path, PurePosixPath
 
+from .documents import verify as verify_documents
 from .quality import digest, verified_file
 from .quality import verify as verify_quality
 
@@ -41,6 +42,7 @@ def safe_archive(path: Path, *, crate_hashes: dict[str, str] | None = None) -> N
 def verify(source: Path, downloads: Path) -> dict[str, object]:
     pins = json.loads((source / "fleet/image-inputs.json").read_text())
     quality = verify_quality(source, downloads, "linux/x86_64")
+    documents = verify_documents(source, downloads, "linux/x86_64")
     closure_path = source / pins["rust_closure"]["manifest"]
     verified_file(closure_path, pins["rust_closure"]["sha256"])
     closure = json.loads(closure_path.read_text())
@@ -93,6 +95,7 @@ def verify(source: Path, downloads: Path) -> dict[str, object]:
         "status": "verified",
         "rust_closure_sha256": digest(closure_path),
         "quality_closure_sha256": quality["closure_sha256"],
+        "document_closure_sha256": documents["closure_sha256"],
         "crate_count": len(closure["crate_archives"]),
         "builder_image_id": builder["docker_loaded_builder_image_id"],
     }

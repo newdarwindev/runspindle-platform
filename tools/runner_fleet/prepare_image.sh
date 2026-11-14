@@ -28,6 +28,15 @@ sudo tar -xJf node.tar.xz --strip-components=1 -C /opt/node
 for file in /opt/node/bin/*; do sudo ln -sf "$file" /usr/local/bin/; done
 sudo python3 -m venv /opt/runspindle-quality
 sudo /opt/runspindle-quality/bin/pip install --no-index --find-links=/home/runner/preparation/quality-wheels -r /home/runner/preparation/requirements-quality.txt
+# Separate renderer environment. No resolution, source builds, index or fallback.
+python3 - <<'PYTHON'
+import platform
+if platform.python_implementation() != "CPython" or platform.python_version() != "3.12.3":
+    raise SystemExit("document Python pin mismatch")
+PYTHON
+sudo python3 -m venv /opt/runspindle-documents
+sudo /opt/runspindle-documents/bin/python -m pip install --no-index --no-deps --only-binary=:all: --require-hashes --find-links=/home/runner/preparation/document-wheels -r /home/runner/preparation/requirements-documents.txt
+sudo env PYTHONPATH=/opt/runspindle-image-tools/tools /opt/runspindle-documents/bin/python -m runner_fleet.documents --source /opt/runspindle-image-tools --downloads /home/runner/preparation --installed | sudo tee /opt/runspindle-documents/verified.json >/dev/null
 sudo mkdir -p /opt/runspindle-quality-node
 sudo tar -xzf quality-node-modules.tar.gz -C /opt/runspindle-quality-node
 python3 - <<'PY' | sudo tee /etc/runspindle-image.json >/dev/null

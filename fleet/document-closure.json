@@ -1,0 +1,52 @@
+{
+  "architecture": "linux/x86_64",
+  "implementation": "CPython",
+  "interpreter": "/opt/runspindle-documents/bin/python",
+  "python": "3.12.3",
+  "requirements_sha256": "3b6bc74014f8c9e9e70daf0893822c627f093f1bf281d2a36a630302cc4e70fa",
+  "schema_version": 1,
+  "wheels": [
+    {
+      "bytes": 1954401,
+      "filename": "reportlab-4.4.9-py3-none-any.whl",
+      "metadata_url": "https://pypi.org/pypi/reportlab/4.4.9/json",
+      "name": "reportlab",
+      "notice_members": [
+        "reportlab-4.4.9.dist-info/licenses/LICENSE",
+        "reportlab/fonts/DarkGarden-copying-gpl.txt",
+        "reportlab/fonts/DarkGarden-copying.txt",
+        "reportlab/fonts/bitstream-vera-license.txt"
+      ],
+      "requires_python": "<4,>=3.9",
+      "sha256": "68e2d103ae8041a37714e8896ec9b79a1c1e911d68c3bd2ea17546568cf17bfd",
+      "url": "https://files.pythonhosted.org/packages/17/77/546e50edfaba6a0e58e8ec5fdc4446510227cec9e8f40172b60941d5a633/reportlab-4.4.9-py3-none-any.whl",
+      "version": "4.4.9"
+    },
+    {
+      "bytes": 7144542,
+      "filename": "pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/pillow/13.0.0/json",
+      "name": "pillow",
+      "notice_members": [
+        "pillow-13.0.0.dist-info/licenses/LICENSE"
+      ],
+      "requires_python": ">=3.11",
+      "sha256": "42d63be3af4f9b951b199b0a9d23365d37ab14687e6d77b74940432c8515c4ca",
+      "url": "https://files.pythonhosted.org/packages/e6/99/fdf65cc539e266ab93546c261bdf98411fe165c6e4e13f9dbf597097192b/pillow-13.0.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl",
+      "version": "13.0.0"
+    },
+    {
+      "bytes": 257601,
+      "filename": "charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "metadata_url": "https://pypi.org/pypi/charset-normalizer/3.5.2/json",
+      "name": "charset-normalizer",
+      "notice_members": [
+        "charset_normalizer-3.5.2.dist-info/licenses/LICENSE"
+      ],
+      "requires_python": ">=3.7",
+      "sha256": "3d31298449090ab8d47b7b1b2a555ff73cac7ed438a08b7ac160980c7ebed649",
+      "url": "https://files.pythonhosted.org/packages/7f/c5/38806a25ab5e65fc178f39affeda20858efafede2fce1ffc2556cfc9fe73/charset_normalizer-3.5.2-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl",
+      "version": "3.5.2"
+    }
+  ]
+}

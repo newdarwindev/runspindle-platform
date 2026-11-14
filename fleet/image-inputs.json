@@ -50,5 +50,10 @@
     "manifest": "fleet/builder-closure.json",
     "sha256": "d414b63cb391137ff973246ff251dc81ca0f34c6b5d47a5834a445b389092f3a",
     "architecture": "linux/x86_64"
+  },
+  "documents": {
+    "closure": "fleet/document-closure.json",
+    "closure_sha256": "7cfe6b9eb076efb723cb7e986c9429ace15eebc7ab6e3536d3fbce8c3aa72b7d",
+    "policy": "Verify the exact Linux x64 CPython 3.12.3 document wheel and notice closure before offline installation. This source prerequisite is not runtime qualification."
   }
 }

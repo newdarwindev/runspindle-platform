@@ -1,0 +1,49 @@
+{
+  "base_commit": "0df57c2283d973f695b017ce35855b14d160516c",
+  "checks": {
+    "focused_unittest_normal": 16,
+    "focused_unittest_optimized": 16,
+    "full_platform_suite": "not_run_runtime_suites_not_authorized",
+    "ruff_0.14.5": "passed_four_new_or_typed_touched_files",
+    "scaffold": "passed",
+    "shell_syntax": "passed",
+    "strict_mypy_1.18.2": "passed_four_new_or_typed_touched_files"
+  },
+  "classification": "source_only_prerequisite_local_synthetic_validation",
+  "evidence_limits": [
+    "The selected wheel archives have not been downloaded or installed; installed-package version equality is not archive identity.",
+    "The existing local 3.12.14 distributions were used for artifact-byte checks, not the future 3.12.3 environment.",
+    "CPython 3.12.3 byte comparison, image build, guest qualification, CI execution, activation and promotion remain not run.",
+    "No fallback, skip, artifact refresh, new install or runtime action was used to obtain these results."
+  ],
+  "existing_local_baseline": {
+    "implementation": "CPython",
+    "installed_distribution_file_inventory_sha256": {
+      "charset-normalizer": "807f44b6587f4054db84cbc7a8f92db6d613e0657627e6ee412db8ff5fab6c16",
+      "pillow": "232fc8e16099bee7e0e7755ccdd70edfff3869685d5aafcf305aa55274b168da",
+      "reportlab": "8e8743066917bf69fb3a852dcafc7334da306eaf3658d07b811d2582745fa2ec"
+    },
+    "packages": {
+      "charset-normalizer": "3.5.2",
+      "pillow": "13.0.0",
+      "reportlab": "4.4.9"
+    },
+    "python": "3.12.14"
+  },
+  "repository": "newdarwindev/runspindle-platform",
+  "schema_version": 1,
+  "selected_wheel_closure_sha256": "7cfe6b9eb076efb723cb7e986c9429ace15eebc7ab6e3536d3fbce8c3aa72b7d",
+  "source_sha256": {
+    "fleet/DOCUMENT_NOTICES.md": "457023e5fb4e10876d4e5ef1a060fdf7e811adf418e44f5dffc43abd7cb48960",
+    "fleet/document-closure.json": "7cfe6b9eb076efb723cb7e986c9429ace15eebc7ab6e3536d3fbce8c3aa72b7d",
+    "fleet/image-inputs.json": "7b9b07611dcac1a7351c7aebe4140dd20c9935cb28a66d9083dce525903ca757",
+    "requirements-documents.txt": "3b6bc74014f8c9e9e70daf0893822c627f093f1bf281d2a36a630302cc4e70fa",
+    "tests/test_document_closure.py": "a42b4bd2010df04a3e9f686889458a296e55505d4bfdae1ac970847e4bd79501",
+    "tools/runner_fleet/build_image.py": "504e4a38910c982a2c43080edbe99519a398463518dca068f6fb548bb9afcc1d",
+    "tools/runner_fleet/documents.py": "f4d0b9e4266284a59c7ead944179f35f22ea5bc269e75eca0dc0f5fcb0bc1201",
+    "tools/runner_fleet/identity.py": "0866c5c7e6b1521d66a7d2616201287e369f7063758b727ad07374e1560bb426",
+    "tools/runner_fleet/prepare_image.sh": "b2ea82ae4719eb81d36a0d121f58cdcc1998f8015c80f12b025ec2168bd333d4",
+    "tools/runner_fleet/prepare_temporal.sh": "35398a4fb2b73215405f278fd215c09b32c85a65d283190e9ae508beeb7d0453",
+    "tools/runner_fleet/staging.py": "ca6c1fa78f0274485ca847936c1c93bd190617416d81d4c053f5cdbe73fa1ec9"
+  }
+}
