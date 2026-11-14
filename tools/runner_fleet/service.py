@@ -12,6 +12,7 @@ from .backend import Backend, ROOT, digest, execute, helper
 from .manager import Manager, gh, pages
 from .model import empty_report
 from .state import State
+from .lifecycle import capacity_snapshot
 
 UNIT = 'runspindle-fleet.service'
 CODE = Path('/opt/runspindle-fleet')
@@ -22,11 +23,12 @@ def observed(directory):
     service = execute(['systemctl', 'show', UNIT, '--property=ActiveState,SubState,UnitFileState,MainPID'], check=False)
     fields = dict(line.split('=', 1) for line in service.stdout.splitlines() if '=' in line)
     heartbeat = state.get('heartbeat')
-    live = fields.get('ActiveState') == 'active' and heartbeat and time.time() - heartbeat < 120
-    return {'status': 'passed' if live and not state.get('error') else 'blocked',
+    guests = [helper('observe', slot) for slot in range(2)]
+    capacity = capacity_snapshot(state, guests, fields, time.time())
+    return {'status': capacity['status'], 'capacity': capacity,
             'service': fields, 'heartbeat': heartbeat, 'error': state.get('error'),
             'drained': state.get('drained', True), 'resources': state.active(),
-            'guests': [helper('observe', slot) for slot in range(2)],
+            'guests': guests,
             'queue': state.get('queue', []), 'runners': state.get('runners', {}), 'reconciled_at': state.get('reconciled_at'),
             'peak_slots': state.get('peak_slots', 0), 'startup_enabled': fields.get('UnitFileState') == 'enabled'}
 

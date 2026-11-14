@@ -80,7 +80,8 @@ class State:
             now = time.time()
             self.db.execute('INSERT INTO resources VALUES(?,?,?,?,?,?,?,?,?)',
                             (identity, slot, job['repository'], job['id'], name,
-                             'reserved', now, now, '{}'))
+                             'reserved', now, now, json.dumps({'requested_source': {
+                                 key: job.get(key) for key in ('head_sha', 'run_id', 'event', 'head_branch')}})))
             self._event(identity, 'reserved', {'job': job, 'slot': slot})
         return next(r for r in self.active() if r['id'] == identity)
 

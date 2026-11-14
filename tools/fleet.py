@@ -42,6 +42,7 @@ def main(argv=None):
             "resume",
             "qualify",
             "uninstall",
+            "image-status",
         ),
     )
     parser.add_argument("--host", choices=("strix", "macbook"), required=True)
@@ -59,8 +60,16 @@ def main(argv=None):
         help="JSON map of owner/repo/lane to GitHub run ID; fetched and verified",
     )
     parser.add_argument("--ref", default="ci/strix-push-validation", help="Trusted qualification branch")
+    parser.add_argument("--image", type=Path, default=Path('/var/lib/runspindle-fleet/images/qualified.qcow2'))
+    parser.add_argument("--image-manifest", type=Path, default=Path('/var/lib/runspindle-fleet/images/qualified.json'))
     args = parser.parse_args(argv)
     cfg = config()
+    if args.command == 'image-status':
+        from runner_fleet.lifecycle import image_matrix
+        result = image_matrix(cfg, Path(__file__).resolve().parents[1] / 'fleet/image-inputs.json',
+                              args.image, args.image_manifest)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 2  # Byte identity cannot qualify any target lane.
     state = args.state_dir.expanduser().resolve()
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
     control = state / (args.host + "-control.json")

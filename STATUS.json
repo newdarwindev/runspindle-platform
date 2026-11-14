@@ -27,6 +27,13 @@
     "disposable_backends": "strix_qemu_implemented_live_qualification_pending",
     "documentation": "docs/RUNNER_FLEET.md",
     "host_managers": "strix_systemd_implemented_live_qualification_pending",
+    "lifecycle_progress": {
+      "capacity": "fresh_service_inventory_and_guest_ownership_required",
+      "evidence": "docs/fleet-lifecycle-progress.json",
+      "image_status": "exact_local_bytes_and_recipe_only",
+      "status": "implemented_local_synthetic_checks_target_qualification_blocked",
+      "target_lifecycle": "not_run"
+    },
     "mac_lanes": "pending_original_resource_and_isolation_gates",
     "qualification": "blocked",
     "required_checks": "unchanged",
