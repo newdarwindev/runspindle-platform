@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "ubuntu": {
+    "url": "https://cloud-images.ubuntu.com/releases/noble/release/ubuntu-24.04-server-cloudimg-amd64.img",
+    "sha256": "04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94",
+    "license": "Ubuntu package-specific licenses, recorded from /usr/share/doc/*/copyright"
+  },
+  "runner": {
+    "version": "2.338.2",
+    "url": "https://github.com/actions/runner/releases/download/v2.338.2/actions-runner-linux-x64-2.338.2.tar.gz",
+    "sha256": "baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40",
+    "license": "MIT; bundled third-party notices preserved in extracted archive"
+  },
+  "rust": {
+    "version": "1.93.0",
+    "url": "https://static.rust-lang.org/dist/rust-1.93.0-x86_64-unknown-linux-gnu.tar.xz",
+    "sha256": "b9d9f01a96a2542852ccfddd82194276ba1c86bc76353309ff636b737fc0a772",
+    "license": "MIT OR Apache-2.0; upstream COPYRIGHT and component licenses retained in image"
+  },
+  "offline_rust_dependencies": {
+    "core": "ceabd0a92a944722ca774723b996298599f5b30b",
+    "host": "a56e5d7c18611b07c1c28da425db7c14227b3e76",
+    "policy": "Fetch committed Cargo.lock closures, including core's pinned host Git source, in an isolated preparation guest; test both checkouts offline and retain crate checksums and licenses in the guest manifest."
+  },
+  "policy": "Mutable URLs are accepted only when bytes match these fixed digests. Never refresh digests automatically. Derived image manifest records all installed package versions and copyright hashes. Binaries remain outside Git.",
+  "node": {
+    "version": "22.23.5",
+    "url": "https://nodejs.org/dist/v22.23.5/node-v22.23.5-linux-x64.tar.xz",
+    "sha256": "cdeb8670a0c81f51b4dc4ac61919f9b1ad917b304bf8221eb939570663d240f8",
+    "license": "MIT and third-party notices; upstream LICENSE retained in image"
+  },
+  "temporal": {
+    "manifest": "temporal/dependencies.json",
+    "architecture": "amd64",
+    "sha256": "521f461f3d108902763bb71e85cd0fd382dc9357b59604ae03da6ae734d16890",
+    "license": "MIT; CLI and embedded server notices preserved"
+  }
+}

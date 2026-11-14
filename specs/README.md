@@ -26,3 +26,9 @@ A pinned Linux arm64 Temporal development lane now has real readiness, killed-se
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).
 
 [Bounded maintained-workflow qualification](maintained-offline.md) covers separate synthetic standard-Collector diagnostics and disposable development-metadata installation. Langfuse/native/full-product gates remain blocked.
+## Engineering direction
+
+[Desired intent](desired-intent.md) connects this component to scoped access,
+managed sessions, explicit human exceptions and evaluated maintained workflows.
+It adds design and verification obligations without changing runtime schemas,
+existing acceptance results or operational permissions.

@@ -56,10 +56,14 @@ def build_verified_image(binary, license_bytes, architecture):
             os.utime(target, (0, 0))
         (directory / 'Dockerfile').write_text(
             'FROM scratch\nCOPY temporal /temporal\nCOPY LICENSE /LICENSE\nENTRYPOINT ["/temporal"]\n')
-        docker('build', '--network', 'none', '--pull=false', '--provenance=false',
+        tag = 'runspindle-temporal-verified:' + hashlib.sha256(binary + license_bytes + architecture.encode()).hexdigest()[:32]
+        docker('build', '--load', '--tag', tag, '--network', 'none', '--pull=false', '--provenance=false',
                '--build-arg', 'SOURCE_DATE_EPOCH=0', '--platform', f'linux/{architecture}',
                '--iidfile', directory / 'image.id', directory, timeout=120)
-        return (directory / 'image.id').read_text().strip()
+        # Docker's containerd image store can identify the runnable image by
+        # its manifest digest while --iidfile contains the config digest. Resolve
+        # our content-derived tag through the daemon; never accept caller tags.
+        return docker('image', 'inspect', '--format', '{{.Id}}', tag).stdout.strip()
 
 
 def verified_assets(directory, architecture, pins):
