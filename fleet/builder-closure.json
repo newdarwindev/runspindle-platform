@@ -5,6 +5,7 @@
   "rust_manifest": "rust@sha256:6ae102bdbf528294bc79ad6e1fae682f6f7c2a6e6621506ba959f9685b308a55",
   "rust_image_id": "sha256:1c3316753323aa5edd4c2be762323794f4aa9f4335635dc4c7964ee99cb986d2",
   "builder_image_id": "sha256:58997199116d9c2d765803753fce17a910d9b1c0f92b8c1519b5e9f64d1dbdcb",
+  "docker_loaded_builder_image_id": "sha256:9045681d1e2443e55bffe0c86dd93ee262157ea807fbf55c4e58e82699c9a53e",
   "recipe": "fleet/builder-x64.Containerfile",
   "recipe_sha256": "f499c5cd50dfc8cb8157efdb1faa9198a6b79986e08e94eb02cec3a771035809",
   "archive": "builder-closure.tar.gz",

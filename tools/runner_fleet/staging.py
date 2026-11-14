@@ -94,5 +94,5 @@ def verify(source: Path, downloads: Path) -> dict[str, object]:
         "rust_closure_sha256": digest(closure_path),
         "quality_closure_sha256": quality["closure_sha256"],
         "crate_count": len(closure["crate_archives"]),
-        "builder_image_id": builder["builder_image_id"],
+        "builder_image_id": builder["docker_loaded_builder_image_id"],
     }

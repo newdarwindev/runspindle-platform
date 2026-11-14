@@ -48,7 +48,7 @@
   },
   "runtime_builder": {
     "manifest": "fleet/builder-closure.json",
-    "sha256": "939aa22f3790c2186262bc80ddec392ea9a0cdadeeabe684d1794cd10905f7fb",
+    "sha256": "d414b63cb391137ff973246ff251dc81ca0f34c6b5d47a5834a445b389092f3a",
     "architecture": "linux/x86_64"
   }
 }
