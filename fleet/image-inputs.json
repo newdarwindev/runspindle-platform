@@ -45,5 +45,10 @@
   "rust_closure": {
     "manifest": "fleet/rust-closure.json",
     "sha256": "d2ddeab3255cd69d082502259083d0a3fa9cf72b53601af90046e4d40cd90eff"
+  },
+  "runtime_builder": {
+    "manifest": "fleet/builder-closure.json",
+    "sha256": "939aa22f3790c2186262bc80ddec392ea9a0cdadeeabe684d1794cd10905f7fb",
+    "architecture": "linux/x86_64"
   }
 }

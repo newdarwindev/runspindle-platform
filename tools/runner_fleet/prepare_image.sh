@@ -11,7 +11,7 @@ print(verify(Path('/opt/runspindle-image-tools'), Path('/home/runner/preparation
 PY
 sudo sed -i 's,http://,https://,g' /etc/apt/sources.list.d/ubuntu.sources
 sudo -E env DEBIAN_FRONTEND=noninteractive apt-get update
-sudo -E env DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv git curl ca-certificates build-essential libicu74 libssl3t64 zlib1g libkrb5-3 nodejs npm
+sudo -E env DEBIAN_FRONTEND=noninteractive apt-get install -y python3 python3-venv git curl ca-certificates build-essential libicu74 libssl3t64 zlib1g libkrb5-3
 mkdir -p /home/runner/runner /home/runner/preparation
 cd /home/runner/preparation
 echo 'baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40  actions-runner-linux-x64-2.338.2.tar.gz' | sha256sum -c -

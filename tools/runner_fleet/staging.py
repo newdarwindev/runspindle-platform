@@ -65,6 +65,21 @@ def verify(source: Path, downloads: Path) -> dict[str, object]:
     safe_archive(cargo, crate_hashes=closure["crate_archives"])
     node = downloads / "quality-node-modules.tar.gz"
     safe_archive(node)
+    builder_path = source / pins["runtime_builder"]["manifest"]
+    verified_file(builder_path, pins["runtime_builder"]["sha256"])
+    builder = json.loads(builder_path.read_text())
+    if (
+        builder.get("schema_version") != 1
+        or builder.get("architecture") != "linux/x86_64"
+        or builder.get("rust_version") != pins["rust"]["version"]
+    ):
+        raise ValueError("wrong runtime builder architecture or version")
+    verified_file(source / builder["recipe"], builder["recipe_sha256"])
+    verified_file(
+        downloads / builder["archive"],
+        builder["archive_sha256"],
+        builder["archive_bytes"],
+    )
     fixed = (
         ("actions-runner-linux-x64-2.338.2.tar.gz", pins["runner"]["sha256"]),
         ("rust-1.94.1-x86_64-unknown-linux-gnu.tar.xz", pins["rust"]["sha256"]),
@@ -79,4 +94,5 @@ def verify(source: Path, downloads: Path) -> dict[str, object]:
         "rust_closure_sha256": digest(closure_path),
         "quality_closure_sha256": quality["closure_sha256"],
         "crate_count": len(closure["crate_archives"]),
+        "builder_image_id": builder["builder_image_id"],
     }

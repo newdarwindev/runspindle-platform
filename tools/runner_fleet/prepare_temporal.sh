@@ -8,6 +8,26 @@ sudo -E env DEBIAN_FRONTEND=noninteractive apt-get update
 sudo -E env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-buildx
 sudo systemctl enable --now docker
 sudo usermod -aG docker runner
+sudo docker load -i /home/runner/preparation/builder-closure.tar.gz >/dev/null
+python3 - <<'PY'
+import json,pathlib,subprocess
+pins=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/builder-closure.json').read_text())
+builder=pins['builder_image_id']
+for image in (pins['rust_image_id'],builder):
+    observed=json.loads(subprocess.check_output(['sudo','docker','image','inspect',image],text=True))[0]
+    if observed['Id']!=image or observed['Architecture']!='amd64':
+        raise SystemExit('staged runtime builder image identity or architecture mismatch')
+paths=['/usr/bin/protoc','/usr/local/rustup/toolchains/1.94.1-x86_64-unknown-linux-gnu/bin/clippy-driver',*pins['license_sha256']]
+output=subprocess.check_output(['sudo','docker','run','--rm','--pull','never','--network','none',builder,'sha256sum',*paths],text=True)
+hashes={path:value for value,path in (line.split() for line in output.splitlines())}
+required={'/usr/bin/protoc':pins['protoc_sha256'],paths[1]:pins['clippy_driver_sha256'],**pins['license_sha256']}
+if hashes!=required:
+    raise SystemExit('staged runtime builder tool or license bytes mismatch')
+for package,version in pins['packages'].items():
+    observed=subprocess.check_output(['sudo','docker','run','--rm','--pull','never','--network','none',builder,'dpkg-query','-W',package],text=True).split()[-1]
+    if observed!=version:
+        raise SystemExit('staged runtime builder package version mismatch')
+PY
 sudo install -d -m 0755 /opt/runspindle-temporal
 sudo install -m 0644 /home/runner/preparation/temporal_cli_1.10.0_linux_amd64.tar.gz /opt/runspindle-temporal/
 sudo install -m 0644 /home/runner/preparation/LICENSE-CLI /opt/runspindle-temporal/LICENSE
@@ -27,6 +47,7 @@ v['quality_closure']=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/
 v['rust_closure_sha256']=hashlib.sha256(pathlib.Path('/opt/runspindle-image-tools/fleet/rust-closure.json').read_bytes()).hexdigest()
 v['quality_python_packages']=subprocess.check_output(['/opt/runspindle-quality/bin/pip','freeze'],text=True).splitlines()
 v['quality_node_archive_sha256']=v['quality_closure']['node']['modules_archive_sha256']
+v['runtime_builder']=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/builder-closure.json').read_text())
 v['quality_license_sha256']={str(p):hashlib.sha256(p.read_bytes()).hexdigest() for base in [pathlib.Path('/opt/runspindle-quality/lib'),pathlib.Path('/opt/runspindle-quality-node/node_modules')] for p in base.rglob('*') if p.is_file() and p.name.upper().startswith(('LICENSE','COPYING','NOTICE'))}
 v['identity'] += '-rust-closure'
 print(json.dumps(v,sort_keys=True))
