@@ -137,6 +137,9 @@ class Manager:
                     gh(f'repos/{self.cfg["owner"]}/{repo}/actions/runners/{runner["id"]}', 'DELETE')
         self.state.set('reconciled_at', time.time())
 
+    def cancel_claim(self, resource, job):
+        return gh(f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/runs/{job["run_id"]}/cancel', 'POST')
+
     def advance(self, resource, jobs):
         now = time.time()
         try:
@@ -183,10 +186,10 @@ class Manager:
                     if job['status'] == 'completed':
                         self.state.update(resource, 'finishing', claimed_job=job, finish_deadline=now + 120)
                     elif helper('observe', resource['slot']).get('ActiveState') != 'active':
-                        gh(f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/runs/{job["run_id"]}/cancel', 'POST')
+                        self.cancel_claim(resource, job)
                         self.cleanup(resource, 'forced guest termination during job')
                     elif job.get('started_at') and now - datetime.fromisoformat(job['started_at'].replace('Z', '+00:00')).timestamp() > self.cfg['job_timeout_seconds']:
-                        gh(f'repos/{self.cfg["owner"]}/{resource["repository"]}/actions/runs/{job["run_id"]}/cancel', 'POST')
+                        self.cancel_claim(resource, job)
                         self.cleanup(resource, 'execution timeout: failed evidence')
                 elif now - resource['details']['registered_at'] > 180:
                     self.cleanup(resource, 'registration-to-job timeout: blocked evidence')
@@ -196,6 +199,12 @@ class Manager:
                 self.cleanup(resource, 'interrupted registration')
         except Exception as error:
             self.state.update(resource, 'uncertain', error=str(error))
+
+    def reserve_job(self, job):
+        return self.state.reserve(job)
+
+    def can_admit(self):
+        return not self.state.get('drained', True) and not self.state.get('error')
 
     def tick(self, poll=True):
         if poll:
@@ -212,9 +221,11 @@ class Manager:
         reserved_jobs = {(r['repository'], r['requested_job']) for r in active}
         queue = [j for j in queue if (j['repository'], j['id']) not in reserved_jobs | self.consumed]
         selected, cursor = choose_jobs(self.cfg, 'strix', queue, active,
-                                       self.state.get('cursor', 0), self.state.get('drained', True) or bool(self.state.get('error')))
+                                       self.state.get('cursor', 0), not self.can_admit())
         for job in selected:
-            resource = self.state.reserve(job)
+            if not self.can_admit():
+                break
+            resource = self.reserve_job(job)
             self.consumed.add((job['repository'], job['id']))
             # Cursor is persisted alongside each actual reservation, before boot.
             index = self.cfg['repositories'].index(job['repository'])

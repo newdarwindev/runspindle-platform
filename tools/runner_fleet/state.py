@@ -67,7 +67,7 @@ class State:
         return [dict(row) | {'details': json.loads(row['details'])} for row in
                 self.db.execute("SELECT * FROM resources WHERE phase != 'destroyed' ORDER BY created")]
 
-    def reserve(self, job, capacity=2):
+    def reserve(self, job, capacity=2, details=None):
         if capacity != 2:
             raise ValueError('Strix capacity must be exactly two')
         with self.transaction():
@@ -80,7 +80,7 @@ class State:
             now = time.time()
             self.db.execute('INSERT INTO resources VALUES(?,?,?,?,?,?,?,?,?)',
                             (identity, slot, job['repository'], job['id'], name,
-                             'reserved', now, now, '{}'))
+                             'reserved', now, now, json.dumps(details or {})))
             self._event(identity, 'reserved', {'job': job, 'slot': slot})
         return next(r for r in self.active() if r['id'] == identity)
 
