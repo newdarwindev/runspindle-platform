@@ -58,6 +58,25 @@ def digest(path):
     return value.hexdigest()
 
 
+def image_binding(image, manifest_path, image_sha, *, candidate):
+    manifest = json.loads(Path(manifest_path).read_text())
+    if candidate and str(image) != manifest.get('candidate_path'):
+        raise RuntimeError('Candidate image path differs from recorded manifest')
+    if manifest.get('sha256') != image_sha:
+        raise RuntimeError('Image digest differs from recorded manifest')
+    values = {}
+    for field in ('controller_sha256', 'recipe_sha256', 'tool_closure_sha256'):
+        value = manifest.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value):
+            raise RuntimeError('Missing exact image binding: ' + field)
+        values[field] = value
+    source = manifest.get('source_sha')
+    if not isinstance(source, str) or not re.fullmatch(r'[0-9a-f]{40}', source):
+        raise RuntimeError('Missing exact image source revision')
+    values['image_source_sha'] = source
+    return values
+
+
 class Backend:
     def __init__(self, state, image=None):
         self.state = state
@@ -107,6 +126,16 @@ class Backend:
         directory = self.directory(resource)
         slot = self.slot(resource)
         image_sha = digest(self.image)
+        instance = {'resource': resource['id'], 'slot': resource['slot'],
+                    'image_sha256': image_sha}
+        if not prepare:
+            if self.image.is_symlink() or self.image.stat().st_uid != 0 or self.image.stat().st_mode & 0o222:
+                raise RuntimeError('Unsealed guest image refused')
+            qualified = ROOT / 'images/qualified.qcow2'
+            path = (ROOT / 'images/qualified.json' if self.image == qualified
+                    else self.state.directory / 'candidate.json')
+            instance.update(image_binding(self.image, path, image_sha,
+                                          candidate=self.image != qualified))
         self.state.update(resource, 'starting', image_sha256=image_sha, boot_deadline=time.time() + 240)
         helper('network')  # Firewall applied before any guest process exists.
         observed = helper('observe', resource['slot'])
@@ -123,7 +152,7 @@ class Backend:
             'users': [{'name': 'runner', 'shell': '/bin/bash', 'lock_passwd': True,
                        'sudo': ['ALL=(ALL) NOPASSWD:ALL'] if prepare else [],
                        'ssh_authorized_keys': [(directory / 'key.pub').read_text().strip()]}],
-            'write_files': [{'path': '/etc/runspindle-instance.json', 'content': json.dumps({'resource': resource['id'], 'slot': resource['slot'], 'image_sha256': image_sha})}, {'path': '/etc/environment', 'content':
+            'write_files': [{'path': '/etc/runspindle-instance.json', 'content': json.dumps(instance)}, {'path': '/etc/environment', 'content':
                 f'http_proxy={proxy}\nhttps_proxy={proxy}\nHTTP_PROXY={proxy}\nHTTPS_PROXY={proxy}\nno_proxy=localhost,127.0.0.1\nNO_PROXY=localhost,127.0.0.1\n'}],
             'runcmd': [['sysctl', '-w', 'net.ipv6.conf.all.disable_ipv6=1']],
         }

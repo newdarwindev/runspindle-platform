@@ -21,6 +21,27 @@ from runner_fleet.model import (
 from runner_fleet.evidence import collect
 from runner_fleet.preflight import inspect_host
 import fleet
+from runner_fleet.backend import image_binding
+
+
+class ImageBindingTests(unittest.TestCase):
+    def test_exact_candidate_binding_and_negative_mismatches(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'candidate.json'
+            image = Path(directory) / 'candidate.qcow2'
+            value = {'candidate_path': str(image), 'sha256': 'a' * 64,
+                     'source_sha': 'b' * 40, 'controller_sha256': 'c' * 64,
+                     'recipe_sha256': 'd' * 64, 'tool_closure_sha256': 'e' * 64}
+            path.write_text(json.dumps(value))
+            self.assertEqual(image_binding(image, path, 'a' * 64, candidate=True)['image_source_sha'], 'b' * 40)
+            with self.assertRaisesRegex(RuntimeError, 'digest'):
+                image_binding(image, path, 'f' * 64, candidate=True)
+            with self.assertRaisesRegex(RuntimeError, 'path'):
+                image_binding(image.with_name('other.qcow2'), path, 'a' * 64, candidate=True)
+            value['recipe_sha256'] = 'bad'
+            path.write_text(json.dumps(value))
+            with self.assertRaisesRegex(RuntimeError, 'binding'):
+                image_binding(image, path, 'a' * 64, candidate=True)
 
 
 class SchedulingTests(unittest.TestCase):
