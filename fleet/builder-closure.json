@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "architecture": "linux/x86_64",
+  "rust_version": "1.94.1",
+  "rust_manifest": "rust@sha256:6ae102bdbf528294bc79ad6e1fae682f6f7c2a6e6621506ba959f9685b308a55",
+  "rust_image_id": "sha256:1c3316753323aa5edd4c2be762323794f4aa9f4335635dc4c7964ee99cb986d2",
+  "builder_image_id": "sha256:58997199116d9c2d765803753fce17a910d9b1c0f92b8c1519b5e9f64d1dbdcb",
+  "docker_loaded_builder_image_id": "sha256:9045681d1e2443e55bffe0c86dd93ee262157ea807fbf55c4e58e82699c9a53e",
+  "recipe": "fleet/builder-x64.Containerfile",
+  "recipe_sha256": "f499c5cd50dfc8cb8157efdb1faa9198a6b79986e08e94eb02cec3a771035809",
+  "archive": "builder-closure.tar.gz",
+  "archive_sha256": "9e872bae015df2787ef50be0a1fcd5d96b0f3f2a2f5b11414ef388f1dd61527c",
+  "archive_bytes": 621462027,
+  "protoc_sha256": "7f5fabcc8fbcb1c65f08c37b263e6faf6bdcef9d0d95f34220cc13b28a7af813",
+  "clippy_driver_sha256": "1a437e83cc2a03e5302f5bec88398b8e89574b998aa46faf8ce2f5ec588597c5",
+  "packages": {
+    "libprotobuf-dev:amd64": "3.21.12-3+deb12u1",
+    "protobuf-compiler": "3.21.12-3+deb12u1"
+  },
+  "license_sha256": {
+    "/usr/share/doc/libprotobuf-dev/copyright": "77ae762c8b3aa11e07a48184818111d28e2274229a8eb121e19477d1a40f3b76",
+    "/usr/share/doc/protobuf-compiler/copyright": "77ae762c8b3aa11e07a48184818111d28e2274229a8eb121e19477d1a40f3b76",
+    "/usr/local/rustup/toolchains/1.94.1-x86_64-unknown-linux-gnu/share/doc/rust/COPYRIGHT.html": "d2ed40054b1388a56e252e2ff54b25436d7be57cc5ae44348ac1f25e45dd6c4c",
+    "/usr/local/rustup/toolchains/1.94.1-x86_64-unknown-linux-gnu/share/doc/rust/COPYRIGHT-library.html": "af70aaabed1b73e872f14f9130db37e09f3f4d73a5f7c598b9173697a5d2729f"
+  }
+}

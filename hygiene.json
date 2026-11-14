@@ -86,6 +86,17 @@
     {
       "id": "distributable-build",
       "not_applicable": "No distributable build command exists in this repository validation contract; this does not claim release acceptance."
+    },
+    {
+      "id": "maintained-mutations",
+      "command": [
+        "python3",
+        "tools/check_maintained_mutations.py"
+      ],
+      "required_files": [
+        "tools/check_maintained_mutations.py"
+      ],
+      "timeout_seconds": 600
     }
   ],
   "lockfiles": [

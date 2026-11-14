@@ -14,11 +14,12 @@ from . import backend as _backend
 from . import manager as _manager
 from . import model as _model
 from . import state as _state
+from .identity import binding
 from .lifecycle import capacity_snapshot
 
 # Legacy process adapters have dynamic JSON/process return values. Keep those
 # boundaries explicit while typing the new observation contract independently.
-ROOT: Any = _backend.ROOT
+ROOT = _backend.ROOT
 Backend: Any = _backend.Backend
 digest: Any = _backend.digest
 execute: Any = _backend.execute
@@ -137,6 +138,9 @@ def preflight(cfg, directory):
             raise RuntimeError("Base image must be root-owned and read-only")
         if digest(path) != manifest["sha256"]:
             raise RuntimeError("Immutable image digest mismatch")
+        expected = binding(CODE)
+        if any(manifest.get(name) != value for name, value in expected.items()):
+            raise RuntimeError("Qualified image controller, recipe or closure drift")
         return manifest
 
     check("image", image)
@@ -282,10 +286,23 @@ def control(cfg, directory, command):
                 "status": "blocked",
                 "reason": "Fresh successful preflight required",
             }
-        if (
-            digest(ROOT / "images/qualified.qcow2")
-            != json.loads((ROOT / "images/qualified.json").read_text())["sha256"]
+        manifest = json.loads((ROOT / "images/qualified.json").read_text())
+        observed_image = next(
+            (
+                c.get("detail")
+                for c in report.get("checks", [])
+                if c.get("check") == "image" and c.get("status") == "passed"
+            ),
+            None,
+        )
+        if observed_image != manifest or any(
+            manifest.get(name) != value for name, value in binding(CODE).items()
         ):
+            return {
+                "status": "blocked",
+                "reason": "Image, recipe, tool closure or controller changed after preflight",
+            }
+        if digest(ROOT / "images/qualified.qcow2") != manifest["sha256"]:
             return {"status": "blocked", "reason": "Image changed after preflight"}
         helper("network")
         service = observed(directory)
