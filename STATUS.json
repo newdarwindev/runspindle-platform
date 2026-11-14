@@ -1,4 +1,12 @@
 {
+  "bounded_offline_qualification": {
+    "Collector": "locally_tested_synthetic_OTLP_file_privacy_and_durable_queue",
+    "Langfuse": "blocked_dependency_preparation",
+    "development_metadata_bundle": "locally_tested_disposable_Linux_arm64_installation_and_recovery",
+    "evidence": "docs/maintained-offline-tests.json",
+    "full_product_release": "blocked",
+    "native_telemetry": "blocked"
+  },
   "dev_deployment": "not_run",
   "fixture_conformance": "passed",
   "fixture_evidence": "docs/SHARED_FIXTURES.md",
@@ -6,6 +14,12 @@
   "implementation": "partial_temporal_development_lane",
   "legacy_archival": "not_started",
   "live_acceptance": "not_run",
+  "offline_finish": {
+    "Langfuse": "blocked_source_notice_closure",
+    "evidence": "docs/offline-finish-tests.json",
+    "independent_review": "user_waived_no_review_performed",
+    "streaming_bundle": "locally_tested_disposable_Linux_arm64"
+  },
   "production_deployment": "not_run",
   "runner_capacity": "unverified",
   "runner_fleet_preparation": {

@@ -1,0 +1,137 @@
+{
+  "schema_version": 1,
+  "evidence_class": "component_and_isolated_standard_dependency_diagnostics",
+  "component_base": "96eb567ef32c68c52c19ea8fd77f11e5340e291b",
+  "timestamp": "2026-11-13T23:08:58.503792+00:00",
+  "tests": {
+    "host_with_prepared_Temporal": "27 tests, 3 Linux installation cases skipped; 5 prepared real Temporal cases ran",
+    "Linux_arm64_installation": "5 tests passed, fresh subprocess interruptions at intent/file/pointer and actual rollback",
+    "scaffold": "passed",
+    "Black_Ruff": "new modules passed"
+  },
+  "python_image": "python@sha256:0e58fc4a4575979bfce26735236422a48b38dae99d72b9d72a15e8e3fe0f7f93",
+  "python_license_sha256": "b0e25a78cffb43f4d92de8b61ccfa1f1f98ecbc22330b54b5251e7b6ba010231",
+  "Collector_privacy": {
+    "status": "passed",
+    "evidence_class": "isolated_privacy_challenge",
+    "Collector": "0.163.2",
+    "config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+    "proposed_config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+    "dependencies_sha256": "e6f028e3047b4a2914444b73a38f12cdc93be4d504c460123c863d2291e27f80",
+    "observed": {
+      "transport": "accepted",
+      "backend": "persisted_file_only",
+      "matching_records": 2,
+      "duplicates": 1,
+      "privacy": "passed_tested_synthetic_envelope_only"
+    },
+    "malformed_envelope": "rejected_HTTP_400_zero_extra_backend_records",
+    "internal_error_log_canaries": "absent",
+    "buffered_interruption": {
+      "state": "lost_after_volatile_export_buffer_SIGKILL",
+      "matching_records": 0
+    },
+    "canary_paths": [],
+    "schema_url_setter": "supported_and_canaries_removed_in_file_readback",
+    "Langfuse_pipeline": "not_run",
+    "native_producer": "blocked",
+    "full_H08": "blocked",
+    "live_acceptance": "not_run",
+    "repeat_runs": 2
+  },
+  "Collector_queue_recovery": {
+    "status": "passed",
+    "evidence_class": "isolated_standard_Collector_queue_recovery",
+    "Collector": "0.163.2",
+    "primary_config_sha256": "1c9f0f617ce5da0e14180c054a28dbb17a81659f85fac6776e9ed0cf427cf470",
+    "backend_config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+    "before_backend_readback": "queued_not_persisted",
+    "recovery": "fresh_Collector_after_SIGKILL_with_file_storage_queue",
+    "observed": {
+      "transport": "accepted",
+      "backend": "persisted_file_only",
+      "matching_records": 1,
+      "duplicates": 0,
+      "privacy": "passed_tested_synthetic_envelope_only"
+    },
+    "Langfuse": "blocked_dependency_preparation",
+    "native": "blocked",
+    "full_H08": "blocked",
+    "repeat_runs": 2
+  },
+  "mutations": {
+    "evidence_class": "component_mutation_detection",
+    "results": [
+      {
+        "mutation": "fabricated_persistence",
+        "detected": true
+      },
+      {
+        "mutation": "wrong_installed_attribution",
+        "detected": true
+      }
+    ]
+  },
+  "Langfuse": {
+    "schema_version": 1,
+    "status": "blocked",
+    "evidence_class": "read_only_dependency_preparation",
+    "version": "3.63.0",
+    "source_revision": "a136ac8184b876a90afafe8cd2ebfef8a7b05858",
+    "source": "https://github.com/langfuse/langfuse/tree/a136ac8184b876a90afafe8cd2ebfef8a7b05858",
+    "target": "linux/arm64",
+    "images": {
+      "web": "langfuse/langfuse@sha256:8e3f2d016c39a2877644c8998fe9bff92a584380228df682ae5fcfbba94e32c6",
+      "worker": "langfuse/langfuse-worker@sha256:1bfe82e958cb4ba8f880314f5e395967cbab954a2d722ac503bf04b400fe3e8d",
+      "postgres": "postgres@sha256:51a22dd7011534315b3c3f641e4a27204e90ce543674c945072176147824834e",
+      "redis": "redis@sha256:4da694ba727afad9a027c075a3e32356affea4db13482d489822107dcf09d4ed",
+      "clickhouse": "clickhouse/clickhouse-server@sha256:a0132c162b7c1d51f16be38a2fe626eec58b95b3fa8b45d8ffaac1e914498543",
+      "minio": null
+    },
+    "lock_sha256": "bbba609593873058923d25238461fb3f4e829f1368a661a4daae23bc14f76f94",
+    "upstream_compose_sha256": "5af83f917688b34805190ba06e1c42b07bd5adcfcf7009b4a2a29f616d8a2ddd",
+    "rights": "MIT core; separate EE terms retained; no EE use or binary redistribution authorized by this evidence",
+    "web_packages_observed": 884,
+    "execution": "not_run",
+    "backend_readback": "not_run",
+    "blocking_observations": [
+      {
+        "dependency": "MinIO RELEASE.2025-04-22T22-12-26Z",
+        "location": "docker.io/minio/minio",
+        "result": "public manifest denied: insufficient_scope"
+      },
+      {
+        "dependency": "same exact MinIO release",
+        "location": "quay.io/minio/minio",
+        "result": "public manifest HEAD returned 401 Unauthorized"
+      },
+      {
+        "dependency": "same exact MinIO release",
+        "location": "https://dl.min.io/server/minio/release/linux-arm64/archive/",
+        "result": "official binary checksum and signature URLs returned HTTP 410 Gone"
+      }
+    ],
+    "remaining_preparation": [
+      "available immutable MinIO artifact plus matching rights/source",
+      "complete worker, OS, database and storage dependency inventories before execution"
+    ],
+    "no_new_credentials": true,
+    "no_substitute_backend": true
+  },
+  "preparation_note": "An initial --version-only Collector probe followed the image/binary/SBOM/license inventory but preceded explicit generated OBI source closure. Retained behavior runs verify the completed dependency manifest. No Langfuse code executed.",
+  "source_hashes": {
+    "tools/development_bundle.py": "205126cf1ade5e7a4320296312d756526279cd571db4aa80a7a3dfe3f4551350",
+    "tools/collector_privacy_check.py": "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4",
+    "tools/collector_recovery_check.py": "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
+    "tools/check_maintained_mutations.py": "c852677a6f10cff6d24324e39027a11790f95c5413bfa55b9fce4fc4eca14083",
+    "tests/test_development_bundle.py": "63b3ea7701ba3a6c4844cfad4eaeb2146ea73523091ae20e3c6e6e87c0bca7b9",
+    "tests/test_telemetry_evidence.py": "87100b51d7ece38bcc9216dbd07e3064ceb50d911a37ea37dc220547aedd16e0",
+    "telemetry/collector.yaml": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55"
+  },
+  "native_producer": "blocked",
+  "full_H08": "blocked",
+  "full_product_release": "blocked",
+  "live_acceptance": "not_run",
+  "production_activation": "not_run",
+  "independent_review": "pending"
+}

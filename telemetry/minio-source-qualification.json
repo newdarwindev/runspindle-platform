@@ -1,0 +1,3158 @@
+{
+  "schema_version": 1,
+  "status": "blocked",
+  "evidence_class": "read_only_dependency_preparation",
+  "release": "RELEASE.2025-04-22T22-12-26Z",
+  "source_revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+  "source": "https://github.com/minio/minio/tree/0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+  "go_mod_sha256": "16e01a6b3e5088ff6117ccfd3c15fd6391b92d1a382d4d33f51bb1bff358e349",
+  "go_sum_sha256": "27b57eced706cc0cd34cb4a971560ba601002590b91d4fe24c67f0ced9732f7a",
+  "license": "AGPL-3.0-only; original rights and notices retained",
+  "source_license_sha256": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+  "credits_sha256": "113b8c63dfd987d3652950d7c2aecb1c0952b41781e79bcdac6a316418d48542",
+  "toolchain": "golang@sha256:79390b5e5af9ee6e7b1173ee3eac7fadf6751a545297672916b59bfa0ecf6f71",
+  "go_version": "1.24.2",
+  "go_notice_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad",
+  "modules": [
+    {
+      "module": "cloud.google.com/go/storage",
+      "version": "v1.46.0",
+      "go_sum": "h1:OTXISBpFd8KaA2ClT3K3oRk8UGOcTHtrZ1bW88xKiic=",
+      "go_mod_sum": "h1:lM+gMAW91EfXIeMTBmixRsKL/XCxysytoAgduVikjMk=",
+      "archive_sha256": "c742940e0d58ced13a8ad0fa66f63fe43e27c316bc880d65244436af8637a117",
+      "go_mod_sha256": "00701142fecca469da3dcb9fd74d89c7543a8b7b7a707c632ec230d757f8f6ac",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/Azure/azure-sdk-for-go/sdk/azcore",
+      "version": "v1.17.0",
+      "go_sum": "h1:g0EZJwz7xkXQiZAI5xi9f3WWFYBlX1CPTrR+NDToRkQ=",
+      "go_mod_sum": "h1:XCW7KnZet0Opnr7HccfUw1PLc4CjHqpcaxW8DHklNkQ=",
+      "archive_sha256": "c95138b1a47c41965adc4d70ef708142902bd7867918080d458cc905a8c75dff",
+      "go_mod_sha256": "8874d6c0c1a36b8657e381ef180a357e5f335b75bd03926190ef35867ca6c01a",
+      "notices": {
+        "LICENSE.txt": "646f8936b8ddcd14e13e578ff6857e368780b0d1a4f6066bee89211923a373e2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/Azure/azure-sdk-for-go/sdk/azidentity",
+      "version": "v1.8.2",
+      "go_sum": "h1:F0gBpfdPLGsw+nsgk6aqqkZS1jiixa5WwFe3fk/T3Ys=",
+      "go_mod_sum": "h1:SqINnQ9lVVdRlyC8cd1lCI0SdX4n2paeABd2K8ggfnE=",
+      "archive_sha256": "d3d6834b2e591ac41f7d5724f447b3fa62f32978c1625c5ddc767957fbd4b8ac",
+      "go_mod_sha256": "b3ebdf3d2b2cdf22bfe3e0f1a6ed14c911fdc569d3ac1cd7c176ffbb99801984",
+      "notices": {
+        "LICENSE.txt": "646f8936b8ddcd14e13e578ff6857e368780b0d1a4f6066bee89211923a373e2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/Azure/azure-sdk-for-go/sdk/storage/azblob",
+      "version": "v1.6.0",
+      "go_sum": "h1:UXT0o77lXQrikd1kgwIPQOUect7EoR/+sbP4wQKdzxM=",
+      "go_mod_sum": "h1:cTvi54pg19DoT07ekoeMgE/taAwNtCShVeZqA+Iv2xI=",
+      "archive_sha256": "60da0582a89e037797120bc065936d3dc49141b39507a606295d83ca76d91e5d",
+      "go_mod_sha256": "7372079dd5323f8fa3624328c64212b37e7f9fa2b6bf2ad0c6f9f9a0768183c2",
+      "notices": {
+        "LICENSE.txt": "a096a435e19bb6b631da46992c011a39be563e97ce7366879ad516c772904632"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/IBM/sarama",
+      "version": "v1.45.1",
+      "go_sum": "h1:nY30XqYpqyXOXSNoe2XCgjj9jklGM1Ye94ierUb1jQ0=",
+      "go_mod_sum": "h1:qifDhA3VWSrQ1TjSMyxDl3nYL3oX2C83u+G6L79sq4w=",
+      "archive_sha256": "2d5b1897b6a62000e88ff394add7dfc43f9eab62336aa206c9660f3c1a5d3aaf",
+      "go_mod_sha256": "1882eafc2594d9a6adceb793b9c44a60a8a879fc7f7f52887c820834b0c3f087",
+      "notices": {
+        "LICENSE.md": "1f1f8d575f61c095eb4d5f0cae1d4e046f06d2fa17d857d5d003122d43d396a8"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/alecthomas/participle",
+      "version": "v0.7.1",
+      "go_sum": "h1:2bN7reTw//5f0cugJcTOnY/NYZcWQOaajW+BwZB5xWs=",
+      "go_mod_sum": "h1:HfdmEuwvr12HXQN44HPWXR0lHmVolVYe4dyL6lQ3duY=",
+      "archive_sha256": "53bb3247c5d0766e4e36d5906655160dae70e1eaaf385c689133cf87dc4090a6",
+      "go_mod_sha256": "a88899c03bfae09b50d1f9b3503fe08e9f492eb6f86eb29573882caacd3a0778",
+      "notices": {
+        "COPYING": "e7bf754e7153012a3a8ff697d21acd6c12e590d6a55f2aef8ee83616aa9a795f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/beevik/ntp",
+      "version": "v1.4.3",
+      "go_sum": "h1:PlbTvE5NNy4QHmA4Mg57n7mcFTmr1W1j3gcK7L1lqho=",
+      "go_mod_sum": "h1:Unr8Zg+2dRn7d8bHFuehIMSvvUYssHMxW3Q5Nx4RW5Q=",
+      "archive_sha256": "825c41d73aa363f10d94900c04b73b9ff6e43bfcfefb3666fdaaa8ce89434349",
+      "go_mod_sha256": "b3ef7bb8a4d65bdd3c6e444391e6a698bf4c6b01c7a4ceb489a382b578340a04",
+      "notices": {
+        "LICENSE": "219e31ede044804aa5c1a4eefc304eacf0fd91a51ec5b6bb7c53aa46d6c27205"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/buger/jsonparser",
+      "version": "v1.1.1",
+      "go_sum": "h1:2PnMjfWD7wBILjqQbt530v576A/cAbQvEW9gGIpYMUs=",
+      "go_mod_sum": "h1:6RYKKt7H4d4+iWqouImQ9R2FZql3VbhNgx27UK13J/0=",
+      "archive_sha256": "be17ef1b44c22eac645eeac80f0e26cdfc70d77262e631358e00c2aa817eab8c",
+      "go_mod_sha256": "587c18b3f32f8b7dcd3fccc82a5f5520ea624c037c85d597b2eb5d958063a1b5",
+      "notices": {
+        "LICENSE": "632b59709152e1b5bfd3e2794848bcd2f4c70e3e175646726dbf53439ea1dbe1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/cespare/xxhash/v2",
+      "version": "v2.3.0",
+      "go_sum": "h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=",
+      "go_mod_sum": "h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=",
+      "archive_sha256": "145a26cdc7c49db566017b807c4989ee7f7ddeb569423e9cb99f995fac3621d3",
+      "go_mod_sha256": "a090f8eaaf59cc2adf163299ebefe797e1dca3f6add2c8e88a6a3b90ba538b02",
+      "notices": {
+        "LICENSE.txt": "f566a9f97bacdaf00d9f21dd991e81dc11201c4e016c86b470799429a1c9a79c"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/cheggaaa/pb",
+      "version": "v1.0.29",
+      "go_sum": "h1:FckUN5ngEk2LpvuG0fw1GEFx6LtyY2pWI/Z2QgCnEYo=",
+      "go_mod_sum": "h1:W40334L7FMC5JKWldsTWbdGjLo0RxUKK73K+TuPxX30=",
+      "archive_sha256": "b550a38c666ce0812b4b05a449bc7e13ea8b98fa054d9000119780583d5be3f9",
+      "go_mod_sha256": "f25d8bd6314faa0f099dee563d6b459828a7271b50456f7d2673367631e459ff",
+      "notices": {
+        "LICENSE": "70fa746d8e9547f977b99dc684ec1e4d059a99960f50493ba56332302ff73869"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/coreos/go-oidc/v3",
+      "version": "v3.12.0",
+      "go_sum": "h1:sJk+8G2qq94rDI6ehZ71Bol3oUHy63qNYmkiSjrc/Jo=",
+      "go_mod_sum": "h1:gE3LgjOgFoHi9a4ce4/tJczr0Ai2/BoDhf0r5lltWI0=",
+      "archive_sha256": "66a3a0fcdfbbd3ef9f5c3525da736ff1560cc14f5e282422fc3dda3b35aab6dc",
+      "go_mod_sha256": "bf749629b8ed8e052e3e541f92f6a4e9e472f343ba5284afea00b0e3a251fdac",
+      "notices": {
+        "LICENSE": "cb5e8e7e5f4a3988e1063c142c60dc2df75605f4c46515e776e3aca6df976e14",
+        "NOTICE": "dccd26c6fd9c296daf44d0bc56bb4efc566edd4880381b3331c9a63e6e471338"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/coreos/go-systemd/v22",
+      "version": "v22.5.0",
+      "go_sum": "h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=",
+      "go_mod_sum": "h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=",
+      "archive_sha256": "4c44e3a6b84de4db393e341537c7124031fa98d5f98860ad31b32b4890f2234c",
+      "go_mod_sha256": "de93395fe93086f80553820d140489e31e93bfe0457e1b4de3c772556d534840",
+      "notices": {
+        "LICENSE": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68",
+        "NOTICE": "572b159624f1898b40e9f09c9e4cfb65a595044960982aa95126bc28f7d1e6c0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/cosnicolaou/pbzip2",
+      "version": "v1.0.5",
+      "go_sum": "h1:+PZ8yRBx6bRXncOJWQvEThyFm8XhF9Yb6WUMN6KsgrA=",
+      "go_mod_sum": "h1:uCNfm0iE2wIKGRlLyq31M4toziFprNhEnvueGmh5u3M=",
+      "archive_sha256": "82401de94b58560da592de5526ee1f7c28e3748929d28b987d0f3dcfc88b2be0",
+      "go_mod_sha256": "e6cf274f0afd0a3c92908072303e02d173e5b635b000a96ab9ceb136574c1a7f",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/dchest/siphash",
+      "version": "v1.2.3",
+      "go_sum": "h1:QXwFc8cFOR2dSa/gE6o/HokBMWtLUaNDVd+22aKHeEA=",
+      "go_mod_sum": "h1:0NvQU092bT0ipiFN++/rXm69QG9tVxLAlQHIXMPAkHc=",
+      "archive_sha256": "291faeb3d0f046d82357675347523408e456d2a53b11036163d08120f8127566",
+      "go_mod_sha256": "24d858afe6f4f3cb23448dbb3326bded5569738cfee2f9559187a29480bd6290",
+      "notices": {
+        "LICENSE": "a2010f343487d3f7618affe54f789f5487602331c0a8d03f49e9a7c547cf0499"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/dustin/go-humanize",
+      "version": "v1.0.1",
+      "go_sum": "h1:GzkhY7T5VNhEkwH0PVJgjz+fX1rhBrR7pRT3mDkpeCY=",
+      "go_mod_sum": "h1:Mu1zIs6XwVuF/gI1OepvI0qD18qycQx+mFykh5fBlto=",
+      "archive_sha256": "319404ea84c8a4e2d3d83f30988b006e7dd04976de3e1a1a90484ad94679fa46",
+      "go_mod_sha256": "4325999d0a6841031258a2561c22879d9fbdf77abc6b32a17b1cb6edf0810fb2",
+      "notices": {
+        "LICENSE": "a973b4498c13eb74baa2a8e5c351426a6826f2fcdd909916dbe53ee2e755fd71"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/eclipse/paho.mqtt.golang",
+      "version": "v1.5.0",
+      "go_sum": "h1:EH+bUVJNgttidWFkLLVKaQPGmkTUfQQqjOsyvMGvD6o=",
+      "go_mod_sum": "h1:du/2qNQVqJf/Sqs4MEL77kR8QTqANF7XU7Fk0aOTAgk=",
+      "archive_sha256": "f9350981e724c34d1f8c1da4649fd3e4873836203a1cfccafa555a4f72388727",
+      "go_mod_sha256": "4645fefa3bee0dd36c6cd2895635554c9f1f2dd7348e864c0784eba103c266e8",
+      "notices": {
+        "LICENSE": "e2bcf9854f46a58b6e6f014d64e102a6b4e35a87d117094903e66fb68454a3fd",
+        "NOTICE.md": "91b47f681f03af6b4b6ab9cdce0fc773e522693eca729ed9a56c6178dc1e6323"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/elastic/go-elasticsearch/v7",
+      "version": "v7.17.10",
+      "go_sum": "h1:TCQ8i4PmIJuBunvBS6bwT2ybzVFxxUhhltAs3Gyu1yo=",
+      "go_mod_sum": "h1:OJ4wdbtDNk5g503kvlHLyErCgQwwzmDtaFC4XyOxXA4=",
+      "archive_sha256": "dbdf75b44a7721651c8dc5a813cefc6da9edec481e6b89cfa85ae59ae0fd0ba9",
+      "go_mod_sha256": "03008ca6b96ea4e384f5458d355b49ce060c0d933732a9968b3c8cc244568b8d",
+      "notices": {
+        "LICENSE": "51a94a9e94d814050a24af93bd0ea7a70aa3ebe766a7b2b367d4ef46763f8e48"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/fatih/color",
+      "version": "v1.18.0",
+      "go_sum": "h1:S8gINlzdQ840/4pfAwic/ZE0djQEH3wM94VfqLTZcOM=",
+      "go_mod_sum": "h1:4FelSpRwEGDpQ12mAdzqdOukCy4u8WUtOY6lkT/6HfU=",
+      "archive_sha256": "4dc6907b7f6807b37c21ad527d966437d398f03472115f471eaa8fe5875363d3",
+      "go_mod_sha256": "8732da74f45ec4c0ea5a7a3072c4d458aafb6102af75155d459dcb70afce6ae6",
+      "notices": {
+        "LICENSE.md": "de95ed802d2f90e3c72cb3c9a927cca5f2aec234a3ef1250232db0f8178b2d93"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/felixge/fgprof",
+      "version": "v0.9.5",
+      "go_sum": "h1:8+vR6yu2vvSKn08urWyEuxx75NWPEvybbkBirEpsbVY=",
+      "go_mod_sum": "h1:yKl+ERSa++RYOs32d8K6WEXCB4uXdLls4ZaZPpayhMM=",
+      "archive_sha256": "8d0a70ff2a7ebaa1932c18d0dacb42bc39ed6dff2ccfcb442c1eda67dac1496d",
+      "go_mod_sha256": "dcc54a02e9286c2c78d9ec992c5765c9449706395a7f49f7741b656eda5520e6",
+      "notices": {
+        "LICENSE.txt": "5dbe91d8ef47ef84cc1272dbbed96acd483e592f15fff64afc8b035776a4a9d3"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/fraugster/parquet-go",
+      "version": "v0.12.0",
+      "go_sum": "h1:1slnC5y2VWEOUSlzbeXatM0BvSWcLUDsR/EcZsXXCZc=",
+      "go_mod_sum": "h1:dGzUxdNqXsAijatByVgbAWVPlFirnhknQbdazcUIjY0=",
+      "archive_sha256": "9a5fbc3beee112cee4cca7db7df8336a3991b540c0f0c94cac05e526f407085b",
+      "go_mod_sha256": "3938392552e0210016d30dae15d8b756cf37e86fc8a7c1a737b561c59390e19a",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-ldap/ldap/v3",
+      "version": "v3.4.10",
+      "go_sum": "h1:ot/iwPOhfpNVgB1o+AVXljizWZ9JTp7YF5oeyONmcJU=",
+      "go_mod_sum": "h1:JXh4Uxgi40P6E9rdsYqpUtbW46D9UTjJ9QSwGRznplY=",
+      "archive_sha256": "2108820c3fbf946b737a97bfa244886e863f3d6bf0bacbc97c017c73888b56c6",
+      "go_mod_sha256": "6f6a54062ad095f95ba816967e8bce20c570db3a14dd400c7c5d7458546b5fbb",
+      "notices": {
+        "LICENSE": "35f64977248ea3fd59074171ad76e883fe4a576a7b1c58bba85c8e5c880bb269"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/loads",
+      "version": "v0.22.0",
+      "go_sum": "h1:ECPGd4jX1U6NApCGG1We+uEozOAvXvJSF4nnwHZ8Aco=",
+      "go_mod_sum": "h1:yLsaTCS92mnSAZX5WWoxszLj0u+Ojl+Zs5Stn1oF+rs=",
+      "archive_sha256": "04bde40647c4ea75ea89999bcd2cf160294913b89d073a71bb762652c6ec9e12",
+      "go_mod_sha256": "aa1ef3c424eaeb322a6ce129ecf206cd0a618015297b73869b0da99ace4bfb8b",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-sql-driver/mysql",
+      "version": "v1.9.0",
+      "go_sum": "h1:Y0zIbQXhQKmQgTp44Y1dp3wTXcn804QoTptLZT1vtvo=",
+      "go_mod_sum": "h1:pDetrLJeA3oMujJuvXc8RJoasr589B6A9fwzD3QMrqw=",
+      "archive_sha256": "3526ca370e9445ad46d9f1fb24a6f94988e2314ee609cc3fb5099646ec9482ff",
+      "go_mod_sha256": "e0df9bf0988d1ea71ea046c7aa2b83b1b4951d1f36b2259c6e30ddc4ba309ea8",
+      "notices": {
+        "LICENSE": "fab3dd6bdab226f1c08630b1dd917e11fcb4ec5e1e020e2c16f83a0a13863e85"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gobwas/ws",
+      "version": "v1.4.0",
+      "go_sum": "h1:CTaoG1tojrh4ucGPcoJFiAQUAsEWekEWvLy7GsVNqGs=",
+      "go_mod_sum": "h1:G3gNqMNtPppf5XUz7O4shetPpcZ1VJ7zt18dlUeakrc=",
+      "archive_sha256": "4c8a4b60d07be4c3a95d1840ff249f590503eebf2184f6c869f3a102a7ad4d0a",
+      "go_mod_sha256": "899c19b5606de79e3a347e5d1e1f7223960fedae32837612ccceb6c5e58256b2",
+      "notices": {
+        "LICENSE": "db823214b3ef18274418accda3812faac38a1545b8bd589aeb613a849b949c7a"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/golang-jwt/jwt/v4",
+      "version": "v4.5.2",
+      "go_sum": "h1:YtQM7lnr8iZ+j5q71MGKkNw9Mn7AjHM68uc9g5fXeUI=",
+      "go_mod_sum": "h1:m21LjoU+eqJr34lmDMbreY2eSTRJ1cv77w39/MY0Ch0=",
+      "archive_sha256": "ec5ee69a31fd478fc197fddce7c06dad1abe7543095a55c4ee6546ae79d99a0f",
+      "go_mod_sha256": "0f8e678e6495b652c5c8aec1879c8171cd6ff1cf435fb47fe536362f88994299",
+      "notices": {
+        "LICENSE": "fe26ca41577b9b2b4448050a24b25e5753af66b5d5945d5d36094e7790bfcb2f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gomodule/redigo",
+      "version": "v1.9.2",
+      "go_sum": "h1:HrutZBLhSIU8abiSfW8pj8mPhOyMYjZT/wcA4/L9L9s=",
+      "go_mod_sum": "h1:KsU3hiK/Ay8U42qpaJk+kuNa3C+spxapWpM+ywhcgtw=",
+      "archive_sha256": "675063f19b0f19652f219ceef201ed3f17546b54bcdb9bc67b479b8900eca1d0",
+      "go_mod_sha256": "f3e99bdde7f6debc48f93a63e4aea3ab921066267fe0fc0780bf888aa4a82b4d",
+      "notices": {
+        "LICENSE": "0d542e0c8804e39aa7f37eb00da5a762149dc682d7829451287e11b938e94594"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/google/uuid",
+      "version": "v1.6.0",
+      "go_sum": "h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=",
+      "go_mod_sum": "h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=",
+      "archive_sha256": "d0f02f377217f42702e259684e06441edbf5140dddcc34ba9bea56038b38a6ed",
+      "go_mod_sha256": "73da47b6338b00a082fd451aa35a3273d3adc09b8e9bba98dab01091e402af6e",
+      "notices": {
+        "LICENSE": "0a8d61ed3cbfd5312326e8126c31ce9c627a283adc99131b56896d29ada04b2d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/inconshreveable/mousetrap",
+      "version": "v1.1.0",
+      "go_sum": "h1:wN+x4NVGpMsO7ErUn/mUI3vEoE6Jt13X2s0bqwp9tc8=",
+      "go_mod_sum": "h1:vpF70FUmC8bwa3OWnCshd2FqLfsEA9PFc4w1p2J65bw=",
+      "archive_sha256": "526674de624d7db108cfe7653ef110ccdfd97bc85026254224815567928ed243",
+      "go_mod_sha256": "1c1b15911aa8a0bd5cd0f6670ec23d1086496f3615fdf53306aff2b476ce9be1",
+      "notices": {
+        "LICENSE": "4819582701f150b28a563a6cd8ed0bf5a754e3c67b90ad38d78ba4131bf77795"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/json-iterator/go",
+      "version": "v1.1.12",
+      "go_sum": "h1:PV8peI4a0ysnczrg+LtxykD8LfKY9ML6u2jnxaEnrnM=",
+      "go_mod_sum": "h1:e30LSqwooZae/UwlEbR2852Gd8hjQvJoHmT4TnhNGBo=",
+      "archive_sha256": "d001ea57081afd0e378467c8f4a9b6a51259996bb8bb763f78107eaf12f99501",
+      "go_mod_sha256": "518e57c22d1781c59ab33788c9a9fc2edc43583ef7c9fc8892a3490c12d61226",
+      "notices": {
+        "LICENSE": "3247931083f058b00760a3c32a9ca0962c05e4d562ad2ffcc1753451fa8d4486"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/compress",
+      "version": "v1.18.0",
+      "go_sum": "h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zttxdo=",
+      "go_mod_sum": "h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=",
+      "archive_sha256": "c4679e4cbc820a21758199d985be754abf5eb2a38e6f1de95cd70b2e7ef06905",
+      "go_mod_sha256": "bc72d55345a951d090fb44bd8c6a741da67b51e2d44af5685088b8c28373dfed",
+      "notices": {
+        "LICENSE": "0d9e582ee4bff57bf1189c9e514e6da7ce277f9cd3bc2d488b22fbb39a6d87cf"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/cpuid/v2",
+      "version": "v2.2.10",
+      "go_sum": "h1:tBs3QSyvjDyFTq3uoc/9xFpCuOsJQFNPiAhYdw2skhE=",
+      "go_mod_sum": "h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=",
+      "archive_sha256": "db89665fa22cef477dc551b72d49707c516b749c17ed154bf67eb8081ee08dff",
+      "go_mod_sha256": "ff61d47f254f2333bf44a8ff4187a2f2e973693807c10025033bb37143577237",
+      "notices": {
+        "LICENSE": "5d966570d7a442d4e969892860a914e542c97f262c873baee8f0aa48e1f40212"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/filepathx",
+      "version": "v1.1.1",
+      "go_sum": "h1:201zvAsL1PhZvmXTP+QLer3AavWrO3U1NILWpniHK4w=",
+      "go_mod_sum": "h1:XWxdp8rEw4gupPBrxrV5Q57dL/71xj0OgV1gKt2zTfU=",
+      "archive_sha256": "44827508c5e83436dc00bba246e74a8d3254b0f7c9b9f7780fa4b8ad1cdc67d1",
+      "go_mod_sha256": "05ca47e662e811fdf3fb7c5a1df84b7c08e18e4b35d4aa67f917d94517346ff6",
+      "notices": {
+        "LICENSE": "8582c87d9a6baa28f7827c5205b7d16c3179bc794ebd4c7cc287c49a89b7eaa1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/pgzip",
+      "version": "v1.2.6",
+      "go_sum": "h1:8RXeL5crjEUFnR2/Sn6GJNWtSQ3Dk8pq4CL3jvdDyjU=",
+      "go_mod_sum": "h1:Ch1tH69qFZu15pkjo5kYi6mth2Zzwzt50oCQKQE9RUs=",
+      "archive_sha256": "8ac508e93b22dca1a731a3a4c921b57c5ed1daea7b3629a2cf85c3b7530dda84",
+      "go_mod_sha256": "78351a40af761795f66c64a77a8a069f8d1529a00bb32a381ea44814263a8910",
+      "notices": {
+        "LICENSE": "7709cc030f078b17809884f92f33a2016944e1180312dc3f1371b02313d313ed"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/readahead",
+      "version": "v1.4.0",
+      "go_sum": "h1:w4hQ3BpdLjBnRQkZyNi+nwdHU7eGP9buTexWK9lU7gY=",
+      "go_mod_sum": "h1:7bolpMKhT5LKskLwYXGSDOyA2TYtMFgdgV0Y8gy7QhA=",
+      "archive_sha256": "15baedf4af16d6c8e7e754edc76c46d02cde93bf3681f14e0564a4114209ce83",
+      "go_mod_sha256": "400a842922dace46ad22b4ad1caca4db7e29f441b46e69cc0681bfbcf81247e7",
+      "notices": {
+        "LICENSE": "10fa24a602fde465db603cd5d546e37e33642a73cd24ddf5910be81724fec8b2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/klauspost/reedsolomon",
+      "version": "v1.12.4",
+      "go_sum": "h1:5aDr3ZGoJbgu/8+j45KtUJxzYm8k08JGtB9Wx1VQ4OA=",
+      "go_mod_sum": "h1:d3CzOMOt0JXGIFZm1StgkyF14EYr3xneR2rNWo7NcMU=",
+      "archive_sha256": "d925b56dd0536b28814772e6901270013f75d86c33d266e5e3814b5c13e9ad2c",
+      "go_mod_sha256": "1018ecd1c1f74196bbdfcc1a3cb48352c95a3eea1cbcfa7d146a84f7ec939ece",
+      "notices": {
+        "LICENSE": "345aa942daa8c117669a85bd75f44a8364faceee962812ddb5a576977e0610ee"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lib/pq",
+      "version": "v1.10.9",
+      "go_sum": "h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=",
+      "go_mod_sum": "h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=",
+      "archive_sha256": "6791a7af67f846a86335350012c4efadd0850096ebf22350b7b20e01e216e6f2",
+      "go_mod_sha256": "94c1488688b2b9822a96e1375e32002a652cc1aee71520f6bfa87bec8eb79c06",
+      "notices": {
+        "LICENSE.md": "3e2d79d27727d59ab1c9752f57654733d6c8824936c22800594dccfe8864ec28",
+        "notice_example_test.go": "7d2bf705b877536e5e46ed526c99da7b78aa16be21a47396232d39cde4cdd399",
+        "notice.go": "4fc86a4e944565f6f49f08dddf788c38d6e6a4aa33292dffa2cb1619bae51bb1",
+        "notice_test.go": "c75bf411103cd79c1cc19968a1fcdfdc6825dc338ba05c36d3acdf979e5e9629"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lithammer/shortuuid/v4",
+      "version": "v4.2.0",
+      "go_sum": "h1:LMFOzVB3996a7b8aBuEXxqOBflbfPQAiVzkIcHO0h8c=",
+      "go_mod_sum": "h1:D5noHZ2oFw/YaKCfGy0YxyE7M0wMbezmMjPdhyEFe6Y=",
+      "archive_sha256": "3f06064ba6df61a2e8827c3e9ceac62b03e21db0a0ed4c9a8e67fa8c27433857",
+      "go_mod_sha256": "bea87ceea882ecc90d432bc23ac467f094edd13e2a4539e06961892ae9f7c3c9",
+      "notices": {
+        "LICENSE": "d2e98cf1530c13d97df36a890831a2a1adb0a4580af192b6477bdac7f7af2461"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/miekg/dns",
+      "version": "v1.1.63",
+      "go_sum": "h1:8M5aAw6OMZfFXTT7K5V0Eu5YiiL8l7nUAkyN6C9YwaY=",
+      "go_mod_sum": "h1:6NGHfjhpmr5lt3XPLuyfDJi5AXbNIPM9PY6H6sF1Nfs=",
+      "archive_sha256": "8d0268cc9e6399c264dd4cb632fb76ed4e389330db0c4b311ba6ae1f46923eeb",
+      "go_mod_sha256": "29b69b8746ae29ed3240df3965221d1abb944dbc31748fee7ce3411311af5a5e",
+      "notices": {
+        "LICENSE": "f200ff9bad73385db2ed81e23ee2c1fe069eb5776e17fae4ee85ad0a9e1361a5"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/cli",
+      "version": "v1.24.2",
+      "go_sum": "h1:J+fCUh9mhPLjN3Lj/YhklXvxj8mnyE/D6FpFduXJ2jg=",
+      "go_mod_sum": "h1:bYxnK0uS629N3Bq+AOZZ+6lwF77Sodk4+UL9vNuXhOY=",
+      "archive_sha256": "f5387f89db17177f9373702fed1a34c3665f63bf0fed9f279119c04f178d49ff",
+      "go_mod_sha256": "d1dc4ca8a791b8aef0ed0ebc39b8b450fa5712768db72941e92a136305738afb",
+      "notices": {
+        "LICENSE": "da277af11b85227490377fbcac6afccc68be560c4fff36ac05ca62de55345fd7"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/console",
+      "version": "v1.7.6",
+      "go_sum": "h1:E0jq9nYMeW7z4iJtJ6vDt2hk4Jin0zcyAzRcTlaUO44=",
+      "go_mod_sum": "h1:gM4B3/7sqP17owJaoThmeDkfaDEQNZ1mjGU5DSwRReo=",
+      "archive_sha256": "035c074450aae0b3e055405bb529418a6bfbc4237d8a9e87de65bc29a3cfbe82",
+      "go_mod_sha256": "e6dbf58366c196e39c363090b7b7d95f7df665fd2ca58ecacd02eb58438b05c6",
+      "notices": {
+        "LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "NOTICE": "d53581c2f2998d201138c55552d5e06b91e932f4d7c7695b0103265f6df71ef5"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/csvparser",
+      "version": "v1.0.0",
+      "go_sum": "h1:xJEHcYK8ZAjeW4hNV9Zu30u+/2o4UyPnYgyjWp8b7ZU=",
+      "go_mod_sum": "h1:lKXskSLzPgC5WQyzP7maKH7Sl1cqvANXo9YCto8zbtM=",
+      "archive_sha256": "48e6c6e59c10d0cedc32f2c3960a46421ecfabd52513db310fc7090d9035b858",
+      "go_mod_sha256": "8812e399538717692e673fe812ffd915d3ea75228227956bf4da17461651b11e",
+      "notices": {},
+      "inherited_notice": {
+        "basis": "original source headers explicitly reference Go BSD license",
+        "source_files": {
+          "example_test.go": "eb1f33e5ad8812844b830a7dab3b1043709ae86f8bb588227eee03fd984d7047",
+          "writer_test.go": "eebf046c4655224c940d94677bd7bfe99b28ca86ad5bcc151adf5569fc87b137",
+          "writer.go": "293e3db52ac17c6b2ed9557fc16b09200d70a4e0071a8ad026d41f6c23007e70",
+          "reader.go": "eaffc6dea925b881d9d41b09ceeb4b773933aec956b779d1b9c93ef0736c4389",
+          "reader_test.go": "8bd31f219b96f93dbe0a3687eae81c47878c7748e150ae62322032abeebb61bb",
+          "fuzz.go": "1f3a2ff40d3957603b32051c78c452041fe740bdc5dbaf2d9c617e109dee3b24"
+        },
+        "notice_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      }
+    },
+    {
+      "module": "github.com/minio/dnscache",
+      "version": "v0.1.1",
+      "go_sum": "h1:AMYLqomzskpORiUA1ciN9k7bZT1oB3YZN4cEIi88W5o=",
+      "go_mod_sum": "h1:WCumm6offO4rQ/82oTCSoHnlhTmc81+vXgKpBtSYRbg=",
+      "archive_sha256": "2505ec227ccdd96f8da64c5e540f015d4ddc3e36774e0cce0a460aa8539dd74b",
+      "go_mod_sha256": "c10bb95ccba639da3e10dd39dda914fceb27c890160b6df258e6c1be9ab246ca",
+      "notices": {
+        "LICENSE": "5fd6a0a51e9d91ad65d3c0809b0a520801472d31dc932fa3fb3b08e5dfc95f9c"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/dperf",
+      "version": "v0.6.3",
+      "go_sum": "h1:+UzGe64Xmb/sXFBH38CCnXJiMEoQKURHydc+baGkysI=",
+      "go_mod_sum": "h1:+3BJsm3Jrb1yTRmkoeKCNootOmULPiLoAu+qBP7MaMk=",
+      "archive_sha256": "bb2578c167299954293e7d16d26a4fccbf9a02a05e9fc33b639c31d12b72113d",
+      "go_mod_sha256": "551c0c43bfd577de2ee8e8d8144aefc8b99839dc949971bc3a67ee23dc53bb25",
+      "notices": {
+        "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/highwayhash",
+      "version": "v1.0.3",
+      "go_sum": "h1:kbnuUMoHYyVl7szWjSxJnxw11k2U709jqFPPmIUyD6Q=",
+      "go_mod_sum": "h1:GGYsuwP/fPD6Y9hMiXuapVvlIUEhFhMTh0rxU3ik1LQ=",
+      "archive_sha256": "5fb067ae0c887ef9a9f4349fe32961533d0d7b33aad5fecea5bc451bd99029ed",
+      "go_mod_sha256": "540181a1384cadac75ddcc1558a97ed16d8713966df50f0b24e01a53bc87b7ee",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/kms-go/kes",
+      "version": "v0.3.1",
+      "go_sum": "h1:K3sPFAvFbJx33XlCTUBnQo8JRmSZyDvT6T2/MQ2iC3A=",
+      "go_mod_sum": "h1:Q9Ct0KUAuN9dH0hSVa0eva45Jg99cahbZpPxeqR9rOQ=",
+      "archive_sha256": "03b7ef45f4cf1a60bd6608b51474ccbcfd4cc22f573fc4ecca3284feef2d0d6a",
+      "go_mod_sha256": "aceb5402ed3e1ee5ad8a3a60f6fe73d20d9b0eb0a91e63a4c77102381ae56412",
+      "notices": {
+        "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/kms-go/kms",
+      "version": "v0.4.0",
+      "go_sum": "h1:cLPZceEp+05xHotVBaeFJrgL7JcXM4lBy6PU0idkE7I=",
+      "go_mod_sum": "h1:q12CehiIy2qgBnDKq6Q7wmPi2PHSyRVug5DKp0HAVeE=",
+      "archive_sha256": "c6aaf4a296b46705a3a2764d75891185cf8d9324d61de597055488ce6c60f6f9",
+      "go_mod_sha256": "bd944bc3f3bad03c27202f418d30f8d30710d9b05d282f6183438559a5f27ac7",
+      "notices": {
+        "LICENSE": "8486a10c4393cee1c25392769ddd3b2d6c242d6ec7928e1414efff7dfb2f07ef"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/madmin-go/v3",
+      "version": "v3.0.109",
+      "go_sum": "h1:hRHlJ6yaIB3tlIj5mz9L9mGcyLC37S9qL1WtFrRtyQ0=",
+      "go_mod_sum": "h1:WOe2kYmYl1OIlY2DSRHVQ8j1v4OItARQ6jGyQqcCud8=",
+      "archive_sha256": "085bee71e43636cedae640e70342e59634dcf9e836615dfb199adfa68d2cc3a5",
+      "go_mod_sha256": "e47582f3f7d37904543e8a52f0a5e494c6d30e6824185991f45b8b4ab35bd585",
+      "notices": {
+        "LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "license_gen.go": "73fa977fc4807ea7e38271ed649588da9e6b201543de9c75b97847803ac4b4d8",
+        "license_gen_test.go": "04ac49fff9e1799045671690a462254958b18979d4da44f1be43780a951c03c2",
+        "licenseheaders.py": "c06e72ff00b12e95641ef2657a82af9bca00cee63a19f1eb926876e9073c1864",
+        "NOTICE": "289a30406ddd59b87dc012810b4e525a0a4f65368983164b03dd00be24a58220",
+        "license.go": "42ac9f70197e3cede81b609d7594c1e983cf897ba93f46987ff4aaa8a7633a1a"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/minio-go/v7",
+      "version": "v7.0.90",
+      "go_sum": "h1:TmSj1083wtAD0kEYTx7a5pFsv3iRYMsOJ6A4crjA1lE=",
+      "go_mod_sum": "h1:uvMUcGrpgeSAAI6+sD3818508nUyMULw94j2Nxku/Go=",
+      "archive_sha256": "add67374a777933d539baacf8f8d2acaed03fdd92ec4edbdc751ba1c5a5b0462",
+      "go_mod_sha256": "13ef8004b5a73fbab541477ba7c45ed01e8774b050d75403c86f7dd0d21068e4",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "570af5b6ac7fc91a78459073098200036e63d60a98ec92db5ed97d22d714d09e"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/mux",
+      "version": "v1.9.2",
+      "go_sum": "h1:dQchne49BUBgOlxIHjx5wVe1gl5VXF2sxd4YCXkikTw=",
+      "go_mod_sum": "h1:OuHAsZsux+e562bcO2P3Zv/P0LMo6fPQ310SmoyG7mQ=",
+      "archive_sha256": "ba6c8a489edb563546edb9ef3a92b3ae2271effce570106b6fd6b2108417a750",
+      "go_mod_sha256": "1fda335ebb4753bd9935d80cc3fbb3a9945e2ffe0f259f247695be9926d2f3b4",
+      "notices": {
+        "LICENSE": "0b77fdea862f869ef4f201ac5649bdbd38ccb055c7f6454dffae9e2adb4941c1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/pkg/v3",
+      "version": "v3.1.0",
+      "go_sum": "h1:RoR1TMXV5y4LvKPkaB1WoeuM6CO7A+I55xYb1tzrvLQ=",
+      "go_mod_sum": "h1:8vhmdRv9EQnY6a+/gL9mKeIlzkhBsmhYGEmWKHW0uc4=",
+      "archive_sha256": "85edfdc7de2bbda5a39a3b276a71d69749c06eb0062c95167a2f4c68c61ee86d",
+      "go_mod_sha256": "2cfab1b54c156f646256271219fab563f49461dad637c7c7f03463e8aacfd3bf",
+      "notices": {
+        "LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/selfupdate",
+      "version": "v0.6.0",
+      "go_sum": "h1:i76PgT0K5xO9+hjzKcacQtO7+MjJ4JKA8Ak8XQ9DDwU=",
+      "go_mod_sum": "h1:bO02GTIPCMQFTEvE5h4DjYB58bCoZ35XLeBf0buTDdM=",
+      "archive_sha256": "29994faa9d069fa749815e921c6a606fd6fdde23a7ebc7ae8a096db79e84a09b",
+      "go_mod_sha256": "4df005e22f29c2b0d0490f826e9b939d4ad784ebea0112b48f99429da03cbdaf",
+      "notices": {
+        "LICENSE.minisig": "6c517a3e7546736b145b105ec326a0340d73e486b4b53d5740076aa568b0f921",
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "94cfbeeaaed8737de434c3b4c11fa1abd6d15dc06c6fe84709f273fd363bf4de"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/simdjson-go",
+      "version": "v0.4.5",
+      "go_sum": "h1:r4IQwjRGmWCQ2VeMc7fGiilu1z5du0gJ/I/FsKwgo5A=",
+      "go_mod_sum": "h1:eoNz0DcLQRyEDeaPr4Ru6JpjlZPzbA0IodxVJk8lO8E=",
+      "archive_sha256": "bd171ea96272c882507128f869714932e156a07f58b0091a1a27f7dddde61b9b",
+      "go_mod_sha256": "afc315c1d484f830f1f214dd583ba68b2333a33ccd3f42e134c894d6c758da6f",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/sio",
+      "version": "v0.4.1",
+      "go_sum": "h1:EMe3YBC1nf+sRQia65Rutxi+Z554XPV0dt8BIBA+a/0=",
+      "go_mod_sum": "h1:oBSjJeGbBdRMZZwna07sX9EFzZy+ywu5aofRiV1g79I=",
+      "archive_sha256": "4af8441a1e94fb4e842d63cb1e35b3e96be72b73352acffa54d1bdea453ca0c4",
+      "go_mod_sha256": "37bf5e7037163eb9d831a06065f30fa9ba12a1a5af0aebc5a294ae934497f0c6",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/xxml",
+      "version": "v0.0.3",
+      "go_sum": "h1:ZIpPQpfyG5uZQnqqC0LZuWtPk/WT8G/qkxvO6jb7zMU=",
+      "go_mod_sum": "h1:wcXErosl6IezQIMEWSK/LYC2VS7LJ1dAkgvuyIN3aH4=",
+      "archive_sha256": "eec7f98185f849ac85b798a4a7b2b1cbd5aea8ea360f563b47e715ee7fbb5c6d",
+      "go_mod_sha256": "9c19df395289d85418194116d20a2ee71304b332c92aa490dce5a309ef24aae1",
+      "notices": {
+        "LICENSE": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/zipindex",
+      "version": "v0.4.0",
+      "go_sum": "h1:NFPp7OscsUm5Y91+2tJ9Hr4jEG2R20xaz2Wd0ac7uJQ=",
+      "go_mod_sum": "h1:3xib1QhqfYkkxofF881t/50FQMHFH2XvYGyPrd4N948=",
+      "archive_sha256": "48bee4cc487e5dc980146b5b1797d65cd300404f4b027891492f136ef01745d1",
+      "go_mod_sha256": "a1faa23debc7a4518b5d0f3eb271d49c38e080c0cc5efcd54bb832db426bd1e1",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mitchellh/go-homedir",
+      "version": "v1.1.0",
+      "go_sum": "h1:lukF9ziXFxDFPkA1vsr5zpc1XuPDn/wFntq5mG+4E0Y=",
+      "go_mod_sum": "h1:SfyaCUpYCn1Vlf4IUYiD9fPX4A5wJrkLzIz1N1q0pr0=",
+      "archive_sha256": "fffec361fc7e776bb71433560c285ee2982d2c140b8f5bfba0db6033c0ade184",
+      "go_mod_sha256": "ec2c40e2ac86bdd92d64a25589ddeef65227789a8f428bede86bdc42064f60f1",
+      "notices": {
+        "LICENSE": "22adc4abdece712a737573672f082fd61ac2b21df878efb87ffcff4354a07f26"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/nats-server/v2",
+      "version": "v2.10.27",
+      "go_sum": "h1:A/i3JqtrP897UHc2/Jia/mqaXkqj9+HGdpz+R0mC+sM=",
+      "go_mod_sum": "h1:SGzoWGU8wUVnMr/HJhEMv4R8U4f7hF4zDygmRxpNsvg=",
+      "archive_sha256": "82a476aca0fbebf6a1c18aef40be6b28de6980b71ea5c45f7fd362dc2a485d33",
+      "go_mod_sha256": "dd75b6f4e2bd7a42bb019864e2d22aeac64077e430fbe8df5293ae2667f627b3",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/nats.go",
+      "version": "v1.39.1",
+      "go_sum": "h1:oTkfKBmz7W047vRxV762M67ZdXeOtUgvbBaNoQ+3PPk=",
+      "go_mod_sum": "h1:MgRb8oOdigA6cYpEPhXJuRVH6UE/V4jblJ2jQ27IXYM=",
+      "archive_sha256": "e696cd1b49ef8402e5df41044dbe9ef6facba2110c1fe13e6f22741ad754b8a1",
+      "go_mod_sha256": "487e848cc9520ca01f1e517103b453a0ee1f2e5354c575dd7598210f4ef3e09f",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/stan.go",
+      "version": "v0.10.4",
+      "go_sum": "h1:19GS/eD1SeQJaVkeM9EkvEYattnvnWrZ3wkSWSw4uXw=",
+      "go_mod_sum": "h1:3XJXH8GagrGqajoO/9+HgPyKV5MWsv7S5ccdda+pc6k=",
+      "archive_sha256": "c6ff183709bec0cebf103d6e1397958bc261383ecb57c64fa36b2debd56728df",
+      "go_mod_sha256": "0dade624f44fad8939415ca60d1cbcc9fbb3e850011c7a26ac3baa61b58dba5d",
+      "notices": {
+        "LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/ncw/directio",
+      "version": "v1.0.5",
+      "go_sum": "h1:JSUBhdjEvVaJvOoyPAbcW0fnd0tvRXD76wEfZ1KcQz4=",
+      "go_mod_sum": "h1:rX/pKEYkOXBGOggmcyJeJGloCkleSvphPx2eV3t6ROk=",
+      "archive_sha256": "15266d0977e1466c6a3d9d436b069df02b8593d7901dbe18a60dd1ac851420f8",
+      "go_mod_sha256": "bfe7dce7bd779912f8ade0c4fea1fe3c79567c047b8e284c7030c0d44aebbef8",
+      "notices": {
+        "COPYING": "8cd2e9e750b90a04b7d82dbbca3930c696ae0309d7c10464f90a44f45754cd04"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nsqio/go-nsq",
+      "version": "v1.1.0",
+      "go_sum": "h1:PQg+xxiUjA7V+TLdXw7nVrJ5Jbl3sN86EhGCQj4+FYE=",
+      "go_mod_sum": "h1:vKq36oyeVXgsS5Q8YEO7WghqidAVXQlcFxzQbQTuDEY=",
+      "archive_sha256": "0ee73c83fcf6fb9ebb2a7980c490b4ac3fec11463807c418064fc0a89fb5017d",
+      "go_mod_sha256": "c22ef445c00997599682112c0b1a45015a169876b07fc3f028662571d65315dd",
+      "notices": {
+        "LICENSE": "89807acf2309bd285f033404ee78581602f3cd9b819a16ac2f0e5f60ff4a473e"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/philhofer/fwd",
+      "version": "v1.1.3-0.20240916144458-20a13a1f6b7c",
+      "go_sum": "h1:dAMKvw0MlJT1GshSTtih8C2gDs04w8dReiOGXrGLNoY=",
+      "go_mod_sum": "h1:RqIHx9QI14HlwKwm98g9Re5prTQ6LdeRQn+gXJFxsJM=",
+      "archive_sha256": "5d11e30a25e4f149795869749887b5188f0b8c7167f93a84c0e332b1bff94205",
+      "go_mod_sha256": "3b980d413f4498590980f5e907f60c3a9b35e9ffdd78be493bec3e4a15e83ae6",
+      "notices": {
+        "LICENSE.md": "430da36bd967b28fc662f05e9245306da10941e93911052114a20ef10e4410f8"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/pierrec/lz4/v4",
+      "version": "v4.1.22",
+      "go_sum": "h1:cKFw6uJDK+/gfw5BcDL0JL5aBsAFdsIT18eRtLj7VIU=",
+      "go_mod_sum": "h1:gZWDp/Ze/IJXGXf23ltt2EXimqmTUXEy0GFuRQyBid4=",
+      "archive_sha256": "83fe9998c04d49294e6dfe1ef1c122c03e2e9fe5d14425f4d4da84d5948204e2",
+      "go_mod_sha256": "2c89e56a6db7a7760fa45f2494631d9202e10d9c5c4cb8e7377c37212d7cb975",
+      "notices": {
+        "LICENSE": "6a358d2540ca14048f02d366f23787c0a480157e58f058113f0e27168dd4e447"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/pkg/errors",
+      "version": "v0.9.1",
+      "go_sum": "h1:FEBLx1zS214owpjy7qsBeixbURkuhQAwrK5UwLGTwt4=",
+      "go_mod_sum": "h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=",
+      "archive_sha256": "d4c36b8bcd0616290a3913215e0f53b931bd6e00670596f2960df1b44af2bd07",
+      "go_mod_sha256": "df28c6a823f181d76179697177c0c5943c6ffb38f3c10b2dc53be360ee7d4589",
+      "notices": {
+        "LICENSE": "8d427fd87bc9579ea368fde3d49f9ca22eac857f91a9dec7e3004bdfab7dee86"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/pkg/sftp",
+      "version": "v1.13.8",
+      "go_sum": "h1:Xt7eJ/xqXv7s0VuzFw7JXhZj6Oc1zI6l4GK8KP9sFB0=",
+      "go_mod_sum": "h1:DmvEkvKE2lshEeuo2JMp06yqcx9HVnR7e3zqQl42F3U=",
+      "archive_sha256": "fd561f9222d2d323506f99917f96781ca36f913c672c4b68869700d6a66f4bba",
+      "go_mod_sha256": "ea9189349c36f0117b1879d8e6b6d2b89511828755196d671b0279a4c65c89b1",
+      "notices": {
+        "LICENSE": "f5b5087b8e596d015cfea7db26527fe67a196c18ca37415c288dd2534ff74c37"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/pkg/xattr",
+      "version": "v0.4.10",
+      "go_sum": "h1:Qe0mtiNFHQZ296vRgUjRCoPHPqH7VdTOrZx3g0T+pGA=",
+      "go_mod_sum": "h1:di8WF84zAKk8jzR1UBTEWh9AUlIZZ7M/JNt8e9B6ktU=",
+      "archive_sha256": "b1f32706ffcb870736dd3b1bb827d1fb907a326076e2a3ef03311d8a65c4316c",
+      "go_mod_sha256": "bdc3ea23d708aade2f035ef5244b8f460c82682c1e163a05461611b89990e251",
+      "notices": {
+        "LICENSE": "2c71fbccf236906a9961d375625a08dc696c112a7ebcfbfd32900e80f8ecaa51"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/client_golang",
+      "version": "v1.21.1",
+      "go_sum": "h1:DOvXXTqVzvkIewV/CDPFdejpMCGeMcbGCQ8YOmu+Ibk=",
+      "go_mod_sum": "h1:U9NM32ykUErtVBxdvD3zfi+EuFkkaBvMb09mIfe0Zgg=",
+      "archive_sha256": "52ecedceb4115da627e276faed60f2bfcd3c69cca0639bdcac4a7bc2c472ff61",
+      "go_mod_sha256": "0b681f660ed415916c7eb66eb90d62876f661a7a05a75405159c0674d2e21b3c",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "8548bfb2bc1913396df38c548a6ec60b8dbcac3b0800485a40569c8bdd184471"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/client_model",
+      "version": "v0.6.2",
+      "go_sum": "h1:oBsgwpGs7iVziMvrGhE53c/GrLUsZdHnqNwqPLxwZyk=",
+      "go_mod_sum": "h1:y3m2F6Gdpfy6Ut/GBsUqTWZqCUvMVzSfMLjcu6wAwpE=",
+      "archive_sha256": "67017b19f220c6ab91ecfdd10a93824e2a8b09fcb6390054dbdc49df3354a9ca",
+      "go_mod_sha256": "8a9728c4147247a572808ef22e997265fe9a7c5464a60d4eda48dc35f9dc2626",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "6c79faa15168885fb88a316ae0df18f486deafddefdc16826cdc56dfbd421e24"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/common",
+      "version": "v0.63.0",
+      "go_sum": "h1:YR/EIY1o3mEFP/kZCD7iDMnLPlGyuU2Gb3HIcXnA98k=",
+      "go_mod_sum": "h1:VVFF/fBIoToEnWRVkYoXEkq3R3paCoxG9PXP74SnV18=",
+      "archive_sha256": "8f7ceb4d12a165e6b4533dc994937b936717daa3c2b231a499f8189372cfc843",
+      "go_mod_sha256": "f550851e6f2c1f5d568f8e96de4ab6746f54bb8ca057822bb43ee550fe1fe1a7",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "600244c8052c8c1d307043fafacbc83b429c171dd8e08f5a537c0a54014585ee"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/procfs",
+      "version": "v0.16.0",
+      "go_sum": "h1:xh6oHhKwnOJKMYiYBDWmkHqQPyiY40sny36Cmx2bbsM=",
+      "go_mod_sum": "h1:8veyXUu3nGP7oaCxhX6yeaM5u4stL2FeMXnCqhDthZg=",
+      "archive_sha256": "7683075343715505f058b949d0ddefd933ab6e4eb5ade7d2bc2e60926d16a3cb",
+      "go_mod_sha256": "8af986bd119d8238c5931df4a97479651113d806c6c5a004cd74464891f8e35c",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "497fcdb9fae55924c12f55f05cbe83a096662e5c591d79b74e4a8f23bab5ffee"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/puzpuzpuz/xsync/v3",
+      "version": "v3.5.1",
+      "go_sum": "h1:GJYJZwO6IdxN/IKbneznS6yPkVC+c3zyY/j19c++5Fg=",
+      "go_mod_sum": "h1:VjzYrABPabuM4KyBh1Ftq6u8nhwY5tBPKP9jpmh0nnA=",
+      "archive_sha256": "f7fcd1eeb1bc96bc497dc0bca05ed0d64d194fdb1a73460dd42cd2bc42ae00e6",
+      "go_mod_sha256": "5f9e296c55206f2cfc6dd8e017e905744c8ae3eb7df4d007ebf5ededfdde6b8f",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rabbitmq/amqp091-go",
+      "version": "v1.10.0",
+      "go_sum": "h1:STpn5XsHlHGcecLmMFCtg7mqq0RnD+zFr4uzukfVhBw=",
+      "go_mod_sum": "h1:Hy4jKW5kQART1u+JkDTF9YYOQUHXqMuhrgxOEeS7G4o=",
+      "archive_sha256": "5caf2378d1d4a1e4109da5c5e67bcd368127c03bad018cce6756743b52ddd884",
+      "go_mod_sha256": "7605dd3aea7b70cb37860e5112d50ceafc9b6dafc534e4ea789cd1a957acc909",
+      "notices": {
+        "LICENSE": "2fa3f380607b1591fa0e0962f70a1bd8b648427832abb647be85b141574be3c2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rcrowley/go-metrics",
+      "version": "v0.0.0-20201227073835-cf1acfcdf475",
+      "go_sum": "h1:N/ElC8H3+5XpJzTSTfLsJV/mx9Q9g7kxmchpfZyxgzM=",
+      "go_mod_sum": "h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=",
+      "archive_sha256": "e4dbd20c185cb05019fd7d4a361266bd5d182938f49fd9577df4d12c16dc81c3",
+      "go_mod_sha256": "e65376fbfb93110d799cc1e2d1d06f606f423434e9aaf65c8e13591ecd935483",
+      "notices": {
+        "LICENSE": "d2571186acad91c8a3121fb31f1aa5963e82ccd08608d00cef3eb3f3a6c8ad38"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rs/cors",
+      "version": "v1.11.1",
+      "go_sum": "h1:eU3gRzXLRK57F5rKMGMZURNdIG4EoAmX8k94r9wXWHA=",
+      "go_mod_sum": "h1:XyqrcTp5zjWr1wsJ8PIRZssZ8b/WMcMf71DJnit4EMU=",
+      "archive_sha256": "0555d9d0c18079e1d472d83044bf9fb2517626f1027d3d9d527c7a4294978500",
+      "go_mod_sha256": "9c6e5531b6328ae4a4d86ca6a9258aa44c64878934f0d080d68224d90d4ac8fd",
+      "notices": {
+        "LICENSE": "c21f3b628875c093885ba085d13959b5e78841d64a8fe76c10ba7293aec32fc7"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/secure-io/sio-go",
+      "version": "v0.3.1",
+      "go_sum": "h1:dNvY9awjabXTYGsTF1PiCySl9Ltofk9GA3VdWlo7rRc=",
+      "go_mod_sum": "h1:+xbkjDzPjwh4Axd07pRKSNriS9SCiYksWnZqdnfpQxs=",
+      "archive_sha256": "2a0a9a8b14859d50f534eeb0499b11e7665767e1f7f64f4d10bd615366f3722a",
+      "go_mod_sha256": "6130e2c0eb70444f39332676443cfde184c305714f1a88d6fcd36f0e7f58b867",
+      "notices": {
+        "LICENSE": "95ca6ef20a59612853abf39c6667785c8d0971414de8cd0a90b44987d9f8f7f8"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/shirou/gopsutil/v3",
+      "version": "v3.24.5",
+      "go_sum": "h1:i0t8kL+kQTvpAYToeuiVk3TgDeKOFioZO3Ztz/iZ9pI=",
+      "go_mod_sum": "h1:bsoOS1aStSs9ErQ1WWfxllSeS1K5D+U30r2NfcubMVk=",
+      "archive_sha256": "95ae6f59bf23d3400d96bdd3b8c84117effbd59cfab6ab37bd667d4b0ed79518",
+      "go_mod_sha256": "23405ede1d051c01c95cf934627c30ff41849a6b59131057cc31aed88d1c9b2b",
+      "notices": {
+        "LICENSE": "ad1e64b82c04fb2ee6bfe521bff01266971ffaa70500024d4ac767c6033aafb9"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tinylib/msgp",
+      "version": "v1.2.5",
+      "go_sum": "h1:WeQg1whrXRFiZusidTQqzETkRpGjFjcIhW6uqWH09po=",
+      "go_mod_sum": "h1:ykjzy2wzgrlvpDCRc4LA8UXy6D8bzMSuAF3WD57Gok0=",
+      "archive_sha256": "6248142dc8cbe7b02f6e17905537f4314ba6cd828e5afedf4c826f5e9016afbb",
+      "go_mod_sha256": "2f0661c4641bc5349cf9cb6f072d369c79a61dd4fca6bec7a66c0e28cb28f8a9",
+      "notices": {
+        "LICENSE": "17df22e31ef6a84f70909eed5185f41443a03dd05b14e8dec319d5c2bd7d7b3b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/valyala/bytebufferpool",
+      "version": "v1.0.0",
+      "go_sum": "h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=",
+      "go_mod_sum": "h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=",
+      "archive_sha256": "7f59f32c568539afee9a21a665a4156962b019beaac8404e26ba37af056b4f1e",
+      "go_mod_sha256": "f8c294ccf118b92b1ade907508967bfe0f80a357426e1a07e52fa8cb3e577acd",
+      "notices": {
+        "LICENSE": "c4c2923938be3bf985290743398835cb6097d277663eeb1addec34b4df28d806"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/xdg/scram",
+      "version": "v1.0.5",
+      "go_sum": "h1:TuS0RFmt5Is5qm9Tm2SoD89OPqe4IRiFtyFY4iwWXsw=",
+      "go_mod_sum": "h1:lB8K/P019DLNhemzwFU4jHLhdvlE6uDZjXFejJXr49I=",
+      "archive_sha256": "5072be9b0e099dcc742d10ab5eab8cc49ec5115c842f779c1da72673638a4699",
+      "go_mod_sha256": "6c97dd06cfb637f1e546f9756f4703de2d22b4447b739c469490cabe955422b5",
+      "notices": {
+        "LICENSE": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/zeebo/xxh3",
+      "version": "v1.0.2",
+      "go_sum": "h1:xZmwmqxHZA8AI603jOQ0tMqmBr9lPeFwGg6d+xy9DC0=",
+      "go_mod_sum": "h1:5NWz9Sef7zIDm2JHfFlcQvNekmcEl9ekUZQQKCYaDcA=",
+      "archive_sha256": "190e5ef1f672e9321a1580bdd31c6440fde6044ca8168d2b489cf50cdc4f58a6",
+      "go_mod_sha256": "b3c63ed86725a07251e3782eca802e3acffcba68982cfb627843182a3d5141b7",
+      "notices": {
+        "LICENSE": "cc347497d766f469091ce91cb17cb927a286dcd76b075a9d75496bf4375af4b3"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.etcd.io/etcd/api/v3",
+      "version": "v3.5.19",
+      "go_sum": "h1:w3L6sQZGsWPuBxRQ4m6pPP3bVUtV8rjW033EGwlr0jw=",
+      "go_mod_sum": "h1:QqKGViq4KTgOG43dr/uH0vmGWIaoJY3ggFi6ZH0TH/U=",
+      "archive_sha256": "8a04588e4485edd080485e1e557dbac661d33961f99f5096e177118f9eb97701",
+      "go_mod_sha256": "6fac7815367256ecc0de061a88c0343fb4c267948b406a6d894ee0fbdb67d672",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.etcd.io/etcd/client/v3",
+      "version": "v3.5.19",
+      "go_sum": "h1:+4byIz6ti3QC28W0zB0cEZWwhpVHXdrKovyycJh1KNo=",
+      "go_mod_sum": "h1:FNzyinmMIl0oVsty1zA3hFeUrxXI/JpEnz4sG+POzjU=",
+      "archive_sha256": "6eef6be6d167709ea7501a3594af4a4f1e6667d7888e35a554d3154d60033034",
+      "go_mod_sha256": "01f79fdc59b70009da1fa0d98fecffc52535a4d427fcba6ea6b17d479e73d282",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.uber.org/atomic",
+      "version": "v1.11.0",
+      "go_sum": "h1:ZvwS0R+56ePWxUNi+Atn9dWONBPp/AUETXlHW0DxSjE=",
+      "go_mod_sum": "h1:LUxbIzbOniOlMKjJjyPfpl4v+PKK2cNJn91OQbhoJI0=",
+      "archive_sha256": "8109325abe17488245878b07f3c35b10ba7d1aa3310f792968f5b9deba432e2c",
+      "go_mod_sha256": "be1a68147c2f6be9dff2579714c251068d4b70ce3235449b587bb0503781c484",
+      "notices": {
+        "LICENSE.txt": "edbb5a4d165ac69376c765b551c0662ff42bea87e1f1eda85f42ac90c34b09d0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.uber.org/zap",
+      "version": "v1.27.0",
+      "go_sum": "h1:aJMhYGrd5QSmlpLMr2MftRKl7t8J8PTZPA732ud/XR8=",
+      "go_mod_sum": "h1:GB2qFLM7cTU87MWRP2mPIjqfIDnGu+VIO4V/SdhGo2E=",
+      "archive_sha256": "b994b96ff0bb504a3d58288ab88b9f3c6604689ea1afb69d25b509769705a6c2",
+      "go_mod_sha256": "ad805944459a14360eeb0677b7c6fc4ff7a9da80fb03764afa7d91cf02e285c7",
+      "notices": {
+        "LICENSE": "7de716e70addb64f9305298ef32a9dd68e40d5b3095a5d868ba4461404dbfbcf"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "goftp.io/server/v2",
+      "version": "v2.0.1",
+      "go_sum": "h1:H+9UbCX2N206ePDSVNCjBftOKOgil6kQ5RAQNx5hJwE=",
+      "go_mod_sum": "h1:7+H/EIq7tXdfo1Muu5p+l3oQ6rYkDZ8lY7IM5d5kVdQ=",
+      "archive_sha256": "0a20812813a5f696ac8d007939bce08bcb9cf510a57d468073f1607d2c754ad4",
+      "go_mod_sha256": "4555a486b8358b6bfd8c6a90e6f45cb208189598e8de31cf6824c551bdfdd888",
+      "notices": {
+        "LICENSE": "b283cb4c679f7d14cf4245ec7d6cdb78c340064328c86c596b2f6be09cd61670"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/crypto",
+      "version": "v0.37.0",
+      "go_sum": "h1:kJNSjF/Xp7kU0iB2Z+9viTPMW4EqqsrywMXLJOOsXSE=",
+      "go_mod_sum": "h1:vg+k43peMZ0pUMhYmVAWysMK35e6ioLh3wB8ZCAfbVc=",
+      "archive_sha256": "7ce6b2be21be1ce9e04dc784830e08931f09b5903596b8017839322c9e828667",
+      "go_mod_sha256": "53a7d23b41aacaadfea2600c047e02eacb90039d4b0cb3d6f98c6cbec776b9a2",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/oauth2",
+      "version": "v0.28.0",
+      "go_sum": "h1:CrgCKl8PPAVtLnU3c+EDw6x11699EWlsDeWNWKdIOkc=",
+      "go_mod_sum": "h1:onh5ek6nERTohokkhCD/y2cV4Do3fxFHFuAejCkRWT8=",
+      "archive_sha256": "8bc84624e7da8ee85e022e261828e4257ace89953b0ac1115a83f320e608db02",
+      "go_mod_sha256": "892a9c068542f7af1f069126ab28c38cd5fb8faa6daf7733ce2c9cd30840645e",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/sync",
+      "version": "v0.13.0",
+      "go_sum": "h1:AauUjRAJ9OSnvULf/ARrrVywoJDy0YS2AwQ98I37610=",
+      "go_mod_sum": "h1:1dzgHSNfp02xaA81J2MS99Qcpr2w7fw1gpm99rleRqA=",
+      "archive_sha256": "4bdaaffe69cc7c997cff97cd81dc9c6777777bd311175f100f76b049bbbe7ed9",
+      "go_mod_sha256": "720b98f1bf033d6b64a454ca8c29cdca6e9265ab7d70db3b834dff49560f1587",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/sys",
+      "version": "v0.32.0",
+      "go_sum": "h1:s77OFDvIQeibCmezSnk/q6iAfkdiQaJi4VzroCFrN20=",
+      "go_mod_sum": "h1:BJP2sWEmIv4KK5OTEluFJCKSidICx8ciO85XgH3Ak8k=",
+      "archive_sha256": "85d47075d21fd7ef35d9a47fc73f2356fb3cd2e7fab7f45c874b814bf312127d",
+      "go_mod_sha256": "f67e3e18f4c08e60a7e80726ab36b691fdcea5b81ae1c696ff64caf518bcfe3d",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/term",
+      "version": "v0.31.0",
+      "go_sum": "h1:erwDkOK1Msy6offm1mOgvspSkslFnIGsFnxOKoufg3o=",
+      "go_mod_sum": "h1:R4BeIy7D95HzImkxGkTW1UQTtP54tio2RyHz7PwK0aw=",
+      "archive_sha256": "bdeda753791b44f6815ccf3367ff57ffaca9bb100bfe8ebe112c8da133e78aec",
+      "go_mod_sha256": "a2c3e0e3c81403ce6d0fb25fc9f57a22a8fb2265a08955207eeb53d105ac7d20",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/time",
+      "version": "v0.11.0",
+      "go_sum": "h1:/bpjEDfN9tkoN/ryeYHnv5hcMlc8ncjMcM4XBk5NWV0=",
+      "go_mod_sum": "h1:CDIdPxbZBQxdj6cxyCIdrNogrJKMJ7pr37NYpMcMDSg=",
+      "archive_sha256": "a94a0e3766428c1b0acb6f33d8e97f162403530d993938c1741088f6d2a4cd13",
+      "go_mod_sha256": "8f1250ee92293d56330e0f19d72c503bb52ebb71dd754709c89603700427ab09",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/api",
+      "version": "v0.224.0",
+      "go_sum": "h1:Ir4UPtDsNiwIOHdExr3fAj4xZ42QjK7uQte3lORLJwU=",
+      "go_mod_sum": "h1:3V39my2xAGkodXy0vEqcEtkqgw2GtrFL5WuBZlCTCOQ=",
+      "archive_sha256": "d1783c0ea85e9ffe9eef4da8c1175e4ab2e137715c76af951e5f31e8237a3b45",
+      "go_mod_sha256": "b7b10ddf7e314fa9feece9a4747f47f3ebc1305d1caf93f7598c28d266badc22",
+      "notices": {
+        "LICENSE": "110244b02140866ee37d17fa7449436a377ec3b85a481fbb208f4c87964382de"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "gopkg.in/yaml.v2",
+      "version": "v2.4.0",
+      "go_sum": "h1:D8xgwECY7CYvx+Y2n4sBz93Jn9JRvxdiyyo8CTfuKaY=",
+      "go_mod_sum": "h1:RDklbk79AGWmwhnvt/jBztapEOGDOx6ZbXqjP6csGnQ=",
+      "archive_sha256": "ede49e27c4cca6cdd2ec719aed8ea4d363710cceb3d411e7a786fbdec0d391fd",
+      "go_mod_sha256": "c3b11ba9a0775ff9bc6f11dbb58a1e48cc1e68bac378a8cdc620becc661d4c33",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+        "NOTICE": "f6c2dd3a67b576eafb89b80200b8b1627230bf3821a0c14cb99a22ac19107d00",
+        "LICENSE.libyaml": "a94710b55e03b5285f77d048c5ba61bb9d6ee04a06c0eb90e68821e11b0c707a"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "gopkg.in/yaml.v3",
+      "version": "v3.0.1",
+      "go_sum": "h1:fxVm/GzAzEWqLHuvctI91KS9hhNmmWOoWu0XTYJS7CA=",
+      "go_mod_sum": "h1:K4uyk7z7BCEPqu6E+C64Yfv1cQ7kz7rIZviUmN+EgEM=",
+      "archive_sha256": "aab8fbc4e6300ea08e6afe1caea18a21c90c79f489f52c53e2f20431f1a9a015",
+      "go_mod_sha256": "21579860a20306fcf43b1bd234d1fba319499c77611b71c05f9bf3ba90dab939",
+      "notices": {
+        "LICENSE": "d18f6323b71b0b768bb5e9616e36da390fbd39369a81807cca352de4e4e6aa0b",
+        "NOTICE": "f6c2dd3a67b576eafb89b80200b8b1627230bf3821a0c14cb99a22ac19107d00"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "aead.dev/mem",
+      "version": "v0.2.0",
+      "go_sum": "h1:ufgkESS9+lHV/GUjxgc2ObF43FLZGSemh+W+y27QFMI=",
+      "go_mod_sum": "h1:4qj+sh8fjDhlvne9gm/ZaMRIX9EkmDrKOLwmyDtoMWM=",
+      "archive_sha256": "2e65ad430191927ecfb7b76bbcb08c4a0651934452551681ca9a8ae4089f65b5",
+      "go_mod_sha256": "6d051e5459047a111dfa9b90868acfd6f0d0927e88c546b1d35580cb7ec14735",
+      "notices": {
+        "LICENSE": "e79c0433576f2a5b748470d19709f32c0b5abfd3fa1ca9001550590a84d29d19"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "aead.dev/minisign",
+      "version": "v0.3.0",
+      "go_sum": "h1:8Xafzy5PEVZqYDNP60yJHARlW1eOQtsKNp/Ph2c0vRA=",
+      "go_mod_sum": "h1:NLvG3Uoq3skkRMDuc3YHpWUTMTrSExqm+Ij73W13F6Y=",
+      "archive_sha256": "b766accc5a5e1961ce2ae0a37ce937eeab9e877a48ec918f557a9c6c4fa528a0",
+      "go_mod_sha256": "556d634e728857d46f98b1b39b4d12350a52fe4862cdd45966b680a2f2b9f22c",
+      "notices": {
+        "LICENSE": "d2e73e3423b8898d7d2fba4e55a2abb43969603fe32fdd468f197ff238969d28"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cel.dev/expr",
+      "version": "v0.22.0",
+      "go_sum": "h1:+hFFhLPmquBImfs1BiN2PZmkr5ASse2ZOuaxIs9e4R8=",
+      "go_mod_sum": "h1:MrpN08Q+lEBs+bGYdLxxHkZoUSsCp0nSKTs0nTymJgw=",
+      "archive_sha256": "932c25894c9c8afe497965f4702a0a4f56246c880f12199426b5c5c601570af5",
+      "go_mod_sha256": "0e07796c0a09278791cd134ccc50eefc35ae1cf0bf0d1a16f696aee54e6242f9",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go",
+      "version": "v0.118.0",
+      "go_sum": "h1:tvZe1mgqRxpiVa3XlIGMiPcEUbP1gNXELgD4y/IXmeQ=",
+      "go_mod_sum": "h1:zIt2pkedt/mo+DQjcT4/L3NDxzHPR29j5HcclNH+9PM=",
+      "archive_sha256": "a8a09ec07966919bb60eb7f5f74bdef6a298bf4110e4cc5b3407035a19a86737",
+      "go_mod_sha256": "ec98fdf94c1e22e3efe0f0feb2bae93080bc19da95a9a1989e97ee5cffedb6e0",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go/auth",
+      "version": "v0.15.0",
+      "go_sum": "h1:Ly0u4aA5vG/fsSsxu98qCQBemXtAtJf+95z9HK+cxps=",
+      "go_mod_sum": "h1:WJDGqZ1o9E9wKIL+IwStfyn/+s59zl4Bi+1KQNVXLZ8=",
+      "archive_sha256": "ff54eac708b77e8d715a031e4c5031680e5fe8683d9d5ba07554706c72890360",
+      "go_mod_sha256": "61eb1507f8f78fd023b4182fa7081e1b31b25de76502fd89a7116cb159f45254",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go/auth/oauth2adapt",
+      "version": "v0.2.7",
+      "go_sum": "h1:/Lc7xODdqcEw8IrZ9SvwnlLX6j9FHQM74z6cBk9Rw6M=",
+      "go_mod_sum": "h1:NTbTTzfvPl1Y3V1nPpOgl2w6d/FjO7NNUQaWSox6ZMc=",
+      "archive_sha256": "023a5fb26178f8e6bc0fb2822f4484f68bb68c417728c2979bd786b515a1bc53",
+      "go_mod_sha256": "e1a4273d2a867be05b879c0c51f5b7695eab2c3258c9603baab082a527a91f34",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go/compute/metadata",
+      "version": "v0.6.0",
+      "go_sum": "h1:A6hENjEsCDtC1k8byVsgwvVcioamEHvZ4j01OwKxG9I=",
+      "go_mod_sum": "h1:FjyFAW1MW0C203CEOMDTu3Dk1FlqW3Rga40jzHL4hfg=",
+      "archive_sha256": "45ddcff8fe63fc16b0f0e2fcf8d1e5b3cedf046a76a353ffe7756bea1b1bc9ee",
+      "go_mod_sha256": "4f2e741bd6bf9111ede010704069c400bba634312e0521f27e9cf48f49855d1e",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go/iam",
+      "version": "v1.3.1",
+      "go_sum": "h1:KFf8SaT71yYq+sQtRISn90Gyhyf4X8RGgeAVC8XGf3E=",
+      "go_mod_sum": "h1:3wMtuyT4NcbnYNPLMBzYRFiEfjKfJlLVLrisE7bwm34=",
+      "archive_sha256": "3fbdc435309406ee3649b733cbacd3ee77c6a0179dbe36cf219098a2f4b48678",
+      "go_mod_sha256": "8a1529e7e928859a8332f5d22376975bdceb16cbf41ad8b1dce4c2fca80bc22b",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "cloud.google.com/go/monitoring",
+      "version": "v1.23.0",
+      "go_sum": "h1:M3nXww2gn9oZ/qWN2bZ35CjolnVHM3qnSbu6srCPgjk=",
+      "go_mod_sum": "h1:034NnlQPDzrQ64G2Gavhl0LUHZs9H3rRmhtnp7jiJgg=",
+      "archive_sha256": "1b46b2f3a0a630d4d5473b5e393909a6f5ed2fe89a9db2d864d8a0dfb7e50ce8",
+      "go_mod_sha256": "311b226660a4229cc42c2387ff4b9f684f6059b2e7f98c9ebfafcbd636c1bb2a",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "filippo.io/edwards25519",
+      "version": "v1.1.0",
+      "go_sum": "h1:FNf4tywRC1HmFuKW5xopWpigGjJKiJSV0Cqo0cJWDaA=",
+      "go_mod_sum": "h1:BxyFTGdWcka3PhytdK4V28tE5sGfRvvvRV7EaN4VDT4=",
+      "archive_sha256": "9ac43a686d06fdebd719f7af3866c87eb069302272dfb131007adf471c308b65",
+      "go_mod_sha256": "099556fc4d7e6f5cb135efdd8b6bb4c0932e38ea058c53fc5fa5ce285572fb61",
+      "notices": {
+        "LICENSE": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/Azure/azure-sdk-for-go/sdk/internal",
+      "version": "v1.10.0",
+      "go_sum": "h1:ywEEhmNahHBihViHepv3xPBn1663uRv2t2q/ESv9seY=",
+      "go_mod_sum": "h1:iZDifYGJTIgIIkYRNWPENUnqx6bJ2xnSDFI2tjwZNuY=",
+      "archive_sha256": "0a9b4fe658e348b9a6535b1ae0698fa5cf5ba9ba3710530edbdc763eeffe2d24",
+      "go_mod_sha256": "2d29bd3ffdcdc6540ca423c0b87dcf593b40ae5979fe220f6e8ce2fecbab39c3",
+      "notices": {
+        "LICENSE.txt": "646f8936b8ddcd14e13e578ff6857e368780b0d1a4f6066bee89211923a373e2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/Azure/go-ntlmssp",
+      "version": "v0.0.0-20221128193559-754e69321358",
+      "go_sum": "h1:mFRzDkZVAjdal+s7s0MwaRv9igoPqLRdzOLzw/8Xvq8=",
+      "go_mod_sum": "h1:chxPXzSsl7ZWRAuOIE23GDNzjWuZquvFlgA8xmpunjU=",
+      "archive_sha256": "cc6d4e9caf938a71c9217f3aa8bdbb1c072faff3444bb680a2759c947da2085c",
+      "go_mod_sha256": "afb78551b56615de008084f59fc0d48b1081663ca88116562744e5c205ab6459",
+      "notices": {
+        "LICENSE": "7b7c80bf1253f5dabfe692633bd7908b6a44d1caba1ab2a776911b224e93f0fd"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/AzureAD/microsoft-authentication-library-for-go",
+      "version": "v1.4.1",
+      "go_sum": "h1:8BKxhZZLX/WosEeoCvWysmKUscfa9v8LIPEEU0JjE2o=",
+      "go_mod_sum": "h1:wP83P5OoQ5p6ip3ScPr0BAq0BvuPAvacpEuSzyouqAI=",
+      "archive_sha256": "2a72e1292773396881734d5003470fee00d714bca2071dcd9e3169ca3ec344f1",
+      "go_mod_sha256": "ed0860df73f981d685dee0b2c784f7d613d9f207ea713b0d2f1728898989b86d",
+      "notices": {
+        "LICENSE": "9906940f61b1f0b533fa7d99baf55178b2808fbe113ea51dfbfad8572ccd5f2b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp",
+      "version": "v1.27.0",
+      "go_sum": "h1:ErKg/3iS1AKcTkf3yixlZ54f9U1rljCkQyEXWUnIUxc=",
+      "go_mod_sum": "h1:yAZHSGnqScoU556rBOVkwLze6WP5N+U11RHuWaGVxwY=",
+      "archive_sha256": "fb5db1323479c768591ac41f364b55ec9c40696d53708e97bd7eba70a8ddd304",
+      "go_mod_sha256": "fb21cb7a133ef85f97bb7a9c2146f9755eed919b010c24fb99dadb1ca1c0ddc3",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric",
+      "version": "v0.51.0",
+      "go_sum": "h1:fYE9p3esPxA/C0rQ0AHhP0drtPXDRhaWiwg1DPqO7IU=",
+      "go_mod_sum": "h1:BnBReJLvVYx2CS/UHOgVz2BXKXD9wsQPxZug20nZhd0=",
+      "archive_sha256": "fd2beac8357a05c967aeb9523d19084077a075bca69c0dea84293b66acbc1e20",
+      "go_mod_sha256": "2692526c2c9df67ec34dc55005acf90c22b8f94c5ecdc7ee914068c7c350148c",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping",
+      "version": "v0.51.0",
+      "go_sum": "h1:6/0iUd0xrnX7qt+mLNRwg5c0PGv8wpE8K90ryANQwMI=",
+      "go_mod_sum": "h1:otE2jQekW/PqXk1Awf5lmfokJx4uwuqcj1ab5SpGeW0=",
+      "archive_sha256": "10363070f377d7fa073d5b672c43faa17a603aa0964d0b3f8845776b26f2cca3",
+      "go_mod_sha256": "6a446d0bf5004aae13a1a102bf34183a2cd0adbab897f17754ed0228c4bdf536",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/VividCortex/ewma",
+      "version": "v1.2.0",
+      "go_sum": "h1:f58SaIzcDXrSy3kWaHNvuJgJ3Nmz59Zji6XoJR/q1ow=",
+      "go_mod_sum": "h1:nz4BbCtbLyFDeC9SUHbtcT5644juEuWfUAUnGx7j5l4=",
+      "archive_sha256": "facfeeec2dac447211e733ed6f190e9068a8a89d770ea40b1d6955fa6cff36cf",
+      "go_mod_sha256": "20b35c2710418fe6bc48f805fe6425c095ebd06299ac61fc9107d9b51d7c11e6",
+      "notices": {
+        "LICENSE": "9a6c3aa72d265f8f5fd6068d3de786741acb89edccf1c4011bc6a8b2ca64668c"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/acarl005/stripansi",
+      "version": "v0.0.0-20180116102854-5a71ef0e047d",
+      "go_sum": "h1:licZJFw2RwpHMqeKTCYkitsPqHNxTmd4SNR5r94FGM8=",
+      "go_mod_sum": "h1:asat636LX7Bqt5lYEZ27JNDcqxfjdBQuJ/MM4CN/Lzo=",
+      "archive_sha256": "5169858a54f6f06f3089c45db233290fbaf1ebc2c9776649705b6cd9dc58a40c",
+      "go_mod_sha256": "f6b7823a49a8022e209ce6337469f380e0d4548ac9edddc502c93e9d2185539c",
+      "notices": {
+        "LICENSE": "53d72b0698ee5dfb05c614698d52b98e37f45d337e1f59f63186cccf52766bb3"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/apache/thrift",
+      "version": "v0.21.0",
+      "go_sum": "h1:tdPmh/ptjE1IJnhbhrcl2++TauVjy242rkV/UzJChnE=",
+      "go_mod_sum": "h1:W1H8aR/QRtYNvrPeFXBtobyRkd0/YVhTc6i07XIAgDw=",
+      "archive_sha256": "c96231bd10eb2488974c977c1f1bafdce90ec56710d193f54f5771a379835a99",
+      "go_mod_sha256": "f94f390690868ee1b45c174f65b4e55bd2cd8cd966f74302a078ce4990b09fcb",
+      "notices": {
+        "LICENSE": "d315e6cdedc07c478de6992027bfb66f220886c6216fd7e9885ced30c3703646",
+        "NOTICE": "c2534e065069887565f871f0648b013a7e5f4a422809faf4ae3c590b7c0bf561"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/asaskevich/govalidator",
+      "version": "v0.0.0-20230301143203-a9d515a09cc2",
+      "go_sum": "h1:DklsrG3dyBCFEj5IhUbnKptjxatkF07cF2ak3yi77so=",
+      "go_mod_sum": "h1:WaHUgvxTVq04UNunO+XhnAqY/wQc+bxr74GqbsZ/Jqw=",
+      "archive_sha256": "0f8ec67bbc585d29ec115c0885cef6f2431a422cc1cc10008e466ebe8be5dc37",
+      "go_mod_sha256": "0da541b84b29a09818d3806ff85c782caca88f0d814e7ee79c7c63f35c4c43b8",
+      "notices": {
+        "LICENSE": "e1a36eac3f3109d06869f57127cc32683f70a170dcefe5f143ee378ff313ddfe"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/aymanbagabas/go-osc52/v2",
+      "version": "v2.0.1",
+      "go_sum": "h1:HwpRHbFMcZLEVr42D4p7XBqjyuxQH5SMiErDT4WkJ2k=",
+      "go_mod_sum": "h1:uYgXzlJ7ZpABp8OJ+exZzJJhRNQ2ASbcXHWsFqH8hp8=",
+      "archive_sha256": "939ebf2a5481f2172e1a5e0c318d05aef5b6d950a960556216c3da7879a927f8",
+      "go_mod_sha256": "4646f9f19a822aebf4296bce24d5f2b7b2700ea1c44f5cc978300263cb7b5611",
+      "notices": {
+        "LICENSE": "11319e34d9dac2f45392f14f4f62e28b24173cfa13d39b32e7b7b66c2f3bdccd"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/beorn7/perks",
+      "version": "v1.0.1",
+      "go_sum": "h1:VlbKKnNfV8bJzeqoa4cOKqO6bYr3WgKZxO8Z16+hsOM=",
+      "go_mod_sum": "h1:G2ZrVWU2WbWT9wwq4/hrbKbnv/1ERSJQ0ibhJ6rlkpw=",
+      "archive_sha256": "25bd9e2d94aca770e6dbc1f53725f84f6af4432f631d35dd2c46f96ef0512f1a",
+      "go_mod_sha256": "c870b3fe50b6944fab095b06208d9c8898763e9173cb1eed3258c3d58309ba66",
+      "notices": {
+        "LICENSE": "0db7c9ebb3717e526f34f87dd1ee8bc77d36846e29cb0cec9246f7138fbe962b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/charmbracelet/bubbles",
+      "version": "v0.20.0",
+      "go_sum": "h1:jSZu6qD8cRQ6k9OMfR1WlM+ruM8fkPWkHvQWD9LIutE=",
+      "go_mod_sum": "h1:39slydyswPy+uVOHZ5x/GjwVAFkCsV8IIVy+4MhzwwU=",
+      "archive_sha256": "b9b230bb428477290e42ff29fba320f6ebadb612e2813b7592d293b80c81c1b9",
+      "go_mod_sha256": "57cc309a2879c8cd308a598a0de55bfd19878f8fe1c109592c2170f432e7c3a9",
+      "notices": {
+        "LICENSE": "9ca49aaf6748976a8f0a9d7448f34a5f5edf1f363385f1a789e09e328c3d3f84"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/charmbracelet/bubbletea",
+      "version": "v1.3.4",
+      "go_sum": "h1:kCg7B+jSCFPLYRA52SDZjr51kG/fMUEoPoZrkaDHyoI=",
+      "go_mod_sum": "h1:dtcUCyCGEX3g9tosuYiut3MXgY/Jsv9nKVdibKKRRXo=",
+      "archive_sha256": "17ad36a3daad753e2c0b0a77e4e74da811cbc4e53b35c95560967df822a9905c",
+      "go_mod_sha256": "da5324b5a2edcf8f72a6e1110a89ea6b9a0a3170d6a14e7846371af357f1816c",
+      "notices": {
+        "LICENSE": "9ca49aaf6748976a8f0a9d7448f34a5f5edf1f363385f1a789e09e328c3d3f84"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/charmbracelet/lipgloss",
+      "version": "v1.0.0",
+      "go_sum": "h1:O7VkGDvqEdGi93X+DeqsQ7PKHDgtQfF8j8/O2qFMQNg=",
+      "go_mod_sum": "h1:U5fy9Z+C38obMs+T+tJqst9VGzlOYGj4ri9reL3qUlo=",
+      "archive_sha256": "1474bd1e1bde95d8ae5e579e7c9269129f4f7cd8b0f6716b00bc494310962e5a",
+      "go_mod_sha256": "654d8f042f3bc1b1d6626375ca7e9cbca7ccbd71b43e32ee85166561a6381dff",
+      "notices": {
+        "LICENSE": "699cffa88b62691ea09706d356e5ee0982e87ca2b1c58ca682f27d6ae87f9efc"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/charmbracelet/x/ansi",
+      "version": "v0.8.0",
+      "go_sum": "h1:9GTq3xq9caJW8ZrBTe0LIe2fvfLR/bYXKTx2llXn7xE=",
+      "go_mod_sum": "h1:wdYl/ONOLHLIVmQaxbIYEC/cRKOQyjTkowiI4blgS9Q=",
+      "archive_sha256": "93232b97a5a80c2c5c283faa63d434f71387afaf255e0dab9479a066581b946d",
+      "go_mod_sha256": "1a34d50bc83628bb3abf976e33e39f4bf5e3dac8bb78dd2531acdcf1b4431cca",
+      "notices": {
+        "LICENSE": "0baa4a5942a801d93f4050d2bc0039d8c037105fcd335230d118eec99a11782b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/charmbracelet/x/term",
+      "version": "v0.2.1",
+      "go_sum": "h1:AQeHeLZ1OqSXhrAWpYUtZyX1T3zVxfpZuEQMIQaGIAQ=",
+      "go_mod_sum": "h1:oQ4enTYFV7QN4m0i9mzHrViD7TQKvNEEkHUMCmsxdUg=",
+      "archive_sha256": "943ea615acab846478d15fc9b21eb5e47df786577915f84565b6d4b31d4014a0",
+      "go_mod_sha256": "cc7562bdfc0321f9f1984b014d0a5c9e7e3d7d02853de4b452bddcabd1462630",
+      "notices": {
+        "LICENSE": "0baa4a5942a801d93f4050d2bc0039d8c037105fcd335230d118eec99a11782b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/cncf/xds/go",
+      "version": "v0.0.0-20250121191232-2f005788dc42",
+      "go_sum": "h1:Om6kYQYDUk5wWbT0t0q6pvyM49i9XZAv9dDrkDA7gjk=",
+      "go_mod_sum": "h1:W+zGtBO5Y1IgJhy4+A9GOqVhqLpfZi+vwmdNXUehLA8=",
+      "archive_sha256": "20db094e599edc2bfd6ff20485c2f1870324dcdc80c9a041d10191f3030c1a18",
+      "go_mod_sha256": "524700e305a2b2bf75db01766e5e412e42619321d761bc4271635b3ffa7022d4",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/coreos/go-semver",
+      "version": "v0.3.1",
+      "go_sum": "h1:yi21YpKnrx1gt5R+la8n5WgS0kCrsPp33dmEyHReZr4=",
+      "go_mod_sum": "h1:irMmmIw/7yzSRPWryHsK7EYSg09caPQL03VsM8rvUec=",
+      "archive_sha256": "e72820542b5913afe0a52e956e0b3834e9fbb080641fed183117f862fab74e8a",
+      "go_mod_sha256": "08609c644cbcd0a4801e2585ee5a9dd283f92a412224d86e0dbd431530e6ce38",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE": "572b159624f1898b40e9f09c9e4cfb65a595044960982aa95126bc28f7d1e6c0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/davecgh/go-spew",
+      "version": "v1.1.2-0.20180830191138-d8f796af33cc",
+      "go_sum": "h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=",
+      "go_mod_sum": "h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=",
+      "archive_sha256": "b4d0923b169b194f0016ec46f3df1ab0c68e27999743e43fe2de59ecb2484128",
+      "go_mod_sha256": "bcb29393251237b79a17b6c19bf29134f43e8f438c3198988fcd461a1cdf05cc",
+      "notices": {
+        "LICENSE": "1b93a317849ee09d3d7e4f1d20c2b78ddb230b4becb12d7c224c927b9d470251"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/decred/dcrd/dcrec/secp256k1/v4",
+      "version": "v4.4.0",
+      "go_sum": "h1:NMZiJj8QnKe1LgsbDayM4UoHwbvwDRwnI3hwNaAHRnc=",
+      "go_mod_sum": "h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=",
+      "archive_sha256": "5f6308047f5dc0175d4021e3a9eff909aa276bf890e4c62672fc104f4a3133c6",
+      "go_mod_sha256": "2b9c7ed2ce57cd2adb4c10902e10d17554dcccc9929ee3a6533c6d83ebd9f3d1",
+      "notices": {
+        "LICENSE": "480be5fb1be03ff19fd71d863f453f16262e98d4e568f5bccfcb7aa3ccf8cf0d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/docker/go-units",
+      "version": "v0.5.0",
+      "go_sum": "h1:69rxXcBk27SvSaaxTtLh/8llcHD8vYHT7WSdRZ/jvr4=",
+      "go_mod_sum": "h1:fgPhTUdO+D/Jk86RDLlptpiXQzgHJF7gydDDbaIK4Dk=",
+      "archive_sha256": "039d53ebe64af1aefa0be94ce42c621a17a3052c58ad15e5b3f357529beeaff6",
+      "go_mod_sha256": "ed45577dfb3562bc693dced91b172f710f1a9089c40808529f447348754e0c58",
+      "notices": {
+        "LICENSE": "ba3065d2f4b11bb42a0f7b708b021d1c28fa45d097b3eab3e7db9ab4745040d1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/eapache/go-resiliency",
+      "version": "v1.7.0",
+      "go_sum": "h1:n3NRTnBn5N0Cbi/IeOHuQn9s2UwVUH7Ga0ZWcP+9JTA=",
+      "go_mod_sum": "h1:5yPzW0MIvSe0JDsv0v+DvcjEv2FyD6iZYSs1ZI+iQho=",
+      "archive_sha256": "a244568c59d0f83f8a9a0a2efba62dc4be54aa5d191ec90875ee9b583fa69a20",
+      "go_mod_sha256": "ff85e3ba2161df2e6176a3f4d4b717c0110a731a7f09d22adb6f7feeb2e29a94",
+      "notices": {
+        "LICENSE": "570e75cd7eb9c305596059bd0cad4c17b6f6fae7e4a7beb4131242741f1e18f0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/eapache/go-xerial-snappy",
+      "version": "v0.0.0-20230731223053-c322873962e3",
+      "go_sum": "h1:Oy0F4ALJ04o5Qqpdz8XLIpNA3WM/iSIXqxtqo7UGVws=",
+      "go_mod_sum": "h1:YvSRo5mw33fLEx1+DlK6L2VV43tJt5Eyel9n9XBcR+0=",
+      "archive_sha256": "a7fdcf486a9c7c4fd5ba63c4c95cfac7581a1e797ea57cd2fa4ba08151cebd6b",
+      "go_mod_sha256": "01bace4ee0e6d6df2bd3deef39aad5a434ca3ebb7d04051e87407f88c999e9d1",
+      "notices": {
+        "LICENSE": "9ceb66eb208b519721694befc61953d42b84bdfc6b5379ad8f6590119a4b1b19"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/eapache/queue",
+      "version": "v1.1.0",
+      "go_sum": "h1:YOEu7KNc61ntiQlcEeUIoDTJ2o8mQznoNvUhiigpIqc=",
+      "go_mod_sum": "h1:6eCeP0CKFpHLu8blIFXhExK/dRa7WDZfr6jVFPTqq+I=",
+      "archive_sha256": "1dc1b4972e8505c4763c65424b19604c65c944911d16c18c5cbd35aae45626fb",
+      "go_mod_sha256": "dc4787163082589551dde06c91cf036390df265033ee27ec975cc9151705ef03",
+      "notices": {
+        "LICENSE": "65883406565456e553496b6c37bee3b05c1fe5a1c0e5ab177f19901d03a2b9ed"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/envoyproxy/go-control-plane/envoy",
+      "version": "v1.32.4",
+      "go_sum": "h1:jb83lalDRZSpPWW2Z7Mck/8kXZ5CQAFYVjQcdVIr83A=",
+      "go_mod_sum": "h1:Gzjc5k8JcJswLjAx1Zm+wSYE20UrLtt7JZMWiWQXQEw=",
+      "archive_sha256": "6baebcc1f441672ade0dacb4ca553a3d857f915590ca07bbe79314ddf62e6fae",
+      "go_mod_sha256": "c38d747e931c1d062832d1680b77e9d82eddc164adf81271a83debd6cf1587ab",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/envoyproxy/protoc-gen-validate",
+      "version": "v1.2.1",
+      "go_sum": "h1:DEo3O99U8j4hBFwbJfrz9VtgcDfUKS7KJ7spH3d86P8=",
+      "go_mod_sum": "h1:d/C80l/jxXLdfEIhX1W2TmLfsJ31lvEjwamM4DxlWXU=",
+      "archive_sha256": "ad9d2639aff17db6be291069c5463c46ed8ac37a0c6c1b57fae5465c5effb567",
+      "go_mod_sha256": "c639d0b78633862b3b78f90e77ee5c322b57aa461248e0149f864678e1153317",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/erikgeiser/coninput",
+      "version": "v0.0.0-20211004153227-1c3628e74d0f",
+      "go_sum": "h1:Y/CXytFA4m6baUTXGLOoWe4PQhGxaX0KpnayAqC48p4=",
+      "go_mod_sum": "h1:vw97MGsxSvLiUE2X8qFplwetxpGLQrlU1Q9AUEIzCaM=",
+      "archive_sha256": "bd7f9a62374dc4d111863491729763a0eafcdc440d4a6ebead61d3af4a2c3f2f",
+      "go_mod_sha256": "48c6ce643a4c56e550e8d5735fba0776b460d9cfb83e80d17a5a500573b9692f",
+      "notices": {
+        "LICENSE": "0a00deeeb36bb7b8ccbb9003100b665e584d9384e66c8c26f29b5929ecaa745b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/fatih/structs",
+      "version": "v1.1.0",
+      "go_sum": "h1:Q7juDM0QtcnhCpeyLGQKyg4TOIghuNXrkL32pHAUMxo=",
+      "go_mod_sum": "h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=",
+      "archive_sha256": "a361ecc95ad12000c66ee143d26b2aa0a4e5de3b045fd5d18a52564622a59148",
+      "go_mod_sha256": "c203f3c18ee86af05db0691855969cfeed14f5a38c424c0b57fbc8942a277c28",
+      "notices": {
+        "LICENSE": "8f09e42906e1a3c7bd39629a17225b3b62f25783444d8d75ad5d6657916915df"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/felixge/httpsnoop",
+      "version": "v1.0.4",
+      "go_sum": "h1:NFTV2Zj1bL4mc9sqWACXbQFVBBg2W3GPvqp8/ESS2Wg=",
+      "go_mod_sum": "h1:m8KPJKqk1gH5J9DgRY2ASl2lWCfGKXixSwevea8zH2U=",
+      "archive_sha256": "75aa471311265e9860df0e523400b4650ed0c1a33262786a421f07226792e494",
+      "go_mod_sha256": "3d0a6d397b775e49388eb75e7903691058d7a8cb7ce4f11637a876f387115bb9",
+      "notices": {
+        "LICENSE.txt": "8108e14b5cb2b6bcd51583d3849ef0c2b5c4de61758256c20308bc70d1775dbb"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-asn1-ber/asn1-ber",
+      "version": "v1.5.7",
+      "go_sum": "h1:DTX+lbVTWaTw1hQ+PbZPlnDZPEIs0SS/GCZAl535dDk=",
+      "go_mod_sum": "h1:hEBeB/ic+5LoWskz+yKT7vGhhPYkProFKoKdwZRWMe0=",
+      "archive_sha256": "53503c8eda39786fde413109584c79db1a7da475aee3d568ee10bab1b5719918",
+      "go_mod_sha256": "6470996d0afbcec5e17608e581620ab1fa53804f23b3e7730b5adea54102d8bf",
+      "notices": {
+        "LICENSE": "ec62b7caba679339176c55c4030ac6770c37d422128054e4ecd802aea536f193"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-ini/ini",
+      "version": "v1.67.0",
+      "go_sum": "h1:z6ZrTEZqSWOTyH2FlglNbNgARyHG8oLW9gMELqKr06A=",
+      "go_mod_sum": "h1:ByCAeIL28uOIIG0E3PJtZPDL8WnHpFKFOtgjp+3Ies8=",
+      "archive_sha256": "d77fe1b537b2e6db4040bd518b4755979006d5af7e82ae035aa2bc5d40c0ff55",
+      "go_mod_sha256": "37af038b184343e5e133f54c50b20d80d431dc4b8d24a77d975f9d30369f2c77",
+      "notices": {
+        "LICENSE": "f6918bd93ffe07f4b2c61b8287c32cb3122e08aed0be50f1c7d0eddc87877a8f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-jose/go-jose/v4",
+      "version": "v4.0.5",
+      "go_sum": "h1:M6T8+mKZl/+fNNuFHvGIzDz7BTLQPIounk/b9dw3AaE=",
+      "go_mod_sum": "h1:s3P1lRrkT8igV8D9OjyL4WRyHvjB6a4JSllnOrmmBOA=",
+      "archive_sha256": "7bb0205c235a4bc2bbca729a08d2d86f31ac0199cfc1c70b2d780f7594366407",
+      "go_mod_sha256": "6a36b5871521e614e68d3a99327420b802d5cbac35ec7cee80f6fc3d29ee8c85",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-logr/logr",
+      "version": "v1.4.2",
+      "go_sum": "h1:6pFjapn8bFcIbiKo3XT4j/BhANplGihG6tvd+8rYgrY=",
+      "go_mod_sum": "h1:9T104GzyrTigFIr8wt5mBrctHMim0Nb2HLGrmQ40KvY=",
+      "archive_sha256": "9f8926fda6dee61e68522421963d5804baeb10024aa02b318d9bd50fdcfdd7d1",
+      "go_mod_sha256": "c496f30d700f02b49a1b50bc2486a27c2f74df3dce75d9db6d2d43975b381727",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-logr/stdr",
+      "version": "v1.2.2",
+      "go_sum": "h1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=",
+      "go_mod_sum": "h1:mMo/vtBO5dYbehREoey6XUKy/eSumjCCveDpRre4VKE=",
+      "archive_sha256": "9dd6893bf700198485ae699640b49bc1efbc6c73b37cb5792a0476e1fd8f7fef",
+      "go_mod_sha256": "0812160f77474d8dbf692b7caaee7fd5508448c705d9b54b5a3496ac44468c2c",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-ole/go-ole",
+      "version": "v1.3.0",
+      "go_sum": "h1:Dt6ye7+vXGIKZ7Xtk4s6/xVdGDQynvom7xCFEdWr6uE=",
+      "go_mod_sum": "h1:5LS6F96DhAwUc7C+1HLexzMXY1xGRSryjyPPKW6zv78=",
+      "archive_sha256": "bbf5b3bfa227a5daa06eb16ecdecccc0b20e08749bf103afb523fd72764e727a",
+      "go_mod_sha256": "fcf0840f2ff50fbc3b5a54b9d4cb240c64d47003ab03e420aeff0057015a8953",
+      "notices": {
+        "LICENSE": "d883dbca28769ff23dd4368a8edb7ad9f9f23a8f86adde2875c6e41a828aac62"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/analysis",
+      "version": "v0.23.0",
+      "go_sum": "h1:aGday7OWupfMs+LbmLZG4k0MYXIANxcuBTYUC03zFCU=",
+      "go_mod_sum": "h1:9mz9ZWaSlV8TvjQHLl2mUW2PbZtemkE8yA5v22ohupo=",
+      "archive_sha256": "075e696af39c9cfeed9fb6a9f6f8075a21d3bd163d87542857a2b1e5cf20a7a5",
+      "go_mod_sha256": "aaab6881771185fb0bd62ea10cfbeb948c92f25aeb20b0115ce19ab844b11cc0",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/errors",
+      "version": "v0.22.0",
+      "go_sum": "h1:c4xY/OLxUBSTiepAg3j/MHuAv5mJhnf53LLMWFB+u/w=",
+      "go_mod_sum": "h1:J3DmZScxCDufmIMsdOuDHxJbdOGC0xtUynjIx092vXE=",
+      "archive_sha256": "4f159b659dd36b49ef3b38b91370393cb7a77027fab398da7ba79874d390f795",
+      "go_mod_sha256": "30b0537b5e5319ccef5987b9802b07a47e02e5bd173f7b0c8f45349a0d2a0165",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/jsonpointer",
+      "version": "v0.21.1",
+      "go_sum": "h1:whnzv/pNXtK2FbX/W9yJfRmE2gsmkfahjMKB0fZvcic=",
+      "go_mod_sum": "h1:50I1STOfbY1ycR8jGz8DaMeLCdXiI6aDteEdRNNzpdk=",
+      "archive_sha256": "5f8833d920a6bd3b38157c9b0bd89a33419606d4993beb91597304c263fba547",
+      "go_mod_sha256": "a901e814d52ee31a8a6ca93cbb1797646ebe2c0a991db17fd00145c30bc5e8d3",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/jsonreference",
+      "version": "v0.21.0",
+      "go_sum": "h1:Rs+Y7hSXT83Jacb7kFyjn4ijOuVGSvOdF2+tg1TRrwQ=",
+      "go_mod_sum": "h1:LmZmgsrTkVg9LG4EaHeY8cBDslNPMo06cago5JNLkm4=",
+      "archive_sha256": "53b9b8491e1791f5c561a5325e0e167bed2ae421b18bb798524c11cad5afe5c4",
+      "go_mod_sha256": "b3236bc220b2c1aad62cd903ad5494707e30bfcc05e7defd01f16e50fc227341",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/runtime",
+      "version": "v0.28.0",
+      "go_sum": "h1:gpPPmWSNGo214l6n8hzdXYhPuJcGtziTOgUpvsFWGIQ=",
+      "go_mod_sum": "h1:QN7OzcS+XuYmkQLw05akXk0jRH/eZ3kb18+1KwW9gyc=",
+      "archive_sha256": "fd9f118b9041353599bda118274d3655e26bf270d972194ace71057960c8d9f9",
+      "go_mod_sha256": "02407c39ec0980171ceddfce9355428f8246451b94d1c5b0f916060c47d063df",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/spec",
+      "version": "v0.21.0",
+      "go_sum": "h1:LTVzPc3p/RzRnkQqLRndbAzjY0d0BCL72A6j3CdL9ZY=",
+      "go_mod_sum": "h1:78u6VdPw81XU44qEWGhtr982gJ5BWg2c0I5XwVMotYk=",
+      "archive_sha256": "14c938ac62955b4354762fbdf45148d3847c427af0f6fe662ee280ca43b6518c",
+      "go_mod_sha256": "59aceabb3002090b5e72ff13e5893563a2166f8c37dadeafa3eefa1cfec60239",
+      "notices": {
+        "license_test.go": "11280d39f759c157026dd0fad8742d9478191f15dc981b38d2d9e6a602987bba",
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "license.go": "9ba36f66fba6f2e3b7dce95d9413a738688abcfce8c3d38c581b276f9437d1c6"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/strfmt",
+      "version": "v0.23.0",
+      "go_sum": "h1:nlUS6BCqcnAk0pyhi9Y+kdDVZdZMHfEKQiS4HaMgO/c=",
+      "go_mod_sum": "h1:NrtIpfKtWIygRkKVsxh7XQMDQW5HKQl6S5ik2elW+K4=",
+      "archive_sha256": "d262deb01c8148b98c777fcddfc3908ea3232bd9bf593ab926f3ca3d19933c0e",
+      "go_mod_sha256": "8243507a0f7f593c0d2062eb2bb58d23f0c16f253b33688af7ffa676cd4b276e",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/swag",
+      "version": "v0.23.1",
+      "go_sum": "h1:lpsStH0n2ittzTnbaSloVZLuB5+fvSY/+hnagBjSNZU=",
+      "go_mod_sum": "h1:STZs8TbRvEQQKUA+JZNAm3EWlgaOBGpyFDqQnDHMef0=",
+      "archive_sha256": "788093d8d1045e55064b513b13f3a40e4b4c9944584c8df8cacd9db3c3beb44d",
+      "go_mod_sha256": "6f492e62f70a777c25fb0cb396666ce63b7390bf4f7bdc866c4ce9f31004d8d8",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/go-openapi/validate",
+      "version": "v0.24.0",
+      "go_sum": "h1:LdfDKwNbpB6Vn40xhTdNZAnfLECL81w+VX3BumrGD58=",
+      "go_mod_sum": "h1:iyeX1sEufmv3nPbBdX3ieNviWnOZaJ1+zquzJEf2BAQ=",
+      "archive_sha256": "71931ab10633f86ca3dd5f16a1bf16ae531b09c600d659f8adf1ac591b41b07d",
+      "go_mod_sha256": "f42eedfbc9cb366e2633b27366c3dbe0018f1c87b17c8031173f081dce073bd2",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gobwas/httphead",
+      "version": "v0.1.0",
+      "go_sum": "h1:exrUm0f4YX0L7EBwZHuCF4GDp8aJfVeBrlLQrs6NqWU=",
+      "go_mod_sum": "h1:O/RXo79gxV8G+RqlR/otEwx4Q36zl9rqC5u12GKvMCM=",
+      "archive_sha256": "a4646f1d12786fee639c489219e7c667b10f7dc19578a4e7222bd17c5d9bdf8a",
+      "go_mod_sha256": "3d0248b03954819231ecd05dba139ad1b169bd654c3837b1c3d26bb0967928fa",
+      "notices": {
+        "LICENSE": "7d168561ad5212bf5b3023d55cba37c9594eb011ba74445d99f82055be662589"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gobwas/pool",
+      "version": "v0.2.1",
+      "go_sum": "h1:xfeeEhW7pwmX8nuLVlqbzVc7udMDrwetjEv+TZIz1og=",
+      "go_mod_sum": "h1:q8bcK0KcYlCgd9e7WYLm9LpyS+YeLd8JVDW6WezmKEw=",
+      "archive_sha256": "79b505a9f42b141affca1eedd2edc87ae922482d052e16e3b6e5e3c9dcec89e1",
+      "go_mod_sha256": "cd3762f5b971bce0fae059e54445ccb6efc5a5a43ef65711ed407ead049c5633",
+      "notices": {
+        "LICENSE": "bcc745631c0144db2c601650c55d108172c80d601cf2346c71594a0bc32f6f1c"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/goccy/go-json",
+      "version": "v0.10.5",
+      "go_sum": "h1:Fq85nIqj+gXn/S5ahsiTlK3TmC85qgirsdTP/+DeaC4=",
+      "go_mod_sum": "h1:oq7eo15ShAhp70Anwd5lgX2pLfOS3QCiwU/PULtXL6M=",
+      "archive_sha256": "96e417d4493705f470f7f29858a09cdbe68330f2d7e74cd024fbace4745c0615",
+      "go_mod_sha256": "9027c83efc1eb1e1f4dfdc0ecd03d6de89dcb68ecae41d442485028f366fa98b",
+      "notices": {
+        "LICENSE": "a707cd425201945d57500566c47c74dc9fb8cd02ef91b9a761abddeb2401e6a7"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gogo/protobuf",
+      "version": "v1.3.2",
+      "go_sum": "h1:Ov1cvc58UF3b5XjBnZv7+opcTcQFZebYjWzi34vdm4Q=",
+      "go_mod_sum": "h1:P1XiOD3dCwIKUDQYPy72D8LYyHL2YPYrpS2s69NZV8Q=",
+      "archive_sha256": "dd2b73f163c8183941626360196c8f844addd95423d341a0412e1b22d0104ff7",
+      "go_mod_sha256": "966ea4df61e985609676423eebcfbe5f08c86652d3aaddf6f78c28c72c81e9dc",
+      "notices": {
+        "LICENSE": "3f571768c0ba2f330e5fee90de89bfe5141f48c1939be8008fa61461c30ca07f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/golang-jwt/jwt/v5",
+      "version": "v5.2.2",
+      "go_sum": "h1:Rl4B7itRWVtYIHFrSNd7vhTiz9UpLdi6gZhZ3wEeDy8=",
+      "go_mod_sum": "h1:pqrtFR0X4osieyHYxtmOUWsAWrfe1Q5UVIyoH402zdk=",
+      "archive_sha256": "278980d9e52498b7c54baf21fed203b942aa1d08b7f62eec494110b61b6fd3c9",
+      "go_mod_sha256": "3ea9a4810104feb6bfc26ee805e7e427a018ee497065e7b1b117c0131e4ee30a",
+      "notices": {
+        "LICENSE": "fe26ca41577b9b2b4448050a24b25e5753af66b5d5945d5d36094e7790bfcb2f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/golang/groupcache",
+      "version": "v0.0.0-20241129210726-2c02b8208cf8",
+      "go_sum": "h1:f+oWsMOmNPc8JmEHVZIycC7hBoQxHH9pNKQORJNozsQ=",
+      "go_mod_sum": "h1:wcDNUvekVysuuOpQKo3191zZyTpiI6se1N1ULghS0sw=",
+      "archive_sha256": "163367355442a630b12b0b452892cd98e99fcfdf7e40b68d358be73479cc1c23",
+      "go_mod_sha256": "4e019acbe58a7af43d2316b6f825797636072cb48c31ea6ff7aae7d75ad51a89",
+      "notices": {
+        "LICENSE": "73ba74dfaa520b49a401b5d21459a8523a146f3b7518a833eea5efa85130bf68"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/golang/protobuf",
+      "version": "v1.5.4",
+      "go_sum": "h1:i7eJL8qZTpSEXOPTxNKhASYpMn+8e5Q6AdndVa1dWek=",
+      "go_mod_sum": "h1:lnTiLA8Wa4RWRcIUkrtSVa5nRhsEGBg48fD6rSs7xps=",
+      "archive_sha256": "9a2f43d3eac8ceda506ebbeb4f229254b87235ce90346692a0e233614182190b",
+      "go_mod_sha256": "c5f873c621cfaaf563f8b66a0501a5be14390cb0859e5187ce616d0312a6c8f8",
+      "notices": {
+        "LICENSE": "8778a9fc1eaffb03ab873caae251df2d224f6b5502be8777d3cd573a4dd43903"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/golang/snappy",
+      "version": "v1.0.0",
+      "go_sum": "h1:Oy607GVXHs7RtbggtPBnr2RmDArIsAefDwvrdWvRhGs=",
+      "go_mod_sum": "h1:/XxbfmMg8lxefKM7IXC3fBNl/7bRcc72aCRzEWrmP2Q=",
+      "archive_sha256": "d712fef567e361d17e879f80ea53ebfdf529185a6bc74a2aa1996133ddd0a930",
+      "go_mod_sha256": "f56debc9765b8492979fefa31209b67c9627d90e2469c6159c940daf6d249905",
+      "notices": {
+        "LICENSE": "f69f157b0be75da373605dbc8bbf142e8924ee82d8f44f11bcaf351335bf98cf"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/google/pprof",
+      "version": "v0.0.0-20250302191652-9094ed2288e7",
+      "go_sum": "h1:+J3r2e8+RsmN3vKfo75g0YSY61ms37qzPglu4p0sGro=",
+      "go_mod_sum": "h1:vavhavw2zAxS5dIdcRluK6cSGGPlZynqzFM8NdvU144=",
+      "archive_sha256": "b09eae59aeefcbd6472fd3526576af39e528519f70ed10a6d2a618884e0a0493",
+      "go_mod_sha256": "7dea279f404a35abdec0b4ffc418a33b9d5da49aa68913201c35f52e2ad0f424",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/google/s2a-go",
+      "version": "v0.1.9",
+      "go_sum": "h1:LGD7gtMgezd8a/Xak7mEWL0PjoTQFvpRudN895yqKW0=",
+      "go_mod_sum": "h1:YA0Ei2ZQL3acow2O62kdp9UlnvMmU7kA6Eutn0dXayM=",
+      "archive_sha256": "bf8f4b159d3fc201477822ed2514e4f05f58c764b78ffed73ec0accce5fb7f07",
+      "go_mod_sha256": "47d4257200a74c3210f4bf07264f3a27eb39817ff01e24d92cc069dfb421325b",
+      "notices": {
+        "LICENSE.md": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/google/shlex",
+      "version": "v0.0.0-20191202100458-e7afc7fbc510",
+      "go_sum": "h1:El6M4kTTCOh6aBiKaUGG7oYTSPP8MxqL4YI3kZKwcP4=",
+      "go_mod_sum": "h1:pupxD2MaaD3pAXIBCelhxNneeOaAeabZDe5s4K6zSpQ=",
+      "archive_sha256": "1bf70bdb4c889b47b1976370832da79060c36cad282f278f279603200623775c",
+      "go_mod_sha256": "84c69808d21bc6848e1ad78d6b64965433b5baaba665548338b7daa39faa70be",
+      "notices": {
+        "COPYING": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/googleapis/enterprise-certificate-proxy",
+      "version": "v0.3.5",
+      "go_sum": "h1:VgzTY2jogw3xt39CusEnFJWm7rlsq5yL5q9XdLOuP5g=",
+      "go_mod_sum": "h1:MkHOF77EYAE7qfSuSS9PU6g4Nt4e11cnsDUowfwewLA=",
+      "archive_sha256": "53e3f8929ef0020d9552014207e429b66f8c07924521077a98a99b1df1413d13",
+      "go_mod_sha256": "bf9bd1baeff172cae0cc8043b40ef7153ec98686d73e1cabeedb289d6c049ffa",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/googleapis/gax-go/v2",
+      "version": "v2.14.1",
+      "go_sum": "h1:hb0FFeiPaQskmvakKu5EbCbpntQn48jyHuvrkurSS/Q=",
+      "go_mod_sum": "h1:Hb/NubMaVM88SrNkvl8X/o8XWwDJEPqouaLeN2IUxoA=",
+      "archive_sha256": "9f4409b30e8590e75f9669fc4a66f79ac1a06990e12e804e4b2d95cd27226640",
+      "go_mod_sha256": "c37f4767b867be99d7011b3f1dd0b9d3e016ed70f561cea24fe5e1f2f88816ab",
+      "notices": {
+        "LICENSE": "b95218cd9607855a6536384c0262922b30a0c2bf56e4ced790240f3a3bac4722"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gorilla/mux",
+      "version": "v1.8.1",
+      "go_sum": "h1:TuBL49tXwgrFYWhqrNgrUNEY92u81SPhu7sTdzQEiWY=",
+      "go_mod_sum": "h1:AKf9I4AEqPTmMytcMc0KkNouC66V3BtZ4qD5fmWSiMQ=",
+      "archive_sha256": "728243623caa67f64e4a0b6c59dde3f762918d9e729266167ba46d8df56c193a",
+      "go_mod_sha256": "f291c6cca97f4c0e46c8fc4dc1005380d225800a42f28774928bec80f2c553bd",
+      "notices": {
+        "LICENSE": "0b77fdea862f869ef4f201ac5649bdbd38ccb055c7f6454dffae9e2adb4941c1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/gorilla/websocket",
+      "version": "v1.5.3",
+      "go_sum": "h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=",
+      "go_mod_sum": "h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=",
+      "archive_sha256": "dbbd31dd0f08548c5dc43e4c2f12bbba66abff5252b224b1cd06afbb72783a76",
+      "go_mod_sha256": "09dc8a9227a54c1069ea065d610a5f2ca195f1f5fba6e7dbb2d7eb0fd6e01df6",
+      "notices": {
+        "LICENSE": "2be1b548b0387ca8948e1bb9434e709126904d15f622cc2d0d8e7f186e4d122d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/hashicorp/errwrap",
+      "version": "v1.1.0",
+      "go_sum": "h1:OxrOeh75EUXMY8TBjag2fzXGZ40LB6IKw45YeGUDY2I=",
+      "go_mod_sum": "h1:YH+1FKiLXxHSkmPseP+kNlulaMuP3n2brvKWEqk/Jc4=",
+      "archive_sha256": "209ae99bc039443e28e4d6bb66517d1756d9468b7578d31f1b63a28103d8e18c",
+      "go_mod_sha256": "93985e11af40e6301f25d7f83cc4032d2d6d22f338aee277471a89364c700b29",
+      "notices": {
+        "LICENSE": "bef1747eda88b9ed46e94830b0d978c3499dad5dfe38d364971760881901dadd"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/hashicorp/go-multierror",
+      "version": "v1.1.1",
+      "go_sum": "h1:H5DkEtf6CXdFp0N0Em5UCwQpXMWke8IA0+lD48awMYo=",
+      "go_mod_sum": "h1:iw975J/qwKPdAO1clOe2L8331t/9/fmwbPZ6JB6eMoM=",
+      "archive_sha256": "972cd841ee51fdeac69c5a301e57f8ea27aebf15fddd7f621d5c240f28c3000c",
+      "go_mod_sha256": "6b44c7b8cf8c5ec59df682c5e882d5daf4d4a2f036a98f9e5add13919bc22d0d",
+      "notices": {
+        "LICENSE": "a830016911a348a54e89bd54f2f8b0d8fffdeac20aecfba8e36ebbf38a03f5ff"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/hashicorp/go-uuid",
+      "version": "v1.0.3",
+      "go_sum": "h1:2gKiV6YVmrJ1i2CKKa9obLvRieoRGviZFL26PcT/Co8=",
+      "go_mod_sum": "h1:6SBZvOh/SIDV7/2o3Jml5SYk/TvGqwFJ/bN7x4byOro=",
+      "archive_sha256": "5e9dc2bb3785d69a65d287a4b3fa7e9f583a127e41c6a2fd095ac862fed71dad",
+      "go_mod_sha256": "1c4a96ad155de1eab04062a5be4010bb9aaa371252aed524217c2e69c14adecf",
+      "notices": {
+        "LICENSE": "87b250b11ffadc5f872cb676caa219e2871e454ddd562d9e532d52d5c9b7520d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/hashicorp/golang-lru",
+      "version": "v1.0.2",
+      "go_sum": "h1:dV3g9Z/unq5DpblPpw+Oqcv4dU/1omnb4Ok8iPY6p1c=",
+      "go_mod_sum": "h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=",
+      "archive_sha256": "175d78ffe7391f3f6369cf58ddb87fc51016ba61f2de25bf4ea3962a0b4a0fac",
+      "go_mod_sha256": "1618fd16c29c3e3a09499a103e2e32b63c268d8206c901d48da72e281f4e3bbe",
+      "notices": {
+        "LICENSE": "6c7088eb877b5d7e6e0e9d27e822ea25fcda2e83f9eba59bb5f1418a656796e0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jcmturner/aescts/v2",
+      "version": "v2.0.0",
+      "go_sum": "h1:9YKLH6ey7H4eDBXW8khjYslgyqG2xZikXP0EQFKrle8=",
+      "go_mod_sum": "h1:AiaICIRyfYg35RUkr8yESTqvSy7csK90qZ5xfvvsoNs=",
+      "archive_sha256": "717a211ad4aac248cf33cadde73059c13f8e9462123a0ab2fed5c5e61f7739d7",
+      "go_mod_sha256": "8ff1ffa1a39fb2f0c055334d7e03efff5cc77caff61126872f1c7afe8b8cd036",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jcmturner/dnsutils/v2",
+      "version": "v2.0.0",
+      "go_sum": "h1:lltnkeZGL0wILNvrNiVCR6Ro5PGU/SeBvVO/8c/iPbo=",
+      "go_mod_sum": "h1:b0TnjGOvI/n42bZa+hmXL+kFJZsFT7G4t3HTlQ184QM=",
+      "archive_sha256": "f9188186b672e547cfaef66107aa62d65054c5d4f10d4dcd1ff157d6bf8c275d",
+      "go_mod_sha256": "d5f377f2851165f37c99b4f592f7daa1300b3a7b1d3b4dfe57bcf2f39bb1e737",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jcmturner/gofork",
+      "version": "v1.7.6",
+      "go_sum": "h1:QH0l3hzAU1tfT3rZCnW5zXl+orbkNMMRGJfdJjHVETg=",
+      "go_mod_sum": "h1:1622LH6i/EZqLloHfE7IeZ0uEJwMSUyQ/nDd82IeqRo=",
+      "archive_sha256": "b7e42a499d6be8dd07069c031f9291a5615aa0d59660c7e322cff585ce39e8a2",
+      "go_mod_sha256": "bfa533d23c9c5746d2ad9f16f3d3e8613d669903b4f202641b1fa24e3acb93b1",
+      "notices": {
+        "LICENSE": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jcmturner/gokrb5/v8",
+      "version": "v8.4.4",
+      "go_sum": "h1:x1Sv4HaTpepFkXbt2IkL29DXRf8sOfZXo8eRKh687T8=",
+      "go_mod_sum": "h1:1btQEpgT6k+unzCwX1KdWMEwPPkkgBtP+F6aCACiMrs=",
+      "archive_sha256": "8e468a1161302cb12b6e3f16bf31cd3b093f57c14325e11b348df1472860e313",
+      "go_mod_sha256": "76a96500ab7a3a503f3945b5194761f1bb1bb7b5c756183aac04a9ee18cc04cd",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jcmturner/rpc/v2",
+      "version": "v2.0.3",
+      "go_sum": "h1:7FXXj8Ti1IaVFpSAziCZWNzbNuZmnvw/i6CqLNdWfZY=",
+      "go_mod_sum": "h1:VUJYCIDm3PVOEHw8sgt091/20OJjskO/YJki3ELg/Hc=",
+      "archive_sha256": "90c595355e5e2c9dc1e1ae71a88491a04c34d8791180098da103217cbf5f5574",
+      "go_mod_sha256": "d452409b03caa7add0d5180d925564d8473fc4cdcb1de20ef486e2c82a1ed175",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jedib0t/go-pretty/v6",
+      "version": "v6.6.7",
+      "go_sum": "h1:m+LbHpm0aIAPLzLbMfn8dc3Ht8MW7lsSO4MPItz/Uuo=",
+      "go_mod_sum": "h1:YwC5CE4fJ1HFUDeivSV1r//AmANFHyqczZk+U6BDALU=",
+      "archive_sha256": "ceef0f6390e20c6d793cc3983f78972b7b717ba2b92fa621021a2e8b75a3f0b9",
+      "go_mod_sha256": "f0cabaafb49c91c0ba136880990cef7a69c017512c7118f6fc42714f3473c9fd",
+      "notices": {
+        "LICENSE": "3bae97d2a030c19562fab307f791630ce40a90052a51df83d16ed9cfebd49a07"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/jessevdk/go-flags",
+      "version": "v1.6.1",
+      "go_sum": "h1:Cvu5U8UGrLay1rZfv/zP7iLpSHGUZ/Ou68T0iX1bBK4=",
+      "go_mod_sum": "h1:Mk8T1hIAWpOiJiHa9rJASDK2UGWji0EuPGBnNLMooyc=",
+      "archive_sha256": "23decebb5a5114af1a687fbed64d6a674f1e976e70b2b4cdc27f52d0b020cb4b",
+      "go_mod_sha256": "5d77cd3ddd08619db9ab7bc84ed24095b0e2722a33edde221b326510c2b01ffc",
+      "notices": {
+        "LICENSE": "399c48e1c027899b5c7de5e37cbd441081e8332bab41cedbf08d873b3a676819"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/josharian/intern",
+      "version": "v1.0.0",
+      "go_sum": "h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8HmY=",
+      "go_mod_sum": "h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=",
+      "archive_sha256": "5679bfd11c14adccdb45bd1a0f9cf4b445b95caeed6fb507ba96ecced11c248d",
+      "go_mod_sha256": "b5027a67f5c127bb46b9ffac9d35a333b1df71cfc220e7196a7993e16a10a2b2",
+      "notices": {
+        "license.md": "ad754e4f7d16f789dd0694828254cb4011928025b0d500339a5c4eded5a0c346"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/juju/ratelimit",
+      "version": "v1.0.2",
+      "go_sum": "h1:sRxmtRiajbvrcLQT7S+JbqU0ntsb9W2yhSdNN8tWfaI=",
+      "go_mod_sum": "h1:qapgC/Gy+xNh9UxzV13HGGl/6UXNN+ct+vwSgWNm/qk=",
+      "archive_sha256": "881dd22b8ec7dadbbb1e9d08ed7eb2c1f1ce8b6b4c48f739bb65f4c7d2ec12ed",
+      "go_mod_sha256": "d1de645d0f52d3fa34260d9d073ac1b4bf060bf9536d966c8255040b8f091adf",
+      "notices": {
+        "LICENSE": "a92f49abd3f15a3523b022a9b74fb885b53c228f8244c817add3a835427b10d9"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/kr/fs",
+      "version": "v0.1.0",
+      "go_sum": "h1:Jskdu9ieNAYnjxsi0LbQp1ulIKZV1LAFgK1tWhpZgl8=",
+      "go_mod_sum": "h1:FFnZGqtBN9Gxj7eW1uZ42v5BccTP0vu6NEaFoC2HwRg=",
+      "archive_sha256": "d376bd98e81aea34585fc3b04bab76363e9e87cde69383964e57e9779f2af81e",
+      "go_mod_sha256": "b5bced587ede9949a28f1a460313c49b08f5715b9880dbb57978327f8582efc0",
+      "notices": {
+        "LICENSE": "dd26a7abddd02e2d0aba97805b31f248ef7835d9e10da289b22e3b8ab78b324d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/kylelemons/godebug",
+      "version": "v1.1.0",
+      "go_sum": "h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=",
+      "go_mod_sum": "h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=",
+      "archive_sha256": "dbbd0ce8c2f4932bb03704d73026b21af12bd68d5b8f4798dbf10a487a2b6d13",
+      "go_mod_sha256": "1605871e895331a39f5952559ebbc91228d86b8100354f857b562866eca5bb13",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/blackmagic",
+      "version": "v1.0.2",
+      "go_sum": "h1:Cg2gVSc9h7sz9NOByczrbUvLopQmXrfFx//N+AkAr5k=",
+      "go_mod_sum": "h1:UrEqBzIR2U6CnzVyUtfM6oZNMt/7O7Vohk2J0OGSAtU=",
+      "archive_sha256": "2baa5f21e1db4781a11d0ba2fbe8e71323c78875034da61687d80f47ae9c78ce",
+      "go_mod_sha256": "cb0d8f2ba1a6707c54532da940b086a5de7fe8e401515097d3f8769d9257af7f",
+      "notices": {
+        "LICENSE": "b9b5b03485eb7446da7ecad22178664a53c7fcecceb74d69f905819a807d710e"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/httpcc",
+      "version": "v1.0.1",
+      "go_sum": "h1:ydWCStUeJLkpYyjLDHihupbn2tYmZ7m22BGkcvZZrIE=",
+      "go_mod_sum": "h1:qiltp3Mt56+55GPVCbTdM9MlqhvzyuL6W/NMDA8vA5E=",
+      "archive_sha256": "d75132f805ea5cf6275d9af02a5ff3c116ad92ac7fc28e2a22b8fd2e029a3f4c",
+      "go_mod_sha256": "5f132614c722a45b16753efc3667f8dbe24587e9808f3fd772991752ba3b083b",
+      "notices": {
+        "LICENSE": "d5c8d4935994cfcfbc53d12fe756b28316858736d6e0a61acaff5fe4a84fca12"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/httprc",
+      "version": "v1.0.6",
+      "go_sum": "h1:qgmgIRhpvBqexMJjA/PmwSvhNk679oqD1RbovdCGW8k=",
+      "go_mod_sum": "h1:mwwz3JMTPBjHUkkDv/IGJ39aALInZLrhBp0X7KGUZlo=",
+      "archive_sha256": "19c7a7bc6d63165e24a911182fe860166b75d4557262ef031d2fba8351b44707",
+      "go_mod_sha256": "5a96e4cc0688f3bfff8792a5512228aeb059937acfeca69a261186be7faf7744",
+      "notices": {
+        "LICENSE": "4f4b72f6680d92713562d527612f6b016a0d50c5b47e6b5d39f177bb23d8ce52"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/iter",
+      "version": "v1.0.2",
+      "go_sum": "h1:gMXo1q4c2pHmC3dn8LzRhJfP1ceCbgSiT9lUydIzltI=",
+      "go_mod_sum": "h1:Momfcq3AnRlRjI5b5O8/G5/BvpzrhoFTZcn06fEOPt4=",
+      "archive_sha256": "991bf0aee428fc1a2c01d548e2c7996dc26871dd0b359c062dfc07b1fb137572",
+      "go_mod_sha256": "9248d45a50c3cf7cb63718f6e41e02582def7806805bcc6c3b4a617dfde8ae94",
+      "notices": {
+        "LICENSE": "d5c8d4935994cfcfbc53d12fe756b28316858736d6e0a61acaff5fe4a84fca12"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/jwx/v2",
+      "version": "v2.1.4",
+      "go_sum": "h1:uBCMmJX8oRZStmKuMMOFb0Yh9xmEMgNJLgjuKKt4/qc=",
+      "go_mod_sum": "h1:nWRbDFR1ALG2Z6GJbBXzfQaYyvn751KuuyySN2yR6is=",
+      "archive_sha256": "5108dc3319f98090b52942de6e9989187ffb1b402a598c2948abf3e37923c3a7",
+      "go_mod_sha256": "536964c14bc3ad745dd34ab4b017e23f3179bb623c4fbd0465e017003011e632",
+      "notices": {
+        "LICENSE": "0c4868a07b1c2dbb67c75767b4f1b2936c392d02ca2c7ee9827cac1a9d60ab1d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lestrrat-go/option",
+      "version": "v1.0.1",
+      "go_sum": "h1:oAzP2fvZGQKWkvHa1/SAcFolBEca1oN+mQ7eooNBEYU=",
+      "go_mod_sum": "h1:5ZHFbivi4xwXxhxY9XHDe2FHo6/Z7WWmtT7T5nBBp3I=",
+      "archive_sha256": "3e5614e160680053e07e4970e825e694c2a917741e735ab4d435a396b739ae78",
+      "go_mod_sha256": "7d03eb5449cb5a96e51381d924de7d0e37d8a833ef77950d2f53dbb2bb0333e5",
+      "notices": {
+        "LICENSE": "b9b5b03485eb7446da7ecad22178664a53c7fcecceb74d69f905819a807d710e"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lucasb-eyer/go-colorful",
+      "version": "v1.2.0",
+      "go_sum": "h1:1nnpGOrhyZZuNyfu1QjKiUICQ74+3FNCN69Aj6K7nkY=",
+      "go_mod_sum": "h1:R4dSotOR9KMtayYi1e77YzuveK+i7ruzyGqttikkLy0=",
+      "archive_sha256": "78d5d0e0737f0f54bbed77b6dfa847d8c871bed2668a9dc44328c7c3411ada10",
+      "go_mod_sha256": "84f9c38e9884ab013c837cb16aee139500d3d5c6ccab02439881db2ecf28f660",
+      "notices": {
+        "LICENSE": "1e4cf2a117516ec1b54041d68ed4f5d331878b04de3386f4790e7b5b9c04e1ec"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/lufia/plan9stats",
+      "version": "v0.0.0-20250317134145-8bc96cf8fc35",
+      "go_sum": "h1:PpXWgLPs+Fqr325bN2FD2ISlRRztXibcX6e8f5FR5Dc=",
+      "go_mod_sum": "h1:autxFIvghDt3jPTLoqZ9OZ7s9qTGNAWmYCjVFWPX/zg=",
+      "archive_sha256": "d311f0fde84af8c86a4f069dad61c0d6256273fd6fcf7890ce2c48a7390bccd5",
+      "go_mod_sha256": "37a53f16d9ab910339d4395983695afb4490aae01435c0a59980675c45d0bd95",
+      "notices": {
+        "LICENSE": "879acfe02d3790e0bcdd1ee2299fd8576995eaa94c7e14d1a94ee3e018ad7bc2"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mailru/easyjson",
+      "version": "v0.9.0",
+      "go_sum": "h1:PrnmzHw7262yW8sTBwxi1PdJA3Iw/EKBa8psRf7d9a4=",
+      "go_mod_sum": "h1:1+xMtQp2MRNVL/V1bOzuP3aP8VNwRW55fQUto+XFtTU=",
+      "archive_sha256": "090087778afa675a863f7f6c9c7e5dff41523639a72235c5a9014811dfd0a4bc",
+      "go_mod_sha256": "de3af8b5bd930bf4a2e35444a227e1f32b77d92e387f9e2c166380bc09aec923",
+      "notices": {
+        "LICENSE": "87baa92c3100cf37441761262d622db99492ee386a063460d4676143db49af57"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mattn/go-colorable",
+      "version": "v0.1.14",
+      "go_sum": "h1:9A9LHSqF/7dyVVX6g0U9cwm9pG3kP9gSzcuIPHPsaIE=",
+      "go_mod_sum": "h1:6LmQG8QLFO4G5z1gPvYEzlUgJ2wF+stgPZH1UqBm1s8=",
+      "archive_sha256": "5e0e7925a070bb5bd11b4097e1a7b608167f0217ee83901b44c135f6e5e85c78",
+      "go_mod_sha256": "c199aee551968c8290b917524e0b232a862790a4831b0ed4cb43687e8c08aa18",
+      "notices": {
+        "LICENSE": "88a2379b3ca34bf5c57127aff9dcb802bbb60ece0805cdbda65b3bd115f971d9"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mattn/go-ieproxy",
+      "version": "v0.0.12",
+      "go_sum": "h1:OZkUFJC3ESNZPQ+6LzC3VJIFSnreeFLQyqvBWtvfL2M=",
+      "go_mod_sum": "h1:Vn+N61199DAnVeTgaF8eoB9PvLO8P3OBnG95ENh7B7c=",
+      "archive_sha256": "ed86f3f06473b9bdfabe23c5b52cee0277ec11b63dd3691122588f07a4f4bda6",
+      "go_mod_sha256": "0d2bc27a05c319967dc1406459efcabd2934f863edd2ec0b138bdfc1c588463f",
+      "notices": {
+        "LICENSE": "7fccc0a3d7cea8c7cbf9ae0d32c6457427d85461e938d048d4bbbb5f2a91d745"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mattn/go-isatty",
+      "version": "v0.0.20",
+      "go_sum": "h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=",
+      "go_mod_sum": "h1:W+V8PltTTMOvKvAeJH7IuucS94S2C6jfK/D7dTCTo3Y=",
+      "archive_sha256": "f2d5f89ca451577e17464b9bb596dc0d0ecececb5eaa63622c41b57cd0b7b8cc",
+      "go_mod_sha256": "1eeabef1b4d98db73c6c2073289163649bc9a044552aca86b9d592fe84eaa1c8",
+      "notices": {
+        "LICENSE": "08eab1118c80885fa1fa6a6dd7303f65a379fcb3733e063d20d1bbc2c76e6fa1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mattn/go-localereader",
+      "version": "v0.0.1",
+      "go_sum": "h1:ygSAOl7ZXTx4RdPYinUpg6W99U8jWvWi9Ye2JC/oIi4=",
+      "go_mod_sum": "h1:8fBrzywKY7BI3czFoHkuzRoWE9C+EiG4R1k4Cjx5p88=",
+      "archive_sha256": "aa67306797b071ce93188fe2834f63ffd7963faf623d49229d891ef52e595b35",
+      "go_mod_sha256": "f7e77590fe4e1f139df43931a85df4205026ea7110d9e0428c11653030fa5f64",
+      "notices": {},
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mattn/go-runewidth",
+      "version": "v0.0.16",
+      "go_sum": "h1:E5ScNMtiwvlvB5paMFdw9p4kSQzbXFikJ5SQO6TULQc=",
+      "go_mod_sum": "h1:Jdepj2loyihRzMpdS35Xk/zdY8IAYHsh153qUoGf23w=",
+      "archive_sha256": "179d2d900c76ee3560fbeda60d0237a3be6acb734d0cb7423b55e5ccb0cedbca",
+      "go_mod_sha256": "216c93d19310612c81d5c741024989f83897d2333c3a9f967b58b1317587f519",
+      "notices": {
+        "LICENSE": "88a2379b3ca34bf5c57127aff9dcb802bbb60ece0805cdbda65b3bd115f971d9"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/matttproud/golang_protobuf_extensions",
+      "version": "v1.0.4",
+      "go_sum": "h1:mmDVorXM7PCGKw94cs5zkfA9PSy5pEvNWRP0ET0TIVo=",
+      "go_mod_sum": "h1:BSXmuO+STAnVfrANrmjBb36TMTDstsz7MSK+HVaYKv4=",
+      "archive_sha256": "0b44aabaa9aea5d28e667849ad4d9821351466c3591dd7beddb2d025db6d55f2",
+      "go_mod_sha256": "5709ef67b12481a82318e05a68ebd05b75268074f4bc14187709abe1613c4cf9",
+      "notices": {
+        "LICENSE": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1",
+        "NOTICE": "516f622089068dde472773dddbf518d2de200f5877dcac1b9d034941f9331da0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/colorjson",
+      "version": "v1.0.8",
+      "go_sum": "h1:AS6gEQ1dTRYHmC4xuoodPDRILHP/9Wz5wYUGDQfPLpg=",
+      "go_mod_sum": "h1:wrs39G/4kqNlGjwqHvPlAnXuc2tlPszo6JKdSBCLN8w=",
+      "archive_sha256": "a6bf204ad95817dcb32157a7dbfb455350e5091f0050ae873530a27bc5e1a9f1",
+      "go_mod_sha256": "b88538cc3608a36bd832282a47974686703932a7bc9e5b148d14d5f425603564",
+      "notices": {},
+      "inherited_notice": {
+        "basis": "original source headers explicitly reference Go BSD license",
+        "source_files": {
+          "encode.go": "6a1738ef28f44cb006d2df5d9d14179251d8c3a5e1045e8dbff6b6afc5c0efb9",
+          "scanner.go": "6e58e368a55773d3abf3c2979cbd49f7c7504ca2c8cb5bc22049fe50f5b8ba72",
+          "tags.go": "25fac1e4ddc366592ad41b602d8ebbdf7a223fb2fcab12336d22059c5cea9e8c",
+          "stream.go": "74d955e8832c8ffb7bf71b56b1df503f522f3fa0acf856fda33f11a7ca09b546",
+          "tables.go": "da1c7ac2b3d388d6b9412fbe09cc0d9af0c641c87c453abbf9b21fb066fffd0f",
+          "indent.go": "ff296433405cec51a52aa7190c0fe2c4d5257baec51d00c61cec705b0dedad27",
+          "colors.go": "581a16d81d4c5bdc466f9acf67b8c133008ef6930ac7eacc125fbece6641d648",
+          "fold.go": "cbace84b2a171c82426e76035a9d3f05cacf99d53c79c17927fa6ee8d6f7faaa",
+          "decode.go": "277685919e45d5a77ee361babe2c8a081066001e31aceca238c11a5fb4a6e16e"
+        },
+        "notice_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      }
+    },
+    {
+      "module": "github.com/minio/crc64nvme",
+      "version": "v1.0.1",
+      "go_sum": "h1:DHQPrYPdqK7jQG/Ls5CTBZWeex/2FMS3G5XGkycuFrY=",
+      "go_mod_sum": "h1:eVfm2fAzLlxMdUGc0EEBGSMmPwmXD5XiNRpnu9J3bvg=",
+      "archive_sha256": "60146fe5bcb4e2c2b22f33a52c535ee02e646140228e88a9e4b57780c2eba478",
+      "go_mod_sha256": "27baad099eaa74eba11eb31490c260ea4eac9b94439ff92129b8a3ad6efc3f61",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/filepath",
+      "version": "v1.0.0",
+      "go_sum": "h1:fvkJu1+6X+ECRA6G3+JJETj4QeAYO9sV43I79H8ubDY=",
+      "go_mod_sum": "h1:/nRZA2ldl5z6jT9/KQuvZcQlxZIMQoFFQPvEXx9T/Bw=",
+      "archive_sha256": "0ebcf3fd5327893e82cb3904b43bd2cc0cff8c8ccbde12aef3e5f7c99d45afad",
+      "go_mod_sha256": "a5b747991bfaa8d6b191255219445fbf297f4fbc4efe8e632e20dd7d6679d014",
+      "notices": {},
+      "inherited_notice": {
+        "basis": "original source headers explicitly reference Go BSD license",
+        "source_files": {
+          "walk.go": "fa41a42e7b2dc550a82ad31182520a31b61f8f1322ecffb8fad05f35c5a67493"
+        },
+        "notice_sha256": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      }
+    },
+    {
+      "module": "github.com/minio/mc",
+      "version": "v0.0.0-20250312172924-c1d5d4cbb4ca",
+      "go_sum": "h1:Zeu+Gbsw/yoqJofAFaU3zbIVr51j9LULUrQqKFLQnGA=",
+      "go_mod_sum": "h1:h5UQZ+5Qfq6XV81E4iZSgStPZ6Hy+gMuHMkLkjq4Gys=",
+      "archive_sha256": "2045260a192f883c7ba3ff54c95207a3f7fbdf9655e1ca413e6d6bd624b25c40",
+      "go_mod_sha256": "e523287ff83b754989c5406d20f08961d75f8cdef2e7cf9e46c602fe9b665e3b",
+      "notices": {
+        "LICENSE": "0d96a4ff68ad6d4b6f1f30f713b18d5184912ba8dd389f86aa7710db079abcb0",
+        "NOTICE": "56635f1740e8c33231e76ba8fbe098e7e9cc95d28b7b4abb98fed6270405810e"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/md5-simd",
+      "version": "v1.1.2",
+      "go_sum": "h1:Gdi1DZK69+ZVMoNHRXJyNcxrMA4dSxoYHZSQbirFg34=",
+      "go_mod_sum": "h1:MzdKDxYpY2BT9XQFocsiZf/NKVtR7nkE4RoEpN+20RM=",
+      "archive_sha256": "f829d35a6e6897db415af8888c4b074d1a253aee0e8fb7054b4d95477a81c3d6",
+      "go_mod_sha256": "7665f075b83ccb81c66de980da5f23e54e1479472aadd4166dfc26f8148a2fa3",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "LICENSE.Golang": "2d36597f7117c38b006835ae7f537487207d8ec407aa9d9980794b2030cbc067"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/minio/websocket",
+      "version": "v1.6.0",
+      "go_sum": "h1:CPvnQvNvlVaQmvw5gtJNyYQhg4+xRmrPNhBbv8BdpAE=",
+      "go_mod_sum": "h1:COH1CePZfHT9Ec1O7vZjTlX5uEPpyYnrifPNbu665DM=",
+      "archive_sha256": "0d192ed01a85366cc61ae5b63cbd1d3c242647d93d935914cccc31cdf382fc84",
+      "go_mod_sha256": "a8fc5da0507775c8124abce0e7d2ee9eb7bdfc925036dc12a1715bc6c34e5f55",
+      "notices": {
+        "LICENSE": "2be1b548b0387ca8948e1bb9434e709126904d15f622cc2d0d8e7f186e4d122d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/mitchellh/mapstructure",
+      "version": "v1.5.0",
+      "go_sum": "h1:jeMsZIYE/09sWLaz43PL7Gy6RuMjD2eJVyuac5Z2hdY=",
+      "go_mod_sum": "h1:bFUtVrKA4DC2yAKiSyO/QUcy7e+RRV2QTWOzhPopBRo=",
+      "archive_sha256": "118d5b2cb65c50dba967fb6d708f450a9caf93f321f8fc99080675b2ee374199",
+      "go_mod_sha256": "d12bdf0950c494088fd93604ade1596974054ba165729d6ba133633c27daffe3",
+      "notices": {
+        "LICENSE": "22adc4abdece712a737573672f082fd61ac2b21df878efb87ffcff4354a07f26"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/modern-go/concurrent",
+      "version": "v0.0.0-20180306012644-bacd9c7ef1dd",
+      "go_sum": "h1:TRLaZ9cD/w8PVh93nsPXa1VrQ6jlwL5oN8l14QlcNfg=",
+      "go_mod_sum": "h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=",
+      "archive_sha256": "91ef49599bec459869d94ff3dec128871ab66bd2dfa61041f1e1169f9b4a8073",
+      "go_mod_sha256": "27a5e9f05c71089b6fd5e119fc1c8ce81f0c16da4ec3357157b1d85e2ba85ae2",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/modern-go/reflect2",
+      "version": "v1.0.2",
+      "go_sum": "h1:xBagoLtFs94CBntxluKeaWgTMpvLxC4ur3nMaC9Gz0M=",
+      "go_mod_sum": "h1:yWuevngMOJpCy52FWWMvUC8ws7m/LJsjYzDa0/r8luk=",
+      "archive_sha256": "f46f41409c2e74293f82cfe6c70b5d582bff8ada0106a7d3ff5706520c50c21c",
+      "go_mod_sha256": "099ee58ec210155280692f9e2360f523272e525f06272754be7a2a44dbfa0623",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/muesli/ansi",
+      "version": "v0.0.0-20230316100256-276c6243b2f6",
+      "go_sum": "h1:ZK8zHtRHOkbHy6Mmr5D264iyp3TiX5OmNcI5cIARiQI=",
+      "go_mod_sum": "h1:CJlz5H+gyd6CUWT45Oy4q24RdLyn7Md9Vj2/ldJBSIo=",
+      "archive_sha256": "59c0d420908d51df3c701510337fbe42bfb4d48fcc5f490b5eb2f36fc25f91b9",
+      "go_mod_sha256": "2b1bf9e02f09e84b49a2a5e350911428530150f4c4fabf74da62114df33dbbc1",
+      "notices": {
+        "LICENSE": "43f65e00e8919fa43c5f45bb2ae578b6d3ee823eb99aa14c85c9ecd06e0350b5"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/muesli/cancelreader",
+      "version": "v0.2.2",
+      "go_sum": "h1:3I4Kt4BQjOR54NavqnDogx/MIoWBFa0StPA8ELUXHmA=",
+      "go_mod_sum": "h1:3XuTXfFS2VjM+HTLZY9Ak0l6eUKfijIfMUZ4EgX0QYo=",
+      "archive_sha256": "f0654e7f8f8a49b02ff10a75ccaa0eb08a65aaacbc45f5ba93305276e2ac7f61",
+      "go_mod_sha256": "4343f36dcc06d4ce4e170190062b5d224ff5be831f742531ec27a3d709378fe1",
+      "notices": {
+        "LICENSE": "8c139dbbc83b4fb055b4100b6b9402f7de3dd6bbca05015bdfcc4b392c8cfd5f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/muesli/reflow",
+      "version": "v0.3.0",
+      "go_sum": "h1:IFsN6K9NfGtjeggFP+68I4chLZV2yIKsXJFNZ+eWh6s=",
+      "go_mod_sum": "h1:pbwTDkVPibjO2kyvBQRBxTWEEGDGq0FlB1BIKtnHY/8=",
+      "archive_sha256": "78e2cebf5a46a9b7c7c52d55d4ac4650cabd9135f180092e3f476293bb86696e",
+      "go_mod_sha256": "f193cfd78694efff82f6226c1252ca9d1826dd6dd2c2662422be4c4de2cdb739",
+      "notices": {
+        "LICENSE": "233e8cf9a812999ccee4d3edb270b0f11ab3539658e680bcb873604915ca5038"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/muesli/termenv",
+      "version": "v0.16.0",
+      "go_sum": "h1:S5AlUN9dENB57rsbnkPyfdGuWIlkmzJjbFf0Tf5FWUc=",
+      "go_mod_sum": "h1:ZRfOIKPFDYQoDFF4Olj7/QJbW60Ol/kL1pU3VfY/Cnk=",
+      "archive_sha256": "ba02d3ebd9c1d87e2c2133b1f2bb61a7001b3765196e8016029ce9fe54c5c0fc",
+      "go_mod_sha256": "07581751f5b61fdae253960c3992898b64b6ad5573a69ba22ad249d7f0a889c1",
+      "notices": {
+        "LICENSE": "233e8cf9a812999ccee4d3edb270b0f11ab3539658e680bcb873604915ca5038"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/munnerz/goautoneg",
+      "version": "v0.0.0-20191010083416-a7dc8b61c822",
+      "go_sum": "h1:C3w9PqII01/Oq1c1nUAm88MOHcQC9l5mIlSMApZMrHA=",
+      "go_mod_sum": "h1:+n7T8mK8HuQTcFwEeznm/DIxMOiR9yIdICNftLE1DvQ=",
+      "archive_sha256": "3d7ce17916779890be02ea6b3dd6345c3c30c1df502ad9d8b5b9b310e636afd9",
+      "go_mod_sha256": "90d8fdca000e05d751cfafb1546f4a1440a5696ab06c8c91c365cf9bbbc8bcef",
+      "notices": {
+        "LICENSE": "aa1376b9bc5dea6f30cdefde40c176a254f247d2814d0a9929395138631b2ae0"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/jwt/v2",
+      "version": "v2.7.3",
+      "go_sum": "h1:6bNPK+FXgBeAqdj4cYQ0F8ViHRbi7woQLq4W29nUAzE=",
+      "go_mod_sum": "h1:GvkcbHhKquj3pkioy5put1wvPxs78UlZ7D/pY+BgZk4=",
+      "archive_sha256": "3b9b14098fb8bed4ce0c88aeec3d801f3b358dca861b3f9dec301e147e63dc14",
+      "go_mod_sha256": "0e865cd495c136aaf6fed538b46a9a1e6b1dceade129727cc4214dd489ad3387",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/nats-streaming-server",
+      "version": "v0.24.6",
+      "go_sum": "h1:iIZXuPSznnYkiy0P3L0AP9zEN9Etp+tITbbX1KKeq4Q=",
+      "go_mod_sum": "h1:tdKXltY3XLeBJ21sHiZiaPl+j8sK3vcCKBWVyxeQs10=",
+      "archive_sha256": "f1f326c2e9d09ff53c4f7bafa221de28f91437a683a8c1a5f1baab2df94dbc88",
+      "go_mod_sha256": "432bb62d5cc52fa31800175d2890b702cb1ee7e9063de97db3cc469e81692a8e",
+      "notices": {
+        "LICENSE": "43070e2d4e532684de521b885f385d0841030efa2b1a20bafb76133a5e1379c1"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/nkeys",
+      "version": "v0.4.10",
+      "go_sum": "h1:glmRrpCmYLHByYcePvnTBEAwawwapjCPMjy2huw20wc=",
+      "go_mod_sum": "h1:OjRrnIKnWBFl+s4YK5ChQfvHP2fxqZexrKJoVVyWB3U=",
+      "archive_sha256": "d12dd1bc2464d1976125f15a51915240f9c6bba618ddf139051c2effaf193a1d",
+      "go_mod_sha256": "701324ca36f7e75a48b0c63ae6fcdf6bb79c133643ec8e1ac53fe9b082ea848d",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/nats-io/nuid",
+      "version": "v1.0.1",
+      "go_sum": "h1:5iA8DT8V7q8WK2EScv2padNa/rTESc1KdnPw4TC2paw=",
+      "go_mod_sum": "h1:19wcPz3Ph3q0Jbyiqsd0kePYG7A95tJPxeL+1OSON2c=",
+      "archive_sha256": "809d144fbd16f91651a433e28d2008d339e19dafc450c5995e2ed92f1c17c1f3",
+      "go_mod_sha256": "378731d5cd58fb77d06d08e2fb908405ce3ae82176b7c52a7214c132803fdfb5",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/oklog/ulid",
+      "version": "v1.3.1",
+      "go_sum": "h1:EGfNDEx6MqHz8B3uNV6QAib1UR2Lm97sHi3ocA6ESJ4=",
+      "go_mod_sum": "h1:CirwcVhetQ6Lv90oh/F+FBtV6XMibvdAFo93nm5qn4U=",
+      "archive_sha256": "40e502c064a922d5eb7f2bc2cda9c6a2a929ec0fc76c9aae4db54fb7b6b611ae",
+      "go_mod_sha256": "03af0e0ae87c3a091d5151b21d4f1281dee79dee02f0755a3ceb1126759a5884",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/olekukonko/tablewriter",
+      "version": "v0.0.5",
+      "go_sum": "h1:P2Ga83D34wi1o9J6Wh1mRuqd4mF/x/lgBS7N7AbDhec=",
+      "go_mod_sum": "h1:hPp6KlRPjbx+hW8ykQs1w3UBbZlj6HuIJcUGPhkA7kY=",
+      "archive_sha256": "ba678c0fddd0645293afc2ac50a5943730d755e31059f588f4b4a8c581b65dad",
+      "go_mod_sha256": "f5e6708d077d7be417dfaed91a9b54d5b2d974dbf1158a5a7b5d7f6080e9d56a",
+      "notices": {
+        "LICENSE.md": "0583acca2b32a7e4f7bc2d98422b2f55097333273731b3ba2a16d66f9e422744"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/pkg/browser",
+      "version": "v0.0.0-20240102092130-5ac0b6a4141c",
+      "go_sum": "h1:+mdjkGKdHQG3305AYmdv1U2eRNDiU2ErMBj1gwrq8eQ=",
+      "go_mod_sum": "h1:7rwL4CYBLnjLxUqIJNnCWiEdr3bn6IUYi15bNlnbCCU=",
+      "archive_sha256": "8524ae36d809564d1f218978593b5c565cf3ee8dccd035d66b336ad0c56e60d1",
+      "go_mod_sha256": "6600c2386895b44c985cb3cfcabe72f09b259674995cf4b51628ca461575a1b2",
+      "notices": {
+        "LICENSE": "4801bb0c5d70b980b3e1f63d1d2df8d84fec22548e3d73f03a68df1fb808791f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/planetscale/vtprotobuf",
+      "version": "v0.6.1-0.20240319094008-0393e58bdf10",
+      "go_sum": "h1:GFCKgmp0tecUJ0sJuv4pzYCqS9+RGSn52M3FUwPs+uo=",
+      "go_mod_sum": "h1:t/avpk3KcrXxUnYOhZhMXJlSEyie6gQbtLq5NM3loB8=",
+      "archive_sha256": "6fdbac53c6ace58d732be8ec29c1aae928639eb12960cc4c52a9f7a25395ca05",
+      "go_mod_sha256": "e94bb181f3ef78dec16609d3c2d276c75c5668694bdc97b72bac22c84528debb",
+      "notices": {
+        "LICENSE": "c108a2604f8958f647b56b83b11a31ae85648a77cb9aa0f093c0ab9ffffe2222"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/posener/complete",
+      "version": "v1.2.3",
+      "go_sum": "h1:NP0eAhjcjImqslEwo/1hq7gpajME0fTLTezBKDqfXqo=",
+      "go_mod_sum": "h1:WZIdtGGp+qx0sLrYKtIRAruyNpv6hFCicSgv7Sy7s/s=",
+      "archive_sha256": "88b48005b995dc6592fa6fda08130488c83f63bcaa4ccb0fb8e926fee63112ec",
+      "go_mod_sha256": "6f0250b50a42e2599ae414a01f40eecf7ee5dfd83fead46d6c0580363c8de330",
+      "notices": {
+        "LICENSE.txt": "42707f6d0ca72916d2a48dbc977aab20a5e23270a7651bd18227e992f9d41548"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/power-devops/perfstat",
+      "version": "v0.0.0-20240221224432-82ca36839d55",
+      "go_sum": "h1:o4JXh1EVt9k/+g42oCprj/FisM4qX9L3sZB3upGN2ZU=",
+      "go_mod_sum": "h1:OmDBASR4679mdNQnz2pUhc2G8CO2JrUAVFDRBDP/hJE=",
+      "archive_sha256": "66cb26a26f3282bc0cea7dc89da5f83249705a53e566259f226dc03477036f32",
+      "go_mod_sha256": "05744a9262bcd294613e65624f3f8bae83d79a58aa48b8328c7df91190aa07bf",
+      "notices": {
+        "LICENSE": "d2568033889c7eb3666ef1cb1f47f84bd49d25847aaad5dd87f18df384238079"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/prom2json",
+      "version": "v1.4.2",
+      "go_sum": "h1:PxCTM+Whqi/eykO1MKsEL0p/zMpxp9ybpsmdFamw6po=",
+      "go_mod_sum": "h1:zuvPm7u3epZSbXPWHny6G+o8ETgu6eAK3oPr6yFkRWE=",
+      "archive_sha256": "bb5a8c07a4c82a10b46cc7cc960ccc6a9dd4ccbb0021374268de17dd6545f3c0",
+      "go_mod_sha256": "7477a59bf690f7073f1554dae2c16fccac9c0bfacf4a5057f7bee74753a44f13",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "d2eed197e66c919f30e78e72751f07885763af05ca245e41bb6bfb213450652a"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/prometheus/prometheus",
+      "version": "v0.303.0",
+      "go_sum": "h1:wsNNsbd4EycMCphYnTmNY9JASBVbp7NWwJna857cGpA=",
+      "go_mod_sum": "h1:8PMRi+Fk1WzopMDeb0/6hbNs9nV6zgySkU/zds5Lu3o=",
+      "archive_sha256": "f1b3cdd2ffd9418d1f80881c8451807f8b6eb6fbd316ceb2d6a5a1cb87f1f809",
+      "go_mod_sha256": "d10eb1ccf4285c63642ef10f2c811073b8945fdc8bdb0fc7a668de4aaf85ff58",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4",
+        "NOTICE": "4d69c19300dc95e26630247f7d76d525b738f87c5af79f39b61ca0831c23ca34"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rivo/uniseg",
+      "version": "v0.4.7",
+      "go_sum": "h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=",
+      "go_mod_sum": "h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=",
+      "archive_sha256": "b995e4aa0cc1e5779cc61138ac925cb8c1e963e40c80e4b93ee8553812ebb792",
+      "go_mod_sha256": "a1e174890fc9f252450211fadeb53756f9cf5ab7b19697765f9fb255f81ea898",
+      "notices": {
+        "LICENSE.txt": "a59885f5f0f3b3c07cf9444db5fe399b6f0791eac82055f7b85cc65500551039"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rjeczalik/notify",
+      "version": "v0.9.3",
+      "go_sum": "h1:6rJAzHTGKXGj76sbRgDiDcYj/HniypXmSJo1SWakZeY=",
+      "go_mod_sum": "h1:gF3zSOrafR9DQEWSE8TjfI9NkooDxbyT4UgRGKZA0lc=",
+      "archive_sha256": "1e4deb1a7723ed8cff074f6d10299f35f07caf6a90f99ed34f33d0a9cfb1b07a",
+      "go_mod_sha256": "8c7d92dcadb86976fa85941302c6c25e9d2d4bba8aca52b6f52a5f1e6a2d81d0",
+      "notices": {
+        "LICENSE": "42efbe213a0bfa04fcfb1efb683efc3e19cd31a8725e296c277cf5dc48a6bd11"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/rs/xid",
+      "version": "v1.6.0",
+      "go_sum": "h1:fV591PaemRlL6JfRxGDEPl69wICngIQ3shQtzfy2gxU=",
+      "go_mod_sum": "h1:7XoLgs4eV+QndskICGsho+ADou8ySMSjJKDIan90Nz0=",
+      "archive_sha256": "395b1caa8a7e835e4721291e629dac4f6608db3918d6fe1eb2ed5e7561b62eb2",
+      "go_mod_sha256": "2ebd8a4c48bf66680d0fba5ca0d9ea1ec134396497802c75f3b39683e6e662ef",
+      "notices": {
+        "LICENSE": "c480873f0ff2b7e2c539bdd84fb4da4178d8d02479c94924f7bffeafb7add358"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/safchain/ethtool",
+      "version": "v0.5.10",
+      "go_sum": "h1:Im294gZtuf4pSGJRAOGKaASNi3wMeFaGaWuSaomedpc=",
+      "go_mod_sum": "h1:w9jh2Lx7YBR4UwzLkzCmWl85UY0W2uZdd7/DckVE5+c=",
+      "archive_sha256": "52edcf16a3bbf5c8933a03accd6b47a60fcc04c0fdf1f8adf6d5ea86a8fb468b",
+      "go_mod_sha256": "af92e60d4fc4631af195c22636e38c0b37ef78bc0ce252008c7fddf76e570a75",
+      "notices": {
+        "LICENSE": "9b630bec609d7f1fa60387ecf3ccc3e1c86e8e18503ae07d050c26b174bbc8d9"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/segmentio/asm",
+      "version": "v1.2.0",
+      "go_sum": "h1:9BQrFxC+YOHJlTlHGkTrFWf59nbL3XnCoFLTwDCI7ys=",
+      "go_mod_sum": "h1:BqMnlJP91P8d+4ibuonYZw9mfnzI9HfxselHZr5aAcs=",
+      "archive_sha256": "8e2815672f1ab3049b10185b5494006320c32afb419ccf9f14385bc25ea44def",
+      "go_mod_sha256": "5e264ef0fc0925322b3ef8bcdb634c9a3b08090f907f50ce6dfc648fa9e83f2c",
+      "notices": {
+        "LICENSE": "e2a78de21d6d8ded2dff0f3189cd32e011630d785da127ebfbc8949012c0947b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/shoenig/go-m1cpu",
+      "version": "v0.1.6",
+      "go_sum": "h1:nxdKQNcEB6vzgA2E2bvzKIYRuNj7XNJ4S/aRSwKzFtM=",
+      "go_mod_sum": "h1:1JJMcUBvfNwpq05QDQVAnx3gUHr9IYF7GNg9SUEw2VQ=",
+      "archive_sha256": "0ceab2ec73ef7d1291bd7663dd39203ee7037ee9dccb6fc3381ad819bd8550d1",
+      "go_mod_sha256": "ddbcd6c6572075e609cbda5b7af0547a734e6ff2e1736e326051f5209c458b17",
+      "notices": {
+        "LICENSE": "60222c28c1a7f6a92c7df98e5c5f4459e624e6e285e0b9b94467af5f6ab3343d"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tidwall/gjson",
+      "version": "v1.18.0",
+      "go_sum": "h1:FIDeeyB800efLX89e5a8Y0BNH+LOngJyGrIWxG2FKQY=",
+      "go_mod_sum": "h1:/wbyibRr2FHMks5tjHJ5F8dMZh3AcwJEMf5vlfC0lxk=",
+      "archive_sha256": "ab8092b3e42f83f003466757c63ec819a45d1e83caa63c6c131cebbe760f1df2",
+      "go_mod_sha256": "d94eecd8050cffc957b99bed8a308efeaa669ac13854290d081a2ded5478af93",
+      "notices": {
+        "LICENSE": "be83ad53208d03a9fe08c7fac231cabf79422989ef5706bff217bd35104ebf07"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tidwall/match",
+      "version": "v1.1.1",
+      "go_sum": "h1:+Ho715JplO36QYgwN9PGYNhgZvoUSc9X2c80KVTi+GA=",
+      "go_mod_sum": "h1:eRSPERbgtNPcGhD8UCthc6PmLEQXEWd3PRB5JTxsfmM=",
+      "archive_sha256": "2ba41f7f27330d49e0e432cbf96bf90720a33e4a97be58fe53f63a7e66f04d37",
+      "go_mod_sha256": "02364e515327d9988d1f6bd37af9c584f8b98d3b4f43f9e1f18e26d76aec0f44",
+      "notices": {
+        "LICENSE": "be83ad53208d03a9fe08c7fac231cabf79422989ef5706bff217bd35104ebf07"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tidwall/pretty",
+      "version": "v1.2.1",
+      "go_sum": "h1:qjsOFOWWQl+N3RsoF5/ssm1pHmJJwhjlSbZ51I6wMl4=",
+      "go_mod_sum": "h1:ITEVvHYasfjBbM0u2Pg8T2nJnzm8xPwvNhhsoaGGjNU=",
+      "archive_sha256": "9327579bf9e610de753eeb7c35c8cf1e3f56e6e5623cbf65e47bc8076023d1ab",
+      "go_mod_sha256": "6e5c5fa493d8f18e8974b38ed63e8c71863cce59e659d98d0ef8417bf81e3ecf",
+      "notices": {
+        "LICENSE": "0ca70311227fe097c662dece3f359e3317fa7f9d41f8d29eb45fc5135e216139"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tklauser/go-sysconf",
+      "version": "v0.3.15",
+      "go_sum": "h1:VE89k0criAymJ/Os65CSn1IXaol+1wrsFHEB8Ol49K4=",
+      "go_mod_sum": "h1:Dmjwr6tYFIseJw7a3dRLJfsHAMXZ3nEnL/aZY+0IuI4=",
+      "archive_sha256": "caa29c6df6c316969c9f2559186bd1ca8f8aceafbef236233e415c1d974f0383",
+      "go_mod_sha256": "5a1fd0c98e457e27f054124d196bd9a17bacbfeee44698755ceeaf92d3baba2a",
+      "notices": {
+        "LICENSE": "fdaaa923d83d44f8b2ed1185600c5aa8c10673f11fba9feb78bd2816786fd6be"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/tklauser/numcpus",
+      "version": "v0.10.0",
+      "go_sum": "h1:18njr6LDBk1zuna922MgdjQuJFjrdppsZG60sHGfjso=",
+      "go_mod_sum": "h1:BiTKazU708GQTYF4mB+cmlpT2Is1gLk7XVuEeem8LsQ=",
+      "archive_sha256": "b2526d47517ccff481cc7baad7f450bdde58ddb9b65d53e3eec7c3504f94e853",
+      "go_mod_sha256": "7c03e222f6fcc66f0f9c9c77213457349007403d9127145f355c41987a6e9984",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/unrolled/secure",
+      "version": "v1.17.0",
+      "go_sum": "h1:Io7ifFgo99Bnh0J7+Q+qcMzWM6kaDPCA5FroFZEdbWU=",
+      "go_mod_sum": "h1:BmF5hyM6tXczk3MpQkFf1hpKSRqCyhqcbiQtiAF7+40=",
+      "archive_sha256": "c4b5510047a72c0101c7122adeaa0c9bd130f46b821f76b32ee27e3badd6a84b",
+      "go_mod_sha256": "0484e443c511bd5643a3ac914421c43b0df0f5e2351a7265979f598f412906d1",
+      "notices": {
+        "LICENSE": "2db31eaf6759b6eb757e171daffc5c75d677a0d71d99ad48fb25bc9063f1565f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/vbauerster/mpb/v8",
+      "version": "v8.9.3",
+      "go_sum": "h1:PnMeF+sMvYv9u23l6DO6Q3+Mdj408mjLRXIzmUmU2Z8=",
+      "go_mod_sum": "h1:hxS8Hz4C6ijnppDSIX6LjG8FYJSoPo9iIOcE53Zik0c=",
+      "archive_sha256": "0d10a8ef056772c1d3ff39ea6e20e16268e2a4b0dca1d72dc988bbc70629d99b",
+      "go_mod_sha256": "a18362f90f6e95c35bf50a05d085e736efe2039048180763127dbc3c1f7486d4",
+      "notices": {
+        "UNLICENSE": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/xdg/stringprep",
+      "version": "v1.0.3",
+      "go_sum": "h1:cmL5Enob4W83ti/ZHuZLuKD/xqJfus4fVPwE+/BDm+4=",
+      "go_mod_sum": "h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=",
+      "archive_sha256": "7cb9711fd7b3c1518e1fbd4e39be11737d7006a5e4a59f1ceb4ba9c205eb90fa",
+      "go_mod_sha256": "07e0f6bf5b76b4e5eef8315275a4a4c021755bbb8e4686cb45a4fd56783b9d2e",
+      "notices": {
+        "LICENSE": "09e8a9bcec8067104652c168685ab0931e7868f9c8284b66f5ae6edae5f1130b"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "github.com/yusufpapurcu/wmi",
+      "version": "v1.2.4",
+      "go_sum": "h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=",
+      "go_mod_sum": "h1:SBZ9tNy3G9/m5Oi98Zks0QjeHVDvuK0qfxQmPyzfmi0=",
+      "archive_sha256": "c2a0a12203162ef8fd6f65e191aac359823d370e113122cbd8e80711ddc9c1f9",
+      "go_mod_sha256": "ff2a9c8c99aaed6bc6984eae094a9e8cdc36f6ab2ef2c56779dd98ecc583135b",
+      "notices": {
+        "LICENSE": "66e24ffb77bdafac86bd5c47ea1c3d44e2d7546ca9caa219ee66a110584864e7"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.etcd.io/etcd/client/pkg/v3",
+      "version": "v3.5.19",
+      "go_sum": "h1:9VsyGhg0WQGjDWWlDI4VuaS9PZJGNbPkaHEIuLwtixk=",
+      "go_mod_sum": "h1:qaOi1k4ZA9lVLejXNvyPABrVEe7VymMF2433yyRQ7O0=",
+      "archive_sha256": "9e4f86f9c41087ae7e3a3cc8b4c817d3cecaf49b9368681e90cd48ae213044f1",
+      "go_mod_sha256": "02984b1af80623e4d3d4d42711fefc747296f77f4a8081f591e5b2893a353e44",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.mongodb.org/mongo-driver",
+      "version": "v1.17.3",
+      "go_sum": "h1:TQyXhnsWfWtgAhMtOgtYHMTkZIfBTpMTsMnd9ZBeHxQ=",
+      "go_mod_sum": "h1:Hy04i7O2kC4RS06ZrhPRqj/u4DTYkFDAAccj+rVKqgQ=",
+      "archive_sha256": "a05faf417335fbd8483c49bee9d8174fdaca3269f8b3e964cefdf4b2451086fe",
+      "go_mod_sha256": "1482fe363332ae6885198c457460d974eb8a28e8fa5b70528e3844d98566c076",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/auto/sdk",
+      "version": "v1.1.0",
+      "go_sum": "h1:cH53jehLUN6UFLY71z+NDOiNJqDdPRaXzTel0sJySYA=",
+      "go_mod_sum": "h1:3wSPjt5PWp2RhlCcmmOial7AvC4DQqZb7a7wCow3W8A=",
+      "archive_sha256": "006d3a5a7292d11f093ce65fcd5a15d15fb7bd11d0e066503f91bd64c4bffe2c",
+      "go_mod_sha256": "c1b92e73725a3def3236579bbd728887f617d1ea9b30f403f6e4885c48b1ff3f",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/contrib/detectors/gcp",
+      "version": "v1.35.0",
+      "go_sum": "h1:bGvFt68+KTiAKFlacHW6AhA56GF2rS0bdD3aJYEnmzA=",
+      "go_mod_sum": "h1:qGWP8/+ILwMRIUf9uIVLloR1uo5ZYAslM4O6OqUi1DA=",
+      "archive_sha256": "47a4cbc7a1a9f3d3f41019309d9eda11b093876c5399c319870e47b81d07add4",
+      "go_mod_sha256": "42036e76daf0c9230430101db8696381304250ff9a279e92217e39267fdb7304",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc",
+      "version": "v0.59.0",
+      "go_sum": "h1:rgMkmiGfix9vFJDcDi1PK8WEQP4FLQwLDfhp5ZLpFeE=",
+      "go_mod_sum": "h1:ijPqXp5P6IRRByFVVg9DY8P5HkxkHE5ARIa+86aXPf4=",
+      "archive_sha256": "3ebe1dda6f4beaf076b70abf23de2669b7aaa3290334f30a8c11289311aca96c",
+      "go_mod_sha256": "178acd044dd87d1fc0c3a29e3a7e6bc41ef35f1e4a901e42e177814174e48493",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp",
+      "version": "v0.60.0",
+      "go_sum": "h1:sbiXRNDSWJOTobXh5HyQKjq6wUC5tNybqjIqDpAY4CU=",
+      "go_mod_sum": "h1:69uWxva0WgAA/4bu2Yy70SLDBwZXuQ6PbBpbsa5iZrQ=",
+      "archive_sha256": "0192a852a8c6b4fccd55a0400bda162a83a4935102ebdec5fcf56ef1e7d94a51",
+      "go_mod_sha256": "62f34a4e0e7bbd72d8e1c7d89a9fd0925a79938f6aeae17daef0148d91c42512",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/otel",
+      "version": "v1.35.0",
+      "go_sum": "h1:xKWKPxrxB6OtMCbmMY021CqC45J+3Onta9MqjhnusiQ=",
+      "go_mod_sum": "h1:UEqy8Zp11hpkUrL73gSlELM0DupHoiq72dR+Zqel/+Y=",
+      "archive_sha256": "db49129d417338ed3517e7ec6f3e894e6828152488731fe832690041892d341d",
+      "go_mod_sha256": "04e6c2e839b364724f78a20224f00d7356569478f725010c40d388e87fec6422",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/otel/metric",
+      "version": "v1.35.0",
+      "go_sum": "h1:0znxYu2SNyuMSQT4Y9WDWej0VpcsxkuklLa4/siN90M=",
+      "go_mod_sum": "h1:nKVFgxBZ2fReX6IlyW28MgZojkoAkJGaE8CpgeAU3oE=",
+      "archive_sha256": "c30a5fadd4eb1a801561199ef7da0012102ac87be12964f708472e919e2ef29c",
+      "go_mod_sha256": "b70c93340b0473054b7348870f6a6ec45b49bb45d60bb6cef3dcecd9bba56ba0",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/otel/sdk",
+      "version": "v1.35.0",
+      "go_sum": "h1:iPctf8iprVySXSKJffSS79eOjl9pvxV9ZqOWT0QejKY=",
+      "go_mod_sum": "h1:+ga1bZliga3DxJ3CQGg3updiaAJoNECOgJREo9KHGQg=",
+      "archive_sha256": "b6915b523a175f1954bcb69e17237852d0b647b4987a0131815b880ac114e812",
+      "go_mod_sha256": "874804834806f68285804603f06b06a54f4acd77e5a216edee51e5f5590c704d",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/otel/sdk/metric",
+      "version": "v1.35.0",
+      "go_sum": "h1:1RriWBmCKgkeHEhM7a2uMjMUfP7MsOF5JpUCaEqEI9o=",
+      "go_mod_sum": "h1:is6XYCUMpcKi+ZsOvfluY5YstFnhW0BidkR+gL+qN+w=",
+      "archive_sha256": "0b006162ef707289019451f941cb34db0cc1e85014c1b832f76e7ca9013d2c9d",
+      "go_mod_sha256": "7defa60beefc82093122e861ee5f74792dde3d40b9ebfeafdf9502d4556a431b",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.opentelemetry.io/otel/trace",
+      "version": "v1.35.0",
+      "go_sum": "h1:dPpEfJu1sDIqruz7BHFG3c7528f6ddfSWfFDVt/xgMs=",
+      "go_mod_sum": "h1:WUk7DtFp1Aw2MkvqGdwiXYDZZNvA/1J8o6xRXLrIkyc=",
+      "archive_sha256": "24f3abd562a9c2d18208b9716a7ff65d4b56567a13ce7d3a4fe6666251375e6a",
+      "go_mod_sha256": "320b017369af1451d0deef6505a62abf467b2d74cac3ab6d11bc033be6f6d71b",
+      "notices": {
+        "LICENSE": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "go.uber.org/multierr",
+      "version": "v1.11.0",
+      "go_sum": "h1:blXXJkSxSSfBVBlC76pxqeO+LN3aDfLQo+309xJstO0=",
+      "go_mod_sum": "h1:20+QtiLqy0Nd6FdQB9TLXag12DsQkrbs3htMFfDN80Y=",
+      "archive_sha256": "2249b5d2fdce61f6ee661a679d8552599af084a761cbbc871da77641bddce0c3",
+      "go_mod_sha256": "58a30dde730aba57576715d90841774f6344a879fec5633a2c66b37ec30c11f0",
+      "notices": {
+        "LICENSE.txt": "dcdabe03bef2382a130640d1c3a4cd5ec42aba1035095c38272fde694eb72405"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/mod",
+      "version": "v0.24.0",
+      "go_sum": "h1:ZfthKaKaT4NrhGVZHO1/WDTwGES4De8KtWO0SIbNJMU=",
+      "go_mod_sum": "h1:IXM97Txy2VM4PJ3gI61r1YEk/gAj6zAHN3AdZt6S9Ww=",
+      "archive_sha256": "1a8ef77bb4d41c1a7d3fa5d0caf2fe599f14eac10f473629e31546f12759b89f",
+      "go_mod_sha256": "1fb8ad2f7201cd79bf178578b35aaead1720cab2b8cfea35b99b25b60839f1ef",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/net",
+      "version": "v0.39.0",
+      "go_sum": "h1:ZCu7HMWDxpXpaiKdhzIfaltL9Lp31x/3fCP11bc6/fY=",
+      "go_mod_sum": "h1:X7NRbYVEA+ewNkCNyJ513WmMdQ3BineSwVtN2zD/d+E=",
+      "archive_sha256": "d8434ce72d2356472570adbbd38c538d24fe9a9678bffaa6ef99ec47ca3be0a5",
+      "go_mod_sha256": "ed537de773b1f9da64dcd702b07c1b94e287ac49a08faf40b0f45e7003f1d838",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/text",
+      "version": "v0.24.0",
+      "go_sum": "h1:dd5Bzh4yt5KYA8f9CJHCP4FB4D51c2c6JvN37xJJkJ0=",
+      "go_mod_sum": "h1:L8rBsPeo2pSS+xqN0d5u2ikmjtmoJbDBT1b7nHvFCdU=",
+      "archive_sha256": "f585335a57a6fa5fa0c0bf319b45f0909e5ff1aba91e8567187ba8e423084c00",
+      "go_mod_sha256": "5754d96eac79870627edfa319a277ec19caf77597e7e7be08f0fce94bf23a8f3",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "golang.org/x/tools",
+      "version": "v0.31.0",
+      "go_sum": "h1:0EedkvKDbh+qistFTd0Bcwe/YLh4vHwWEkiI0toFIBU=",
+      "go_mod_sum": "h1:naFTU+Cev749tSJRXJlna0T3WxKvb1kWEx15xA4SdmQ=",
+      "archive_sha256": "5fbbb3a08f85fb7a3d0990d98bc1cd19f921d0df0afbae6c119a0edda752366c",
+      "go_mod_sha256": "566ce8b5cec1b511973882565e3da9f60fa14d8bce5837318fb843bb9969e0c7",
+      "notices": {
+        "LICENSE": "911f8f5782931320f5b8d1160a76365b83aea6447ee6c04fa6d5591467db9dad"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/genproto",
+      "version": "v0.0.0-20250106144421-5f5ef82da422",
+      "go_sum": "h1:6GUHKGv2huWOHKmDXLMNE94q3fBDlEHI+oTRIZSebK0=",
+      "go_mod_sum": "h1:1NPAxoesyw/SgLPqaUp9u1f9PWCLAk/jVmhx7gJZStg=",
+      "archive_sha256": "773354bbd7ddb58ffa58966e85c98309a2b5cdbdef734b42d31669974dc386bb",
+      "go_mod_sha256": "0bd3de5cf386d3ed1a2f2074c6594dac723f296aea4554456b0861f3a51de3e8",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/genproto/googleapis/api",
+      "version": "v0.0.0-20250311190419-81fb87f6b8bf",
+      "go_sum": "h1:BdIVRm+fyDUn8lrZLPSlBCfM/YKDwUBYgDoLv9+DYo0=",
+      "go_mod_sum": "h1:jbe3Bkdp+Dh2IrslsFCklNhweNTBgSYanP1UXhJDhKg=",
+      "archive_sha256": "e095e2fa6c75eadc9eb125c513c45b0744ebd847c8df1cdb2314c409ae8ea0d6",
+      "go_mod_sha256": "3d788eeec5ece0fc4986336e6a2823d5efda9c183d86d725e974f175eb29b51c",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/genproto/googleapis/rpc",
+      "version": "v0.0.0-20250311190419-81fb87f6b8bf",
+      "go_sum": "h1:dHDlF3CWxQkefK9IJx+O8ldY0gLygvrlYRBNbPqDWuY=",
+      "go_mod_sum": "h1:LuRYeWDFV6WOn90g357N17oMCaxpgCnbi/44qJvDn2I=",
+      "archive_sha256": "9af17ed56dadefd44e9ba582634c6eeafe980763f89689c65ec8b4126dfd0024",
+      "go_mod_sha256": "b2875f8f580c9dcc2ec9d8f39646c3c4834173fbfc8aed4394d235e347aea68c",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/grpc",
+      "version": "v1.71.0",
+      "go_sum": "h1:kF77BGdPTQ4/JZWMlb9VpJ5pa25aqvVqogsxNHHdeBg=",
+      "go_mod_sum": "h1:H0GRtasmQOh9LkFoCPDu3ZrwUtD1YGE+b2vYBYd/8Ec=",
+      "archive_sha256": "7d05a94d47212b4a94bcb1e983422d0b05a50cb3c4dc19302072c552f5e81acb",
+      "go_mod_sha256": "21e8511c8f92961a7441ba613178ce4e358de408c59e92bc12e41d6ad34eea7b",
+      "notices": {
+        "LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+        "NOTICE.txt": "693ff28ec216d5112ac1bbfe64ef539005867d1c7bd427b57d579683293b947f"
+      },
+      "inherited_notice": null
+    },
+    {
+      "module": "google.golang.org/protobuf",
+      "version": "v1.36.6",
+      "go_sum": "h1:z1NpPI8ku2WgiWnf+t9wTPsn6eP1L7ksHUlkfLvd9xY=",
+      "go_mod_sum": "h1:jduwjTPXsFjZGTmRluh+L6NjiWu7pchiJ2/5YcXBHnY=",
+      "archive_sha256": "3294ac8ea5089b3c231351afaea4f012e8027a9beeb523bbf31dcb383cc0ab99",
+      "go_mod_sha256": "e11082f89ab1be94e778e4bd2c53172f481135604dd9f2d60140e5514bc53623",
+      "notices": {
+        "LICENSE": "4835612df0098ca95f8e7d9e3bffcb02358d435dbb38057c844c99d7f725eb20"
+      },
+      "inherited_notice": null
+    }
+  ],
+  "unresolved_notices": [
+    {
+      "module": "github.com/mattn/go-localereader",
+      "version": "v0.0.1",
+      "reason": "module README declares MIT, but original complete copyright/permission notice is absent; exact upstream tag LICENSE returned HTTP 404",
+      "readme_sha256": "0c5c52517f13becd7a1e1234f1e8a5ba370f5a5078cee9ac058c2d534e267fcb"
+    }
+  ],
+  "build": "not_run",
+  "service_execution": "not_run",
+  "Langfuse_readback": "not_run",
+  "no_substitute_backend": true,
+  "no_new_credentials": true
+}
