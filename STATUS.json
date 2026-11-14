@@ -14,6 +14,12 @@
   "implementation": "partial_temporal_development_lane",
   "legacy_archival": "not_started",
   "live_acceptance": "not_run",
+  "offline_finish": {
+    "Langfuse": "blocked_source_notice_closure",
+    "evidence": "docs/offline-finish-tests.json",
+    "independent_review": "user_waived_no_review_performed",
+    "streaming_bundle": "locally_tested_disposable_Linux_arm64"
+  },
   "production_deployment": "not_run",
   "runner_capacity": "unverified",
   "runner_fleet_preparation": {

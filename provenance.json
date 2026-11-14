@@ -1,4 +1,15 @@
 {
+  "MinIO_source_preparation": {
+    "build": "blocked_original_notice_closure",
+    "executable_import": "none",
+    "notices": [
+      "telemetry/notices/minio-AGPL-LICENSE",
+      "telemetry/notices/minio-CREDITS",
+      "telemetry/notices/minio-Go-LICENSE"
+    ],
+    "record": "telemetry/minio-source-qualification.json",
+    "source_revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e"
+  },
   "license_status": "No blanket license is granted to imported material. See LEGAL.md.",
   "maintained_offline_source": {
     "Collector_dependencies": "telemetry/dependencies.json",
@@ -34,6 +45,13 @@
       "status": "adapted_spec"
     }
   ],
+  "streaming_development_bundle": {
+    "classification": "original_bounded_development_implementation_and_synthetic_tests",
+    "contract": "runspindle.streaming-development-bundle.v1",
+    "contract_revision": "02cd0116290fb21f5c447dc3038e9cbf0a3436f0",
+    "legacy_executable_import": "none",
+    "mapping": "specs/maintained-offline.md"
+  },
   "synthetic_fixture_source": {
     "classification": "original_synthetic_test_fixture_only",
     "commit": "e8cd5779968fede213443db13a591c992cd0e183",

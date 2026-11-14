@@ -10,6 +10,18 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parents[1]
 CASES = {
+    "stream_checksum_ignored": (
+        "streaming_bundle.py",
+        'check(h.hexdigest() == item["sha256"], "bundle checksum mismatch")',
+        'check(True, "bundle checksum mismatch")',
+        "test_streaming_bundle.StreamingTests.test_large_file_extract_and_integrity_negative_cases",
+    ),
+    "stream_installed_modes_ignored": (
+        "streaming_bundle.py",
+        'check(actual == manifest["files"], "installed byte or mode mismatch")',
+        'check(True, "installed byte or mode mismatch")',
+        "test_streaming_bundle.InstalledStreamingTests.test_installed_corruption_and_unsafe_links",
+    ),
     "fabricated_persistence": (
         "collector_privacy_check.py",
         '"persisted_file_only" if matching else "unknown"',

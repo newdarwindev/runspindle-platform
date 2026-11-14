@@ -38,9 +38,22 @@
     }
   ],
   "remaining_preparation": [
-    "available immutable MinIO artifact plus matching rights/source",
-    "complete worker, OS, database and storage dependency inventories before execution"
+    "resolve complete original go-localereader v0.0.1 MIT notice; selected module archive omits it and versioned LICENSE URL returned 404",
+    "then build same official MinIO source release offline and qualify binary digest/source/notices",
+    "complete worker, OS, database and storage dependency inventories before service execution",
+    "actual Langfuse API readback after Collector export, outage and restart"
   ],
   "no_new_credentials": true,
-  "no_substitute_backend": true
+  "no_substitute_backend": true,
+  "source_fallback": {
+    "record": "telemetry/minio-source-qualification.json",
+    "release": "RELEASE.2025-04-22T22-12-26Z",
+    "revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+    "acquired_modules": 256,
+    "unresolved_original_notices": [
+      "github.com/mattn/go-localereader v0.0.1"
+    ],
+    "build": "blocked_before_execution",
+    "no_substitute_backend": true
+  }
 }

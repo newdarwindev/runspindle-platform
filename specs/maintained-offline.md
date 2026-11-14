@@ -84,3 +84,40 @@ with no network and a disposable `/tmp`; ordinary host tests report the Linux
 installation cases as skipped. Preparation, structural checks, synthetic model
 tests, actual upstream diagnostic lanes and full-product acceptance remain
 separate. See [exact evidence](../docs/maintained-offline-tests.json).
+
+## Streaming executable development bundle
+
+The separate `runspindle.streaming-development-bundle.v1` interface implements
+composition's streaming contract, merged in PRs #40 and #42. The existing JSON
+metadata bundle and its validation limits remain unchanged. The streaming format
+uses a bounded canonical manifest followed by uncompressed regular-file bytes;
+there are no tar/link records. It accepts confined dependency-wheel filenames,
+including punctuation and leading dots, without treating them as shell text.
+Traversal, noncanonical names, backslashes, drive prefixes, unsafe modes, duplicate
+fields, unsupported versions, extra/truncated/changed payloads and mismatched
+pins/target/inventories/notices reject before installation.
+
+`tools/streaming_bundle.py` retains the exact archive separately from the SQLite
+journal, avoiding executable-size BLOBs. A generation-owned immutable manifest
+intent commits before staging. Recovery checks archived, extracted and installed
+bytes and modes before switching the version pointer. A rollback intent records
+the exact verified predecessor; missing/corrupt predecessor files are not
+regenerated. Fresh processes test interruption after intent, staging, pointer and
+rollback intent. Competing owners, stale generations, conflicting readback,
+unsafe links and failed rollback have negative tests. Bounded local Linux arm64
+containers use denied egress, disposable targets and executable temporary mounts;
+no persistent runner or production security configuration changes.
+
+The official selected MinIO release source is now acquired at immutable revision
+`0d7408fc9969caf07de6a8c3a84f9fbb10a6739e`. The source record inventories 256
+module archive/mod hashes and exact notice evidence. Three Go-derived modules
+explicitly reference the retained Go BSD notice; `mpb/v8` includes UNLICENSE.
+`go-localereader v0.0.1` declares MIT in README but omits the complete original
+notice, and its versioned LICENSE URL returned 404. This unresolved notice keeps
+the build and Langfuse service execution blocked. The source-qualification helper
+returns 78 on incomplete closure. No MinIO binary, storage substitute, Langfuse
+API persistence or H08 success is claimed. Worker/OS/database inventories and
+actual API export/outage/restart readback remain required after that blocker.
+
+The user waived independent review for this offline tranche. No independent
+review is recorded as having occurred. Full-product and live gates remain blocked.

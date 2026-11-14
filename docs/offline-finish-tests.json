@@ -1,0 +1,87 @@
+{
+  "schema_version": 1,
+  "reconciled_main": "9cb7530",
+  "source_hashes": {
+    "tools/streaming_bundle.py": "0c812e6c5d44eb2956c7b25d1eddcbdf928a8de24cb671640bd06e994e424979",
+    "tools/minio_source_qualification.py": "8566f5dd5dfbf90d9f0754ebe4f3c8ee848d37e95c6197c3d23ff37daf723870",
+    "tools/check_maintained_mutations.py": "7cfcb13e5a4d380c5c65d0cfe17e80f62b20b85c819e138222f7908e25952fe9",
+    "tests/test_streaming_bundle.py": "b9ede46a88ac786c9015711fb8f69ade1b98970bbaa296132cb4f8772fedabed",
+    "tests/test_minio_source_qualification.py": "e92fa66a7b05a91b05c67fff7922e1851e2b8479bae09d25439314a215460529"
+  },
+  "checks": {
+    "prepared_Temporal_and_host_suite": {
+      "run": 67,
+      "passed": 60,
+      "skipped": 7
+    },
+    "Linux_arm64_metadata_and_streaming_bundle_suite": {
+      "run": 11,
+      "passed": 11,
+      "skipped": 0
+    },
+    "behavioral_mutations": {
+      "stream_checksum_ignored": true,
+      "stream_installed_modes_ignored": true,
+      "fabricated_persistence": true,
+      "wrong_installed_attribution": true
+    },
+    "Collector_privacy": {
+      "status": "passed",
+      "evidence_class": "isolated_privacy_challenge",
+      "Collector": "0.163.2",
+      "config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+      "proposed_config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+      "dependencies_sha256": "e6f028e3047b4a2914444b73a38f12cdc93be4d504c460123c863d2291e27f80",
+      "observed": {
+        "transport": "accepted",
+        "backend": "persisted_file_only",
+        "matching_records": 2,
+        "duplicates": 1,
+        "privacy": "passed_tested_synthetic_envelope_only"
+      },
+      "malformed_envelope": "rejected_HTTP_400_zero_extra_backend_records",
+      "internal_error_log_canaries": "absent",
+      "buffered_interruption": {
+        "state": "lost_after_volatile_export_buffer_SIGKILL",
+        "matching_records": 0
+      },
+      "canary_paths": [],
+      "schema_url_setter": "supported_and_canaries_removed_in_file_readback",
+      "Langfuse_pipeline": "not_run",
+      "native_producer": "blocked",
+      "full_H08": "blocked",
+      "live_acceptance": "not_run",
+      "repeat_runs": 2
+    },
+    "Collector_queue_recovery": {
+      "status": "passed",
+      "evidence_class": "isolated_standard_Collector_queue_recovery",
+      "Collector": "0.163.2",
+      "primary_config_sha256": "1c9f0f617ce5da0e14180c054a28dbb17a81659f85fac6776e9ed0cf427cf470",
+      "backend_config_sha256": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+      "before_backend_readback": "queued_not_persisted",
+      "recovery": "fresh_Collector_after_SIGKILL_with_file_storage_queue",
+      "observed": {
+        "transport": "accepted",
+        "backend": "persisted_file_only",
+        "matching_records": 1,
+        "duplicates": 0,
+        "privacy": "passed_tested_synthetic_envelope_only"
+      },
+      "Langfuse": "blocked_dependency_preparation",
+      "native": "blocked",
+      "full_H08": "blocked",
+      "repeat_runs": 2
+    },
+    "MinIO_source_helper_exit": 78,
+    "Black_Ruff_scaffold": "passed"
+  },
+  "Langfuse": {
+    "status": "blocked",
+    "record": "telemetry/minio-source-qualification.json",
+    "remaining": "original complete go-localereader v0.0.1 notice; build; worker/OS/database inventories; actual API readback"
+  },
+  "independent_review": "user_waived_no_review_performed",
+  "full_system": "blocked",
+  "live_acceptance": "not_run"
+}
