@@ -4,7 +4,9 @@
 Exit 2 means blocked, never successful deployment. No runner is registered by
 the Mac preparation tools; Strix uses the disposable host manager.
 """
+
 import argparse
+import importlib
 import json
 import os
 from pathlib import Path
@@ -59,24 +61,49 @@ def main(argv=None):
         type=Path,
         help="JSON map of owner/repo/lane to GitHub run ID; fetched and verified",
     )
-    parser.add_argument("--ref", default="ci/strix-push-validation", help="Trusted qualification branch")
-    parser.add_argument("--image", type=Path, default=Path('/var/lib/runspindle-fleet/images/qualified.qcow2'))
-    parser.add_argument("--image-manifest", type=Path, default=Path('/var/lib/runspindle-fleet/images/qualified.json'))
+    parser.add_argument(
+        "--ref", default="ci/strix-push-validation", help="Trusted qualification branch"
+    )
+    parser.add_argument(
+        "--image",
+        type=Path,
+        default=Path("/var/lib/runspindle-fleet/images/qualified.qcow2"),
+    )
+    parser.add_argument(
+        "--image-manifest",
+        type=Path,
+        default=Path("/var/lib/runspindle-fleet/images/qualified.json"),
+    )
     args = parser.parse_args(argv)
     cfg = config()
-    if args.command == 'image-status':
-        from runner_fleet.lifecycle import image_matrix
-        result = image_matrix(cfg, Path(__file__).resolve().parents[1] / 'fleet/image-inputs.json',
-                              args.image, args.image_manifest)
+    if args.command == "image-status":
+        lifecycle = importlib.import_module("runner_fleet.lifecycle")
+
+        result = lifecycle.image_matrix(
+            cfg,
+            Path(__file__).resolve().parents[1] / "fleet/image-inputs.json",
+            args.image,
+            args.image_manifest,
+        )
         print(json.dumps(result, indent=2, sort_keys=True))
         return 2  # Byte identity cannot qualify any target lane.
     state = args.state_dir.expanduser().resolve()
     state.mkdir(mode=0o700, parents=True, exist_ok=True)
     control = state / (args.host + "-control.json")
-    if args.host == "strix" and args.command in ("manage", "install", "preflight", "status", "drain", "resume", "uninstall"):
+    if args.host == "strix" and args.command in (
+        "manage",
+        "install",
+        "preflight",
+        "status",
+        "drain",
+        "resume",
+        "uninstall",
+    ):
         from runner_fleet import service
+
         if args.command == "manage":
             from runner_fleet.manager import Manager
+
             Manager(cfg, state).run()
             return 0
         if args.command in ("preflight", "install", "uninstall"):
@@ -135,7 +162,7 @@ def main(argv=None):
                 )
             receipts = json.loads(args.receipts.read_text())
             valid_keys = {
-                f'{cfg["owner"]}/{repo}/{lane}'
+                f"{cfg['owner']}/{repo}/{lane}"
                 for repo in cfg["repositories"]
                 for lane in cfg["lanes"]
             }
@@ -144,6 +171,7 @@ def main(argv=None):
             result = collect(cfg, revisions, receipts, state)
         elif args.host == "strix" and revisions:
             from runner_fleet.service import qualify
+
             result = qualify(cfg, revisions, state, args.ref)
         else:
             result = empty_report(cfg, revisions)

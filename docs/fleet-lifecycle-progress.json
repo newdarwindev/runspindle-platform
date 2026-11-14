@@ -15,7 +15,8 @@
     "stale future missing clocks and incomplete guest observations report zero available capacity",
     "drained manager and inventory errors report zero available capacity",
     "guest loss and foreign resource identity report zero available capacity",
-    "uncertain and cleaning slots remain occupied across fresh process; requested SHA/run survives without inventing claimed job identity"
+    "uncertain and cleaning slots remain occupied across fresh process; requested SHA/run survives without inventing claimed job identity",
+    "mutation subprocess runs from copied repository and fresh child imports copied lifecycle implementation"
   ],
   "product_acceptance": "not_run",
   "real_boundaries": [
@@ -37,14 +38,20 @@
   "source_sha256": {
     "fleet/config.json": "ac4730659c3eb42182432d761c7396e6cc0e6d959ace8173035fdb9e4749f195",
     "fleet/image-inputs.json": "52d59a2afdb94ca012e24885f5c90a5692bf2e06ce38c3ab539fe583ff6c0ae3",
-    "tests/test_fleet_lifecycle.py": "5ae7d11711fb346cf8e39f086bf8327dc30ae7768b1a8fbf28f51671c7110e63",
-    "tools/check_fleet_lifecycle_mutations.py": "277a9c22e5f6e1966f7a2239eecad451ad0d83be8c27f5dc2855ce34d807a4f8",
-    "tools/runner_fleet/lifecycle.py": "43409e28ae5f9cac2ca30aeabdd0445eac8e08d5b6cfa530fd831b999abba997"
+    "tests/test_fleet_lifecycle.py": "3bd1d2157b24309b8fef908947c511b6057739a8723a4cac2c2dda4c22eb56f2",
+    "tools/check_fleet_lifecycle_mutations.py": "46f195ed7e07db0f470b838a313e980cedb1b9617b0d514da17b1ba87aef26f3",
+    "tools/runner_fleet/lifecycle.py": "93fa342c5041060c1893b44052509f01f22271d0b0d3cc499849a06b42a9a1af"
   },
   "synthetic_boundaries": [
     "image bytes and build manifest",
     "clock service and guest observation records",
     "manager QEMU systemd and GitHub fault test peers"
   ],
-  "target_lifecycle_qualification": "blocked"
+  "target_lifecycle_qualification": "blocked",
+  "integration_base_commit": "e3cac59dfddf1f39af8d3e01b6d745f24d6b7910",
+  "source_commits": [
+    "ee044e05ba494ed046d5113a64184c75e27691f3",
+    "d145a53bf374b3ff53be3e8cbc8e0c3370d3efe1"
+  ],
+  "mandatory_inventory": "hygiene.json includes check-fleet-lifecycle-mutations; original debt baseline unchanged"
 }
