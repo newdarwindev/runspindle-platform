@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.identity import FIXED, RECIPE, binding
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.runner_fleet.identity import FIXED, RECIPE, binding
 
 
 class IdentityTests(unittest.TestCase):

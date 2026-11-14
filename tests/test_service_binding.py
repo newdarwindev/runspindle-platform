@@ -7,11 +7,16 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from typing import Any, Callable, cast
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet import service
-from runner_fleet.state import State
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.runner_fleet import service
+from tools.runner_fleet import state as _state
+
+# Explicit adapters for existing dynamic SQLite/service APIs under test.
+State: Any = _state.State
+control = cast(Callable[[dict[str, Any], Path, str], dict[str, Any]], service.control)
 
 
 class ServiceBindingTests(unittest.TestCase):
@@ -51,23 +56,17 @@ class ServiceBindingTests(unittest.TestCase):
                 patch.object(service, "helper"),
                 patch.object(service, "observed", return_value={"status": "passed"}),
             ):
-                self.assertEqual(
-                    service.control({}, root, "resume")["status"], "passed"
-                )
+                self.assertEqual(control({}, root, "resume")["status"], "passed")
                 self.assertFalse(state.get("drained"))
                 state.set("drained", True)
                 binding.return_value = bindings | {"recipe_sha256": "d" * 64}
-                self.assertEqual(
-                    service.control({}, root, "resume")["status"], "blocked"
-                )
+                self.assertEqual(control({}, root, "resume")["status"], "blocked")
                 self.assertTrue(state.get("drained"))
                 binding.return_value = bindings
                 (images / "qualified.json").write_text(
                     json.dumps(manifest | {"controller_sha256": "e" * 64})
                 )
-                self.assertEqual(
-                    service.control({}, root, "resume")["status"], "blocked"
-                )
+                self.assertEqual(control({}, root, "resume")["status"], "blocked")
                 self.assertTrue(state.get("drained"))
 
 

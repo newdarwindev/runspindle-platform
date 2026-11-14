@@ -8,8 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.staging import safe_archive
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.runner_fleet.staging import safe_archive
 
 
 class StagingTests(unittest.TestCase):

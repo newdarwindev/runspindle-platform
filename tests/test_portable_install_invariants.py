@@ -7,14 +7,14 @@ The native installation suite and its mandatory mutation gate remain unchanged.
 
 import json
 import os
-from pathlib import Path
 import shutil
 import sqlite3
 import subprocess
 import sys
 import tempfile
-from typing import Any
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from tools import development_bundle as development_module
