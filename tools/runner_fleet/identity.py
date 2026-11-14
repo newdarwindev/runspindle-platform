@@ -10,6 +10,7 @@ from .quality import digest
 
 FIXED = (
     "tools/fleet.py",
+    "tools/document_candidate.py",
     "tools/temporal_lane.py",
     "requirements-quality.txt",
     "requirements-documents.txt",

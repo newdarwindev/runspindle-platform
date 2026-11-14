@@ -12,6 +12,7 @@ import shutil
 import socket
 import subprocess
 import time
+from typing import Callable, cast
 
 ROOT = Path('/var/lib/runspindle-fleet')
 HELPER = '/opt/runspindle-fleet/tools/runner_fleet/host_helper.py'
@@ -58,8 +59,13 @@ def digest(path):
     return value.hexdigest()
 
 
-def image_binding(image, manifest_path, image_sha, *, candidate):
+def image_binding(image, manifest_path, image_sha, *, candidate, document_overlay=False):
     manifest = json.loads(Path(manifest_path).read_text())
+    kind = manifest.get('manifest_kind')
+    if kind is not None and (kind != 'document-overlay-v1' or not document_overlay):
+        raise RuntimeError('Narrow document overlay is not an ordinary fleet image')
+    if document_overlay and (kind != 'document-overlay-v1' or not candidate):
+        raise RuntimeError('Explicit document overlay manifest required')
     if candidate and str(image) != manifest.get('candidate_path'):
         raise RuntimeError('Candidate image path differs from recorded manifest')
     if manifest.get('sha256') != image_sha:
@@ -78,9 +84,11 @@ def image_binding(image, manifest_path, image_sha, *, candidate):
 
 
 class Backend:
-    def __init__(self, state, image=None):
+    def __init__(self, state, image=None, *, candidate_manifest=None, document_overlay=False):
         self.state = state
         self.image = Path(image or ROOT / 'images/qualified.qcow2')
+        self.candidate_manifest = Path(candidate_manifest) if candidate_manifest is not None else None
+        self.document_overlay = document_overlay
 
     def directory(self, resource):
         path = self.state.directory / 'resources' / resource['id']
@@ -133,11 +141,12 @@ class Backend:
                 raise RuntimeError('Unsealed guest image refused')
             qualified = ROOT / 'images/qualified.qcow2'
             path = (ROOT / 'images/qualified.json' if self.image == qualified
-                    else self.state.directory / 'candidate.json')
+                    else self.candidate_manifest or self.state.directory / 'candidate.json')
             instance.update(image_binding(self.image, path, image_sha,
-                                          candidate=self.image != qualified))
+                                          candidate=self.image != qualified,
+                                          document_overlay=self.document_overlay))
         self.state.update(resource, 'starting', image_sha256=image_sha, boot_deadline=time.time() + 240)
-        helper('network')  # Firewall applied before any guest process exists.
+        self.ensure_network()  # Normal callers still apply firewall before boot.
         observed = helper('observe', resource['slot'])
         if observed.get('ActiveState') in ('active', 'activating', 'deactivating'):
             raise RuntimeError('Unreconciled occupied slot')
@@ -158,7 +167,7 @@ class Backend:
         }
         if prepare:
             source = Path(__file__).resolve().parents[2]
-            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'fleet/builder-closure.json', 'fleet/builder-x64.Containerfile', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py', 'tools/runner_fleet/documents.py', 'fleet/document-closure.json', 'requirements-documents.txt', 'fleet/DOCUMENT_NOTICES.md'):
+            for relative in self.preparation_sources():
                 cloud['write_files'].append({'path': '/opt/runspindle-image-tools/' + relative,
                                              'content': (source / relative).read_text(), 'permissions': '0644'})
         network = {'version': 2, 'ethernets': {'fleet': {
@@ -172,6 +181,12 @@ class Backend:
         execute(['cloud-localds', '--network-config=' + str(directory / 'network-config'),
                  str(slot / 'seed.iso'), str(directory / 'user-data'), str(directory / 'meta-data')])
         helper('start', resource['slot'], resource['id'])
+
+    def ensure_network(self) -> None:
+        cast(Callable[[str], object], helper)('network')
+
+    def preparation_sources(self) -> tuple[str, ...]:
+        return ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'fleet/builder-closure.json', 'fleet/builder-x64.Containerfile', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py', 'tools/runner_fleet/documents.py', 'fleet/document-closure.json', 'requirements-documents.txt', 'fleet/DOCUMENT_NOTICES.md')
 
     def ready(self, resource):
         result = self.ssh(resource, 'test -f /var/lib/cloud/instance/boot-finished\n', timeout=10, check=False)

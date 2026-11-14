@@ -58,6 +58,8 @@ def preflight(cfg, directory):
     def image():
         path = ROOT / 'images/qualified.qcow2'
         manifest = json.loads((ROOT / 'images/qualified.json').read_text())
+        if manifest.get('manifest_kind') is not None:
+            raise RuntimeError('Document-only overlay cannot qualify an ordinary fleet image')
         if path.stat().st_uid != 0 or path.stat().st_mode & 0o222:
             raise RuntimeError('Base image must be root-owned and read-only')
         if digest(path) != manifest['sha256']:
@@ -159,6 +161,8 @@ def control(cfg, directory, command):
         if report.get('status') != 'passed' or time.time() - report.get('observed_at', 0) > 86400:
             return {'status': 'blocked', 'reason': 'Fresh successful preflight required'}
         manifest = json.loads((ROOT / 'images/qualified.json').read_text())
+        if manifest.get('manifest_kind') is not None:
+            return {'status': 'blocked', 'reason': 'Document-only overlay cannot activate an ordinary fleet'}
         observed_image = next((c.get('detail') for c in report.get('checks', []) if c.get('check') == 'image' and c.get('status') == 'passed'), None)
         if observed_image != manifest or any(manifest.get(name) != value for name, value in binding(CODE).items()):
             return {'status': 'blocked', 'reason': 'Image, recipe, tool closure or controller changed after preflight'}
