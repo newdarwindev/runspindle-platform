@@ -9,6 +9,7 @@ import subprocess
 import time
 
 from .backend import Backend, ROOT, digest, execute, helper
+from .identity import binding
 from .manager import Manager, gh, pages
 from .model import empty_report
 from .state import State
@@ -61,6 +62,9 @@ def preflight(cfg, directory):
             raise RuntimeError('Base image must be root-owned and read-only')
         if digest(path) != manifest['sha256']:
             raise RuntimeError('Immutable image digest mismatch')
+        expected = binding(CODE)
+        if any(manifest.get(name) != value for name, value in expected.items()):
+            raise RuntimeError('Qualified image controller, recipe or closure drift')
         return manifest
     check('image', image)
     for repo in cfg['repositories']:
@@ -154,7 +158,11 @@ def control(cfg, directory, command):
         report = state.get('preflight', {})
         if report.get('status') != 'passed' or time.time() - report.get('observed_at', 0) > 86400:
             return {'status': 'blocked', 'reason': 'Fresh successful preflight required'}
-        if digest(ROOT / 'images/qualified.qcow2') != json.loads((ROOT / 'images/qualified.json').read_text())['sha256']:
+        manifest = json.loads((ROOT / 'images/qualified.json').read_text())
+        observed_image = next((c.get('detail') for c in report.get('checks', []) if c.get('check') == 'image' and c.get('status') == 'passed'), None)
+        if observed_image != manifest or any(manifest.get(name) != value for name, value in binding(CODE).items()):
+            return {'status': 'blocked', 'reason': 'Image, recipe, tool closure or controller changed after preflight'}
+        if digest(ROOT / 'images/qualified.qcow2') != manifest['sha256']:
             return {'status': 'blocked', 'reason': 'Image changed after preflight'}
         helper('network')
         service = observed(directory)

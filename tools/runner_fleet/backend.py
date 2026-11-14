@@ -3,6 +3,7 @@ import base64
 import hashlib
 import json
 import os
+import re
 import resource as process_resource
 import tempfile
 from pathlib import Path
@@ -57,6 +58,25 @@ def digest(path):
     return value.hexdigest()
 
 
+def image_binding(image, manifest_path, image_sha, *, candidate):
+    manifest = json.loads(Path(manifest_path).read_text())
+    if candidate and str(image) != manifest.get('candidate_path'):
+        raise RuntimeError('Candidate image path differs from recorded manifest')
+    if manifest.get('sha256') != image_sha:
+        raise RuntimeError('Image digest differs from recorded manifest')
+    values = {}
+    for field in ('controller_sha256', 'recipe_sha256', 'tool_closure_sha256'):
+        value = manifest.get(field)
+        if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value):
+            raise RuntimeError('Missing exact image binding: ' + field)
+        values[field] = value
+    source = manifest.get('source_sha')
+    if not isinstance(source, str) or not re.fullmatch(r'[0-9a-f]{40}', source):
+        raise RuntimeError('Missing exact image source revision')
+    values['image_source_sha'] = source
+    return values
+
+
 class Backend:
     def __init__(self, state, image=None):
         self.state = state
@@ -81,10 +101,41 @@ class Backend:
                         f'runner@10.231.{resource["slot"]}.2', 'bash', '-s'],
                        input=script, timeout=timeout, check=check, output_limit=32 * 1024**2)
 
+    def copy_prepared(self, resource, source, relative):
+        """Transfer one preverified archive through the guest's existing SSH identity."""
+        if not re.fullmatch(r'[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)*', relative):
+            raise ValueError('unsafe preparation destination')
+        source = Path(source)
+        if not source.is_file() or source.is_symlink():
+            raise ValueError('missing preparation archive')
+        directory = self.directory(resource)
+        target = '/home/runner/preparation/' + relative
+        parent = target.rsplit('/', 1)[0]
+        self.ssh(resource, 'mkdir -p ' + shlex.quote(parent), timeout=15)
+        result = execute(['scp', '-F', '/dev/null', '-i', str(directory / 'key'),
+                          '-o', 'IdentitiesOnly=yes', '-o', 'BatchMode=yes',
+                          '-o', 'StrictHostKeyChecking=yes',
+                          '-o', 'UserKnownHostsFile=' + str(directory / 'known_hosts'),
+                          '-o', 'ConnectTimeout=3', '-o', 'ClearAllForwardings=yes',
+                          str(source), f'runner@10.231.{resource["slot"]}.2:{target}'],
+                         timeout=600, check=False)
+        if result.returncode:
+            raise RuntimeError('verified preparation transfer failed')
+
     def create(self, resource, prepare=False):
         directory = self.directory(resource)
         slot = self.slot(resource)
         image_sha = digest(self.image)
+        instance = {'resource': resource['id'], 'slot': resource['slot'],
+                    'image_sha256': image_sha}
+        if not prepare:
+            if self.image.is_symlink() or self.image.stat().st_uid != 0 or self.image.stat().st_mode & 0o222:
+                raise RuntimeError('Unsealed guest image refused')
+            qualified = ROOT / 'images/qualified.qcow2'
+            path = (ROOT / 'images/qualified.json' if self.image == qualified
+                    else self.state.directory / 'candidate.json')
+            instance.update(image_binding(self.image, path, image_sha,
+                                          candidate=self.image != qualified))
         self.state.update(resource, 'starting', image_sha256=image_sha, boot_deadline=time.time() + 240)
         helper('network')  # Firewall applied before any guest process exists.
         observed = helper('observe', resource['slot'])
@@ -101,13 +152,13 @@ class Backend:
             'users': [{'name': 'runner', 'shell': '/bin/bash', 'lock_passwd': True,
                        'sudo': ['ALL=(ALL) NOPASSWD:ALL'] if prepare else [],
                        'ssh_authorized_keys': [(directory / 'key.pub').read_text().strip()]}],
-            'write_files': [{'path': '/etc/runspindle-instance.json', 'content': json.dumps({'resource': resource['id'], 'slot': resource['slot'], 'image_sha256': image_sha})}, {'path': '/etc/environment', 'content':
+            'write_files': [{'path': '/etc/runspindle-instance.json', 'content': json.dumps(instance)}, {'path': '/etc/environment', 'content':
                 f'http_proxy={proxy}\nhttps_proxy={proxy}\nHTTP_PROXY={proxy}\nHTTPS_PROXY={proxy}\nno_proxy=localhost,127.0.0.1\nNO_PROXY=localhost,127.0.0.1\n'}],
             'runcmd': [['sysctl', '-w', 'net.ipv6.conf.all.disable_ipv6=1']],
         }
         if prepare:
             source = Path(__file__).resolve().parents[2]
-            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py'):
+            for relative in ('tools/temporal_lane.py', 'temporal/dependencies.json', 'temporal/LICENSE-CLI', 'temporal/LICENSE-SERVER', 'tools/runner_fleet/prepare_temporal.sh', 'tests/test_temporal_lane.py', 'fleet/image-inputs.json', 'fleet/quality-closure.json', 'fleet/rust-closure.json', 'fleet/builder-closure.json', 'fleet/builder-x64.Containerfile', 'requirements-quality.txt', 'tools/runner_fleet/quality.py', 'tools/runner_fleet/staging.py', 'tools/runner_fleet/__init__.py'):
                 cloud['write_files'].append({'path': '/opt/runspindle-image-tools/' + relative,
                                              'content': (source / relative).read_text(), 'permissions': '0644'})
         network = {'version': 2, 'ethernets': {'fleet': {
@@ -171,6 +222,7 @@ cd /home/runner/runner
 set -a
 . /etc/environment
 set +a
+export PATH=/opt/runspindle-quality/bin:$PATH
 ./config.sh --unattended --ephemeral --disableupdate --url https://github.com/{repository} --token {shlex.quote(token)} --name {resource['runner_name']} --labels {shlex.quote(','.join(labels))} --work _work
 nohup env -u SSH_AUTH_SOCK ./run.sh > /home/runner/job.log 2>&1 < /dev/null &
 echo $! > /home/runner/runner.pid

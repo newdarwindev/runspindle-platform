@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 import json
-import os
 import shlex
 from pathlib import Path
 import subprocess
@@ -11,12 +10,18 @@ import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from runner_fleet.backend import Backend, ROOT, digest, execute, helper
 from runner_fleet.model import config, ROOT as SOURCE
+from runner_fleet.staging import verify as verify_staged
+from runner_fleet.identity import binding
 from runner_fleet.state import State
 
 
 def main():
     state = State(Path.home() / '.local/state/runspindle-fleet')
     pins = json.loads((SOURCE / 'fleet/image-inputs.json').read_text())
+    source_sha = subprocess.check_output(['git', '-C', str(SOURCE), 'rev-parse', 'HEAD'], text=True).strip()
+    if subprocess.check_output(['git', '-C', str(SOURCE), 'status', '--porcelain', '--untracked-files=all'], text=True).strip():
+        raise SystemExit('Image preparation requires a clean exact source checkout')
+    source_binding = binding(SOURCE)
     download = state.directory / 'downloads/ubuntu.img'
     download.parent.mkdir(mode=0o700, exist_ok=True)
     with state.lock():
@@ -26,6 +31,7 @@ def main():
             execute(['curl', '-fL', '--retry', '2', pins['ubuntu']['url'], '-o', str(download)], timeout=600)
         if digest(download) != pins['ubuntu']['sha256']:
             raise SystemExit('Pinned Ubuntu checksum mismatch; no guest booted')
+        verify_staged(SOURCE, download.parent)
         execute(['sudo', '-n', 'install', '-m', '0444', str(download), str(ROOT / 'images/ubuntu-base.qcow2')])
         resource = state.reserve({'repository': 'runspindle-platform', 'id': -2})
         backend = Backend(state, ROOT / 'images/ubuntu-base.qcow2')
@@ -37,6 +43,25 @@ def main():
                     raise RuntimeError('Preparation boot timeout')
                 time.sleep(2)
             backend.isolation(resource, check_tooling=False)
+            staged = [
+                'requirements-quality.txt',
+                'quality-node/package.json',
+                'quality-node/package-lock.json',
+                'quality-node-modules.tar.gz',
+                'actions-runner-linux-x64-2.338.2.tar.gz',
+                'rust-1.94.1-x86_64-unknown-linux-gnu.tar.xz',
+                'node.tar.xz',
+                pins['temporal']['filename'],
+                'LICENSE-CLI',
+                'core-source.tar.gz',
+                'host-source.tar.gz',
+                'cargo-closure.tar.gz',
+                'builder-closure.tar.gz',
+            ]
+            staged.extend('quality-wheels/' + row['filename'] for row in
+                          json.loads((SOURCE / pins['quality']['closure']).read_text())['wheels'])
+            for relative in staged:
+                backend.copy_prepared(resource, download.parent / relative, relative)
             closure = pins['offline_rust_dependencies']
             exports = ''.join(f'export {name}={shlex.quote(closure[key])}\n' for name, key in
                               (('RUNSPINDLE_CORE_SHA', 'core'), ('RUNSPINDLE_HOST_SHA', 'host')))
@@ -53,10 +78,18 @@ def main():
                     raise RuntimeError('Image preparation did not shut down')
                 time.sleep(2)
             helper('stop', resource['slot'], resource['id'])
-            candidate = state.directory / 'candidate.qcow2'
+            candidate = ROOT / 'images' / f'candidate-{source_sha[:12]}.qcow2'
+            if candidate.exists():
+                raise RuntimeError('Exact-source candidate image already exists')
             execute(['sudo', '-n', 'qemu-img', 'convert', '-O', 'qcow2', str(backend.slot(resource) / 'disk.qcow2'), str(candidate)], timeout=600)
-            execute(['sudo', '-n', 'chown', f'{os.getuid()}:{os.getgid()}', str(candidate)])
-            manifest = {'sha256': digest(candidate), 'inputs': pins, 'guest': manifest, 'build_log_sha256': digest(log)}
+            execute(['sudo', '-n', 'chown', 'root:root', str(candidate)])
+            execute(['sudo', '-n', 'chmod', '0444', str(candidate)])
+            if candidate.stat().st_uid != 0 or candidate.stat().st_mode & 0o222:
+                raise RuntimeError('Candidate image was not sealed read-only')
+            manifest = {'sha256': digest(candidate), 'candidate_path': str(candidate),
+                        'inputs': pins, 'guest': manifest,
+                        'build_log_sha256': digest(log), 'source_sha': source_sha,
+                        **source_binding}
             path = state.directory / 'candidate.json'
             path.write_text(json.dumps(manifest, indent=2))
             backend.destroy(resource)

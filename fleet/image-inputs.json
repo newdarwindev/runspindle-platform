@@ -12,15 +12,15 @@
     "license": "MIT; bundled third-party notices preserved in extracted archive"
   },
   "rust": {
-    "version": "1.93.0",
-    "url": "https://static.rust-lang.org/dist/rust-1.93.0-x86_64-unknown-linux-gnu.tar.xz",
-    "sha256": "b9d9f01a96a2542852ccfddd82194276ba1c86bc76353309ff636b737fc0a772",
+    "version": "1.94.1",
+    "url": "https://static.rust-lang.org/dist/rust-1.94.1-x86_64-unknown-linux-gnu.tar.xz",
+    "sha256": "294b3d81fa72e62581276290c60c81eb8b58498d333d422ca1dfc432877d0c40",
     "license": "MIT OR Apache-2.0; upstream COPYRIGHT and component licenses retained in image"
   },
   "offline_rust_dependencies": {
     "core": "ceabd0a92a944722ca774723b996298599f5b30b",
     "host": "a56e5d7c18611b07c1c28da425db7c14227b3e76",
-    "policy": "Fetch committed Cargo.lock closures, including core's pinned host Git source, in an isolated preparation guest; test both checkouts offline and retain crate checksums and licenses in the guest manifest."
+    "policy": "Verify exact core and host source archives and a complete locked Cargo registry/Git closure staged outside the guest; test offline in the preparation guest."
   },
   "policy": "Mutable URLs are accepted only when bytes match these fixed digests. Never refresh digests automatically. Derived image manifest records all installed package versions and copyright hashes. Binaries remain outside Git.",
   "node": {
@@ -33,6 +33,22 @@
     "manifest": "temporal/dependencies.json",
     "architecture": "amd64",
     "sha256": "521f461f3d108902763bb71e85cd0fd382dc9357b59604ae03da6ae734d16890",
-    "license": "MIT; CLI and embedded server notices preserved"
+    "license": "MIT; CLI and embedded server notices preserved",
+    "filename": "temporal_cli_1.10.0_linux_amd64.tar.gz",
+    "license_sha256": "692992f9a78f825b332d03f9b98aeb6cd5823ae884572af02e79f17327aa0612"
+  },
+  "quality": {
+    "closure": "fleet/quality-closure.json",
+    "closure_sha256": "3b919750776dc130a3ae18d1026583c206a7166bc7c3877674e4ff3b69016a89",
+    "policy": "Verify all staged Linux x64 wheels and Node modules against the closure before offline installation in the preparation guest."
+  },
+  "rust_closure": {
+    "manifest": "fleet/rust-closure.json",
+    "sha256": "d2ddeab3255cd69d082502259083d0a3fa9cf72b53601af90046e4d40cd90eff"
+  },
+  "runtime_builder": {
+    "manifest": "fleet/builder-closure.json",
+    "sha256": "d414b63cb391137ff973246ff251dc81ca0f34c6b5d47a5834a445b389092f3a",
+    "architecture": "linux/x86_64"
   }
 }
