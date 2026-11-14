@@ -1,0 +1,12 @@
+# CI image candidate, 2026-11-14
+
+Evidence class: disposable image preparation and isolated guest probes. This is not fleet rollout, GitHub CI qualification, integrated product acceptance, or production activation.
+
+- Candidate image: `sha256:f3a67103dbe60a0e8313315224ab457f95818ca9bb12ca179125890e814fc1cb` at `/var/lib/runspindle-fleet/images/candidate-dd678996b0e1.qcow2` on Strix, root owned and mode 0444. The recorded digest matched the file after sealing.
+- Exact image preparation source: `dd678996b0e135155aaad7ad93315e8cfaf8f324`; controller digest `c4aa9d7171e402adc02d58214edc8b5ff35c62e1f97e160749a2dd5105291c48`; recipe digest `0fa21327ff73e2aade11eceea18dfc5bd54d9a14f78a5d4a50c74316081555d4`; tool closure digest `809d24f076692a9ae1309dcae2386689fdaa83b1bf495bf996c9077f438783ea`.
+- The staged x64 builder archive digest is `9e872bae015df2787ef50be0a1fcd5d96b0f3f2a2f5b11414ef388f1dd61527c`, with Docker loaded image ID `sha256:9045681d1e2443e55bffe0c86dd93ee262157ea807fbf55c4e58e82699c9a53e`. Builder tool, package, and license pins are in `fleet/builder-closure.json`.
+- Preparation completed and emitted a private package/license manifest. A separate fresh guest passed boot, network and mount isolation, image identity, quality tool versions, platform test suite, and offline locked core and host Rust tests. Private sanitized receipt: `~/.local/state/runspindle-fleet/candidate-final-probe.json` on Strix. Private build and test logs remain in the corresponding recorded resource directories.
+- A previous attempt failed because the Podman-exported builder ID differed from Docker's loaded ID. The recipe now pins both identities and verifies Docker's exact ID and tool bytes. A separate fresh boot attempt failed because QEMU could not traverse the private state directory to read a sealed image; its reservation was reconciled and cleaned. The candidate is now stored in the fleet image directory. These failed attempts remain in private resource logs.
+- The existing qualified image and manifest pair remained unchanged. The existing manager was restarted with startup enabled and `drained=true`, with no active reservations after the probe.
+
+Remaining: independent review of the final PR head; full fleet preflight, cancellation and recovery qualification; manifest partition and aggregate gate; CI on exact candidate and merged revisions; merge and composition pin updates. No candidate promotion or manager resume has occurred.
