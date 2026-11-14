@@ -104,6 +104,8 @@ print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot
             self.assertEqual(result['status'], 'blocked')
             self.assertEqual(result['lanes'][0]['identity_status'], 'passed')
             self.assertTrue(all(row['qualification'] == 'blocked' for row in result['lanes']))
+            self.assertEqual(result['lanes'][1]['resources']['host_shared_capacity'], 1)
+            self.assertIn('implemented disposable backend and manager', result['lanes'][1]['remaining_prerequisites'])
             image.write_bytes(b'changed bytes')
             self.assertIn('image digest mismatch', image_matrix(config(), inputs, image, manifest)['lanes'][0]['identity_reasons'])
             record['sha256'] = hashlib.sha256(image.read_bytes()).hexdigest()

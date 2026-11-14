@@ -37,9 +37,9 @@
   "source_sha256": {
     "fleet/config.json": "ac4730659c3eb42182432d761c7396e6cc0e6d959ace8173035fdb9e4749f195",
     "fleet/image-inputs.json": "52d59a2afdb94ca012e24885f5c90a5692bf2e06ce38c3ab539fe583ff6c0ae3",
-    "tests/test_fleet_lifecycle.py": "99a7a64e892ab5820fef6bdfae98fdcf4c1e8f4cc1a06d761571dda61702f72d",
+    "tests/test_fleet_lifecycle.py": "5ae7d11711fb346cf8e39f086bf8327dc30ae7768b1a8fbf28f51671c7110e63",
     "tools/check_fleet_lifecycle_mutations.py": "277a9c22e5f6e1966f7a2239eecad451ad0d83be8c27f5dc2855ce34d807a4f8",
-    "tools/runner_fleet/lifecycle.py": "44e8958704bfd4304d8ece6b30e3798754245a651bccad084f2a2a333de79990"
+    "tools/runner_fleet/lifecycle.py": "43409e28ae5f9cac2ca30aeabdd0445eac8e08d5b6cfa530fd831b999abba997"
   },
   "synthetic_boundaries": [
     "image bytes and build manifest",

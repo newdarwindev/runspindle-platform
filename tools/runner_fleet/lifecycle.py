@@ -93,12 +93,23 @@ def image_matrix(cfg, inputs_path, image, manifest_path):
         'lanes': [{
             'lane': name, 'os': lane['os'], 'architecture': lane['architecture'],
             'backend': lane['backend'],
+            'resources': {'host_shared_capacity': cfg['hosts'][lane['host']]['capacity'],
+                          'cpus_per_guest': lane['cpus'], 'memory_gib_per_guest': lane['memory_gib'],
+                          'host_reserve_memory_gib': cfg['hosts'][lane['host']]['reserve_memory_gib'],
+                          'minimum_disk_gib': cfg['hosts'][lane['host']]['minimum_disk_gib']},
             'image_sha256': actual if lane['host'] == 'strix' else None,
             'identity_status': ('blocked' if reasons else 'passed') if lane['host'] == 'strix' else 'blocked',
             'identity_reasons': reasons if lane['host'] == 'strix' else ['target image and backend qualification unavailable'],
             'tooling': 'manifest_only_unverified' if lane['host'] == 'strix' else 'not_run',
             'lifecycle_qualification': 'not_run',
             'qualification': 'blocked',
+            'remaining_prerequisites': ['independent installed-tool and offline-dependency observations',
+                                        'actual cancellation guest-loss restart and cleanup observations',
+                                        'cross-job isolation and shared-capacity fairness observations'] +
+                                       ([] if lane['host'] == 'strix' else
+                                        ['target image recipe and license inventory',
+                                         'implemented disposable backend and manager',
+                                         'target host memory disk virtualization and isolation gates']),
         } for name, lane in cfg['lanes'].items()],
         'product_acceptance': 'not_run',
     }
