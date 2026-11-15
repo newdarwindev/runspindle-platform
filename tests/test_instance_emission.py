@@ -10,6 +10,10 @@ from unittest.mock import Mock, patch
 
 from tools.runner_fleet import backend
 
+# The pre-existing lifecycle API exchanges dynamic resource/state records.
+# Keep that boundary explicit while checking its real serialized output below.
+Backend: Any = backend.Backend
+
 
 class InstanceEmissionTests(unittest.TestCase):
     def exercise(
@@ -35,7 +39,7 @@ class InstanceEmissionTests(unittest.TestCase):
             (root / "slots/0").mkdir(parents=True)
             state = Mock(directory=root / "state")
             resource = {"id": "synthetic-resource", "slot": 0}
-            machine = backend.Backend(state, image)
+            machine = Backend(state, image)
             (machine.directory(resource) / "key.pub").write_text("synthetic-key")
             original_stat = Path.stat
 
