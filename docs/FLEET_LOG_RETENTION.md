@@ -1,54 +1,61 @@
 # Fleet diagnostic retention candidate
 
-This source candidate preserves captured logs and original stopped-guest bytes.
-It is not an installed controller, a qualified image or deployment authority.
-No existing evidence or original logs are migrated by publishing this source.
+This source candidate preserves captures and original stopped-guest bytes. It
+is not an installed controller, qualified image or deployment grant. Existing
+user data and logs remain untouched until the owner approves the exact plan.
 
-The previous diagnostics path could replace successful text/archive captures on
-later polls. Cleanup could delete the guest disk even if SSH never returned a
-complete archive. The candidate instead creates exclusive, mode-0600 captures
-with read-back hashes; prior captures are retained. Registration output remains
-redacted and earlier captures survive. Linked/nonregular serial sources are
-rejected. The root helper retains linked slot inputs for reconciliation.
+Diagnostic, archive, build and redacted registration output use exclusive
+mode-0600 captures with read-back hashes and fsync. Later polls never replace
+earlier captures. Linked/nonregular serial sources and occupied startup log
+paths are rejected; QEMU serial output also uses append mode. Failed attempts
+retain their outputs. The root helper rejects linked slot inputs instead of
+unlinking them. Preparation directories remain inside the retained guest image.
 
-After guest termination, cleanup retains the entire original disk overlay,
-records its SHA256 and the observed backing image path/SHA256, and retains the
-original serial inode after verifying a complete capture. Relocation is a
-same-filesystem rename, with no copy/delete fallback. Verification or relocation
-failure blocks cleanup and preserves evidence. A failed SSH capture therefore
-does not authorize deletion of guest logs. Successful slot/process cleanup does
-not mean historical evidence was deleted or that a full guest archive was read.
+## Standalone guest retention
 
-## Deployment prerequisites
+A text tail or runner archive cannot prove all persisted guest logs were read.
+After guest termination the candidate therefore inspects the overlay and base
+as qcow2, requires exactly the reserved standalone backing image and recorded
+base digest, checks the overlay, then converts it to a new self-contained image.
+It checks the copy has no backing reference and the expected virtual size, and
+uses real qemu-img compare to verify logical disk bytes. Source identity,
+timestamps and source/base hashes must remain stable across those operations.
+The verified snapshot, computed hashes and complete command results are kept.
 
-The owner must approve the exact new controller/image plan before installation.
-That plan must explicitly authorize relocation of original stopped-guest disk
-and serial files into their per-resource evidence directory. These operations
-are not authorized merely by a source test or PR merge. Existing logs stay in
-place until that approval; no prune or deletion is included.
+Only after verification does cleanup relocate the original overlay inode
+into the same resource's evidence directory. The original serial inode is also
+retained after verifying its full capture. These are same-filesystem renames;
+there is no copy/delete fallback. Input, conversion, comparison, verification
+or relocation uncertainty blocks cleanup and preserves all available evidence.
+No guest disk or serial log is deleted. The standalone copy remains readable
+without the former backing path; the original overlay is preserved as original
+bytes, with its observed backing reference recorded. Read-only mode is not a
+claim of immutable lifetime sealing or production durability.
 
-Retained overlays depend on their exact backing image bytes. They are **not
-standalone images**. The owner must retain all referenced backing image versions,
-with their recorded digests and recovery mappings, for as long as logs are kept.
-A controller/image rollout must not overwrite or remove the last retained copy
-of a referenced backing version. This candidate does not implement a universal
-backing-image garbage collector or authorize image promotion. Do not deploy it
-until the concrete rollout/rollback plan proves backing preservation; otherwise
-keep the current deployment blocked. Root-owned/read-only image files alone do
-not establish immutable lifetime retention.
+## Capacity and approval
 
-Capacity planning must include all historical guest overlays and snapshots plus
-the new build's scratch/output budget and existing admission reserve. Retention
-has no expiry or automatic reclamation. Moving evidence across filesystems is
-blocked and requires a separately reviewed migration plan. Current guest log
-archives and serial snapshots are partial observations; retained disk plus
-backing bytes are required for complete persisted guest data reconstruction.
+The owner must approve the exact controller/build plan, privileged helper scope
+and relocation of original guest artifacts before those operations run. Source
+tests and PR publication do not authorize deployment, manager resume or existing
+data movement. Qualified/previous images, rollback data and logs are retained.
 
-## Component checks
+Before any reservation, the build requires the existing host reserve plus three
+24 GiB disks (overlay, converted candidate, independent retained guest copy) and
+8 GiB incremental evidence: currently110GiB available on the actual fleet
+filesystem. Repeated historical retention also consumes capacity; no expiry,
+pruning or automatic reclamation is included. The sealed pinned Ubuntu base must
+already exist and match; the builder refuses to replace it. Existing candidate
+metadata is captured before publishing a new real build manifest.
 
-`python3 -m unittest tests.test_log_retention -v` exercises repeated captures,
-redaction, original inode/content retention, archive failure, verification
-failure, linked/FIFO sources and cross-filesystem refusal using synthetic files
-and mocked infrastructure. Run existing fleet tests, the complete Python suite,
-`python3 tools/check_scaffold.py` and pinned static quality as well. None of these
-tests boot a guest or prove deployed retention, cancellation or image binding.
+## Verification scope
+
+python3 -m unittest tests.test_log_retention tests.test_build_capacity -v
+exercises snapshots, redaction, original inode preservation, failed guest archive,
+comparison/verification failure, foreign backing chains, links/FIFOs, capacity
+refusal and cross-filesystem refusal. Qcow2-specific tests use actual local
+qemu-img/qemu-io on tiny synthetic disks, recover guest changes after moving the
+former backing path, and detect deliberate corruption through real comparison.
+They explicitly skip if those tools are absent; skips are not passing evidence.
+Other tests mock infrastructure orchestration. Run the complete suite, scaffold
+and pinned static quality too. No test here boots a guest, installs a controller
+or qualifies live cancellation, installed tools or a production system.

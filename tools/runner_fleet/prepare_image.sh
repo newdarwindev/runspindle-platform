@@ -80,4 +80,5 @@ cd /home/runner
 sudo apt-get clean
 sudo systemctl disable apt-daily.timer apt-daily-upgrade.timer
 bash /opt/runspindle-image-tools/tools/runner_fleet/prepare_temporal.sh
-sudo rm -rf /home/runner/preparation
+# Keep preparation inputs and generated diagnostics in the retained guest image.
+# Any later reclamation requires its own verified, approved retention plan.

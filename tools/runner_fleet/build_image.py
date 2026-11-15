@@ -3,6 +3,7 @@
 
 import json
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -15,7 +16,7 @@ from tools.runner_fleet import backend as _backend
 from tools.runner_fleet import model as _model
 from tools.runner_fleet import state as _state
 from tools.runner_fleet.identity import binding
-from tools.runner_fleet.retention import capture_bytes
+from tools.runner_fleet.retention import capture_bytes, capture_file
 from tools.runner_fleet.staging import verify as verify_staged
 
 # Existing process/state helpers exchange dynamic JSON records. Their boundary
@@ -27,9 +28,23 @@ execute: Any = _backend.execute
 helper: Any = _backend.helper
 SOURCE = _model.ROOT
 State: Any = _state.State
+config: Any = _model.config
+
+
+def require_build_capacity(root: Path, reserve_gib: int) -> dict[str, int]:
+    # Slot overlay + sealed candidate + independent retained guest snapshot.
+    # Eight GiB also cover incremental receipts and preparation growth.
+    required = reserve_gib + 3 * _backend.GUEST_DISK_GIB + 8
+    available = shutil.disk_usage(root).free
+    if available < required * 1024**3:
+        raise SystemExit(
+            f"Image build needs {required} GiB including reserve and retention"
+        )
+    return {"available_bytes": available, "required_gib": required}
 
 
 def main():
+    require_build_capacity(ROOT, config()["hosts"]["strix"]["minimum_disk_gib"])
     state = State(Path.home() / ".local/state/runspindle-fleet")
     pins = json.loads((SOURCE / "fleet/image-inputs.json").read_text())
     source_sha = subprocess.check_output(
@@ -62,19 +77,19 @@ def main():
         if digest(download) != pins["ubuntu"]["sha256"]:
             raise SystemExit("Pinned Ubuntu checksum mismatch; no guest booted")
         verify_staged(SOURCE, download.parent)
-        execute(
-            [
-                "sudo",
-                "-n",
-                "install",
-                "-m",
-                "0444",
-                str(download),
-                str(ROOT / "images/ubuntu-base.qcow2"),
-            ]
-        )
+        base = ROOT / "images/ubuntu-base.qcow2"
+        if (
+            base.is_symlink()
+            or not base.is_file()
+            or base.stat().st_uid != 0
+            or base.stat().st_mode & 0o222
+            or digest(base) != pins["ubuntu"]["sha256"]
+        ):
+            raise SystemExit(
+                "Existing sealed pinned Ubuntu base required; no file replaced"
+            )
         resource = state.reserve({"repository": "runspindle-platform", "id": -2})
-        backend = Backend(state, ROOT / "images/ubuntu-base.qcow2")
+        backend = Backend(state, base)
         try:
             backend.create(resource, prepare=True)
             deadline = time.monotonic() + 240
@@ -174,6 +189,13 @@ def main():
                 **source_binding,
             }
             path = state.directory / "candidate.json"
+            if path.exists() or path.is_symlink():
+                capture_file(path, state.directory, "candidate-before-build.json")
+            capture_bytes(
+                state.directory,
+                f"candidate-{source_sha}.json",
+                json.dumps(manifest, indent=2).encode(),
+            )
             path.write_text(json.dumps(manifest, indent=2))
             backend.destroy(resource)
             state.update(

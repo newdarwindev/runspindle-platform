@@ -15,10 +15,11 @@ import uuid
 from pathlib import Path
 from typing import Any, cast
 
-from .retention import capture_bytes, capture_file
+from .retention import capture_bytes, capture_file, snapshot_guest_disk
 
 ROOT = Path("/var/lib/runspindle-fleet")
 HELPER = "/opt/runspindle-fleet/tools/runner_fleet/host_helper.py"
+GUEST_DISK_GIB = 24
 
 
 def execute(
@@ -272,7 +273,7 @@ class Backend:
                 "-b",
                 str(self.image),
                 str(slot / "disk.qcow2"),
-                "24G",
+                f"{GUEST_DISK_GIB}G",
             ]
         )
         proxy = f"http://10.231.{resource['slot']}.1:3128"
@@ -508,32 +509,16 @@ echo $! > /home/runner/runner.pid
         if disk.is_symlink():
             raise RuntimeError("Linked guest disk retained; cleanup blocked")
         if disk.exists():
-            # A text tail or runner-only tar cannot prove all guest logs were
-            # captured. Keep the complete stopped overlay and its backing
-            # dependency, rather than deleting unobserved guest evidence.
-            expected_disk = digest(disk)
             expected_base = resource.get("details", {}).get("image_sha256")
-            if expected_base != digest(self.image):
-                raise RuntimeError("Guest backing image changed; cleanup blocked")
-            retained_disk = directory / f"guest-disk-{uuid.uuid4().hex}.qcow2"
-            if retained_disk.exists() or retained_disk.is_symlink():
-                raise RuntimeError("Retained guest disk destination occupied")
-            disk.rename(retained_disk)
-            if digest(retained_disk) != expected_disk:
-                raise RuntimeError("Retained guest disk changed; cleanup blocked")
-            capture_bytes(
+            if not isinstance(expected_base, str):
+                raise RuntimeError("Missing reserved guest image identity")
+            snapshot_guest_disk(
+                disk,
+                self.image,
                 directory,
-                "retained-guest-disk.json",
-                json.dumps(
-                    {
-                        "overlay": str(retained_disk),
-                        "overlay_sha256": expected_disk,
-                        "backing_image": str(self.image),
-                        "backing_image_sha256": expected_base,
-                        "scope": "original overlay; backing bytes must also remain retained",
-                    },
-                    sort_keys=True,
-                ).encode(),
+                expected_base,
+                lambda argv: execute(argv, timeout=600, check=False),
+                maximum_size=GUEST_DISK_GIB * 1024**3,
             )
         serial = self.slot(resource) / "serial.log"
         if serial.is_symlink():

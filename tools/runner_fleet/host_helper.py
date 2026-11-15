@@ -146,6 +146,9 @@ def observe(slot: int) -> dict[str, Any]:
 
 def start(slot: int, identity: str) -> None:
     directory = ROOT / "slots" / str(slot)
+    serial = directory / "serial.log"
+    if serial.exists() or serial.is_symlink():
+        raise RuntimeError("Existing serial log retained; reconcile before boot")
     account = pwd.getpwnam(f"runspindle-vm{slot}")
     state = observe(slot)
     if state.get("ActiveState") in ("active", "activating", "deactivating"):
@@ -216,8 +219,10 @@ def start(slot: int, identity: str) -> None:
         "none",
         "-monitor",
         "none",
+        "-chardev",
+        "file,id=fleetserial,path=" + str(serial) + ",append=on",
         "-serial",
-        "file:" + str(directory / "serial.log"),
+        "chardev:fleetserial",
         "-drive",
         f"file={directory}/disk.qcow2,format=qcow2,if=virtio,cache=none",
         "-drive",
