@@ -80,3 +80,13 @@ controller, recipe, tool, quality, Rust and builder pins plus separate authorize
 runner work. A self-reported ARM64 platform, matching fabricated receipt or unit
 test fixture does not establish that qualification. Unit tests use explicitly
 synthetic separate ARM64 pins to exercise future aggregate binding only.
+
+## Explicit Temporal coverage
+
+The `python-tests` command in `hygiene.json` selects required Temporal integration
+and its prepared directory explicitly. `tools/validate.py` no longer activates
+integration by probing directory presence. Missing preparation fails closed rather
+than returning a green suite with five integration skips. The local command
+`python3 tools/python_tests.py --temporal boundary` is separate, reports Temporal
+not run and cannot satisfy canonical receipts. Installed ARM64 tests are unchanged.
+See [Temporal selection and evidence limits](TEMPORAL_LANE.md#explicit-validation-selection).

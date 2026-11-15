@@ -14,7 +14,7 @@ from typing import Any
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from tools import hygiene  # noqa: E402
+from tools import hygiene, python_tests  # noqa: E402
 from tools import partition_validation as gate  # noqa: E402
 
 
@@ -66,6 +66,14 @@ class AggregateTests(unittest.TestCase):
                             ).hexdigest(),
                         }
                     )
+            for check in checks:
+                if check["id"] == "python-tests":
+                    check["temporal_coverage"] = {
+                        "mode": "required",
+                        "status": "passed",
+                        "started": list(python_tests.REQUIRED_IDS),
+                        "passed": list(python_tests.REQUIRED_IDS),
+                    }
             contract, image = gate.contract_image(self.manifest, partition)
             self.receipts[partition] = {
                 "schema_version": 2,
@@ -117,6 +125,25 @@ class AggregateTests(unittest.TestCase):
             self.head,
             self.run_id,
         )
+
+    def test_temporal_boundary_and_forged_success_do_not_qualify(self) -> None:
+        for evidence in (
+            None,
+            {"status": "passed"},
+            {
+                "mode": "boundary",
+                "status": "passed",
+                "started": list(python_tests.REQUIRED_IDS),
+                "passed": list(python_tests.REQUIRED_IDS),
+            },
+        ):
+            receipts = copy.deepcopy(self.receipts)
+            for receipt in receipts.values():
+                for check in receipt["checks"]:
+                    if check["id"] == "python-tests":
+                        check["temporal_coverage"] = evidence
+            with self.assertRaisesRegex(ValueError, "Temporal"):
+                self.check(receipts)
 
     def test_complete_receipts(self) -> None:
         self.assertEqual(self.check()["status"], "passed")

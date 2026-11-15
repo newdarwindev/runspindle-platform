@@ -82,15 +82,15 @@
       "id": "python-tests",
       "command": [
         "python3",
-        "-m",
-        "unittest",
-        "discover",
-        "-s",
-        "tests",
-        "-v"
+        "tools/python_tests.py",
+        "--temporal",
+        "required",
+        "--prepared",
+        "/opt/runspindle-temporal"
       ],
       "required_files": [
-        "tests"
+        "tests",
+        "tools/python_tests.py"
       ],
       "timeout_seconds": 600
     },

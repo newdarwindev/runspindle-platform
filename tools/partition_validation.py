@@ -433,6 +433,13 @@ def aggregate(
                     or check.get("command_sha256") != command_sha
                 ):
                     raise ValueError("failed or forged mandatory check receipt")
+            if check["id"] == "python-tests":
+                from tools.python_tests import CANONICAL_COMMAND, valid_coverage
+
+                if entry["command"] != CANONICAL_COMMAND or not valid_coverage(
+                    check.get("temporal_coverage")
+                ):
+                    raise ValueError("required Temporal coverage missing")
             covered.append(check["id"])
     if len(covered) != len(set(covered)) or set(covered) != set(by_id):
         raise ValueError("missing or duplicate mandatory check")
