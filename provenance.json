@@ -28,12 +28,16 @@
   "sources": [
     {
       "destination": "specs/native-monitoring.md",
-      "license_review": "No executable or binary import completed. Retain all required third-party notices when importing.",
-      "modifications": "Adapted requirements and documented prototype gaps; no executable source port or original Git history imported.",
+      "license_review": "No blanket source license established; original expression excluded. Public upstream sources referenced, not redistributed.",
+      "modifications": "Original concept rewrite accounting for all selected source sections; original expression and private linked dependencies excluded. No executable legacy import.",
       "rights_basis": "Owner-directed adaptation. Original rights retained; no blanket relicense.",
       "source_description": "Owner-selected legacy material; detailed source mapping retained privately.",
       "source_id": "SRC-011",
-      "status": "adapted_spec"
+      "status": "adapted_spec",
+      "artifact_manifest": "telemetry/native-monitoring-lift.json",
+      "compatibility_matrix": "telemetry/native-monitoring-compatibility.json",
+      "runtime_validation": "prior_synthetic_evidence_referenced_not_rerun",
+      "live_acceptance": "not_run"
     },
     {
       "destination": "specs/native-monitoring.md",
