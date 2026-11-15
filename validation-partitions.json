@@ -18,6 +18,7 @@
     ],
     "component": [
       "check-shared-fixtures",
+      "check-native-monitoring",
       "python-tests",
       "distributable-build"
     ],

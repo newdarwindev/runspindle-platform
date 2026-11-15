@@ -43,5 +43,13 @@
   "selected_source_migration": "partial",
   "stage": "temporal_lane_candidate",
   "temporal_lane": "locally_tested_linux_arm64",
-  "temporal_lane_evidence": "docs/temporal-lane-evidence.json"
+  "temporal_lane_evidence": "docs/temporal-lane-evidence.json",
+  "native_monitoring_document_lift": {
+    "manifest": "telemetry/native-monitoring-lift.json",
+    "source_accounting": "complete_with_explicit_exclusions",
+    "original_expression": "excluded_missing_rights_clearance",
+    "independent_review": "pending",
+    "native_telemetry": "blocked",
+    "live_acceptance": "not_run"
+  }
 }
