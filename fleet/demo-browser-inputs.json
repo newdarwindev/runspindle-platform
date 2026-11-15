@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "architecture": "linux/x86_64",
+  "scope": "partial external input pins only; no guest installation or fleet activation",
+  "demo_source_sha": "62b97ec5d3314494ffdd7256789d66bbc0f3a064",
+  "demo_package_lock_sha256": "9a6fad52efe703ab275374c6d9761c036b90edda4ce81ee1c9db3e7ccd440b88",
+  "archives": [
+    {
+      "filename": "playwright-1.56.1.tgz",
+      "url": "https://registry.npmjs.org/playwright/-/playwright-1.56.1.tgz",
+      "sha256": "44a9a01530963e82abd651b8b546897d0e594ca1801d72e5bbddfd7d35509c62",
+      "integrity": "sha512-aFi5B0WovBHTEvpM3DzXTUaeN6eN0qWnTkKx4NQaH4Wvcmc153PdaY2UBdSYKaGYw+UyWXSVyxDUg5DoPEttjw==",
+      "bytes": 866491,
+      "license_sha256": {
+        "package/LICENSE": "45873d00a0dd243596deb4aa23b2493b3d1f0671921bf2538ea431d7380220eb",
+        "package/NOTICE": "6d602191187b35b9b01d2cffa01c8469c2c8d9de8a96f1bf868e0f264f51c81d",
+        "package/ThirdPartyNotices.txt": "2eba4794fdffd39b2f823cb562c394a175240210aa8df445a0b5d34bcdad2382"
+      }
+    },
+    {
+      "filename": "playwright-core-1.56.1.tgz",
+      "url": "https://registry.npmjs.org/playwright-core/-/playwright-core-1.56.1.tgz",
+      "sha256": "fa648e5442796d4160c68dcfc3914ed5224f147852264993e6376e29f0228238",
+      "integrity": "sha512-hutraynyn31F+Bifme+Ps9Vq59hKuUCz7H1kDOcBs+2oGguKkWTU50bBWrtz34OUWmIwpBTWDxaRPXrIXkgvmQ==",
+      "bytes": 1970635,
+      "license_sha256": {
+        "package/LICENSE": "45873d00a0dd243596deb4aa23b2493b3d1f0671921bf2538ea431d7380220eb",
+        "package/NOTICE": "6d602191187b35b9b01d2cffa01c8469c2c8d9de8a96f1bf868e0f264f51c81d",
+        "package/ThirdPartyNotices.txt": "450299275b0e56be82eb14dbec79a2395dfe956f8e3c0a35f901163c4eef036e"
+      }
+    },
+    {
+      "filename": "1194-chromium-linux.zip",
+      "url": "https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1194/chromium-linux.zip",
+      "final_url": "https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/chromium/1194/chromium-linux.zip",
+      "sha256": "5ad70cf662e7090354edbe84e1a01ac531fd217f37f5001f0d2efbe0d152b396",
+      "bytes": 182333649,
+      "revision": "1194",
+      "license_sha256": {}
+    },
+    {
+      "filename": "1194-chromium-headless-shell-linux.zip",
+      "url": "https://cdn.playwright.dev/dbazure/download/playwright/builds/chromium/1194/chromium-headless-shell-linux.zip",
+      "final_url": "https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/chromium/1194/chromium-headless-shell-linux.zip",
+      "sha256": "d745c7210cc88b73c7991a22c9624819960d84bc3de77ac7336d2de841a8c91f",
+      "bytes": 109380198,
+      "revision": "1194",
+      "license_sha256": {}
+    },
+    {
+      "filename": "1011-ffmpeg-linux.zip",
+      "url": "https://cdn.playwright.dev/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip",
+      "final_url": "https://playwright.download.prss.microsoft.com/dbazure/download/playwright/builds/ffmpeg/1011/ffmpeg-linux.zip",
+      "sha256": "ebc74fc5b94830176a3c2914ae96bd8bc7f6a91f4f33890230f84a172ee61ccc",
+      "bytes": 2376500,
+      "revision": "1011",
+      "license_sha256": {
+        "COPYING.LGPLv2.1": "b634ab5640e258563c536e658cad87080553df6f34f62269a21d554844e58bfe"
+      }
+    }
+  ],
+  "remaining_gates": [
+    "Chromium redistributed notice closure",
+    "signed Ubuntu Noble ffmpeg/ffprobe/gh and full dependency closure",
+    "offline installation and sandboxed browser/media tests in isolated disposable guest",
+    "exact image/controller/recipe/tool binding and independent qualification"
+  ],
+  "activation_allowed": false
+}
