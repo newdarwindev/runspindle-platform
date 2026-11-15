@@ -32,3 +32,8 @@ Detailed adaptation: [native-monitoring.md](native-monitoring.md).
 managed sessions, explicit human exceptions and evaluated maintained workflows.
 It adds design and verification obligations without changing runtime schemas,
 existing acceptance results or operational permissions.
+
+Runner lifecycle progress for platform #15 adds exact candidate-image/recipe
+identity, conservative capacity observations and durable requested source bindings.
+See [scope and remaining gaps](../docs/fleet-lifecycle-progress.json); synthetic
+faults and actual SQLite restart checks do not qualify target guest operation.
