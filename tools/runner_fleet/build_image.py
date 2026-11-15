@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 
+import grp
 import json
 import os
 import shlex
 import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -30,6 +32,87 @@ helper: Any = _backend.helper
 SOURCE = _model.ROOT
 State: Any = _state.State
 config: Any = _model.config
+
+
+def require_build_group() -> int:
+    try:
+        group = grp.getgrnam("runspindle-fleet").gr_gid
+    except KeyError as error:
+        raise SystemExit(
+            "Existing fleet group required; no membership changes"
+        ) from error
+    if group not in {os.getgid(), *os.getgroups()}:
+        raise SystemExit(
+            "Existing fleet group must be active before build; no fallback"
+        )
+    return group
+
+
+def verify_private_candidate(candidate: Path, group: int) -> None:
+    info = candidate.stat()
+    if (
+        candidate.is_symlink()
+        or not stat.S_ISREG(info.st_mode)
+        or info.st_uid != 0
+        or info.st_gid != group
+        or stat.S_IMODE(info.st_mode) != 0o440
+        or "system.posix_acl_access" in os.listxattr(candidate)
+        or not os.access(candidate, os.R_OK)
+    ):
+        raise RuntimeError("Candidate must be private root:fleet0440 and readable")
+
+
+def verify_private_staging(directory: Path, group: int) -> None:
+    info = directory.stat()
+    if (
+        directory.is_symlink()
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != 0
+        or info.st_gid != group
+        or stat.S_IMODE(info.st_mode) != 0o750
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(directory))
+    ):
+        raise RuntimeError("Private root:fleet0750 staging without ACLs required")
+
+
+def verify_image_parent(directory: Path) -> None:
+    info = directory.stat()
+    if (
+        directory.is_symlink()
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != 0
+        or info.st_mode & 0o022
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(directory))
+    ):
+        raise RuntimeError("Root-owned image parent without writable aliases required")
+
+
+def publish_private_candidate(temporary: Path, candidate: Path, group: int) -> None:
+    verify_private_candidate(temporary, group)
+    original = temporary.stat()
+    if original.st_dev != candidate.parent.stat().st_dev:
+        raise RuntimeError("Candidate publication must stay on one filesystem")
+    execute(
+        [
+            "sudo",
+            "-n",
+            "mv",
+            "--no-copy",
+            "--no-clobber",
+            "--no-target-directory",
+            str(temporary),
+            str(candidate),
+        ]
+    )
+    verify_private_candidate(candidate, group)
+    installed = candidate.stat()
+    if temporary.exists() or (installed.st_dev, installed.st_ino) != (
+        original.st_dev,
+        original.st_ino,
+    ):
+        raise RuntimeError("Private candidate install uncertain; artifacts retained")
 
 
 def require_build_capacity(root: Path, reserve_gib: int) -> dict[str, int]:
@@ -103,7 +186,7 @@ def verify_build_source(source_sha: str, source_binding: dict[str, str]) -> None
         )
 
 
-def main():
+def main() -> None:
     cfg = config()
     require_build_capacity(ROOT, cfg["hosts"]["strix"]["minimum_disk_gib"])
     require_build_runtime(
@@ -113,6 +196,9 @@ def main():
     )
     state_directory = Path.home() / ".local/state/runspindle-fleet"
     require_build_storage(ROOT, state_directory)
+    fleet_group = require_build_group()
+    verify_image_parent(ROOT)
+    verify_image_parent(ROOT / "images")
     state = State(state_directory)
     pins = json.loads((SOURCE / "fleet/image-inputs.json").read_text())
     source_sha = subprocess.check_output(
@@ -233,9 +319,21 @@ def main():
                     raise RuntimeError("Image preparation did not shut down")
                 time.sleep(2)
             helper("stop", resource["slot"], resource["id"])
+            verify_image_parent(ROOT)
+            verify_image_parent(ROOT / "images")
             candidate = ROOT / "images" / f"candidate-{source_sha[:12]}.qcow2"
-            if candidate.exists():
+            if candidate.exists() or candidate.is_symlink():
                 raise RuntimeError("Exact-source candidate image already exists")
+            private = ROOT / "images" / f"build-private-{source_sha[:12]}"
+            if private.exists() or private.is_symlink():
+                raise RuntimeError("Private build path occupied; no retry or overwrite")
+            execute(["sudo", "-n", "mkdir", "--mode=0700", "--", str(private)])
+            execute(["sudo", "-n", "chown", "root:runspindle-fleet", str(private)])
+            execute(["sudo", "-n", "chmod", "0750", str(private)])
+            verify_private_staging(private, fleet_group)
+            if private.stat().st_dev != candidate.parent.stat().st_dev:
+                raise RuntimeError("Private staging must share final image filesystem")
+            temporary_candidate = private / "candidate.qcow2"
             execute(
                 [
                     "sudo",
@@ -245,14 +343,23 @@ def main():
                     "-O",
                     "qcow2",
                     str(backend.slot(resource) / "disk.qcow2"),
-                    str(candidate),
+                    str(temporary_candidate),
                 ],
                 timeout=600,
             )
-            execute(["sudo", "-n", "chown", "root:root", str(candidate)])
-            execute(["sudo", "-n", "chmod", "0444", str(candidate)])
-            if candidate.stat().st_uid != 0 or candidate.stat().st_mode & 0o222:
-                raise RuntimeError("Candidate image was not sealed read-only")
+            # Retained cloud/SSH originals make this a private artifact even
+            # though its guest filesystem has root-only evidence directories.
+            execute(
+                [
+                    "sudo",
+                    "-n",
+                    "chown",
+                    "root:runspindle-fleet",
+                    str(temporary_candidate),
+                ]
+            )
+            execute(["sudo", "-n", "chmod", "0440", str(temporary_candidate)])
+            publish_private_candidate(temporary_candidate, candidate, fleet_group)
             manifest = {
                 "sha256": digest(candidate),
                 "candidate_path": str(candidate),
