@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.quality import verify
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from tools.runner_fleet.quality import verify
 
 
 def sha(data: bytes) -> str:
@@ -34,7 +34,7 @@ class QualityClosureTests(unittest.TestCase):
             data = f"synthetic-{number}".encode()
             (self.downloads / "quality-wheels" / name).write_bytes(data)
             wheels.append({"filename": name, "sha256": sha(data), "bytes": len(data)})
-        node = {}
+        node: dict[str, str | int] = {}
         for name, field in (
             ("quality-node/package.json", "package_json_sha256"),
             ("quality-node/package-lock.json", "lock_sha256"),

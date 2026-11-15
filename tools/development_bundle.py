@@ -9,12 +9,13 @@ import base64
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import platform
 import re
 import shutil
 import sqlite3
 import tempfile
+from pathlib import Path, PurePosixPath
+from typing import Any
 
 VERSION = "runspindle.maintained-evidence.v1"
 COMPONENTS = {"core", "host", "browser", "console", "refinery", "platform", "tether"}
@@ -199,6 +200,36 @@ def verify(bundle, *, component_commits, target="linux/arm64"):
     )
     check(rebuilt == bundle, "noncanonical bundle")
     return manifest, files, value["manifest_sha256"]
+
+
+def _metadata_tree_readback(
+    folder: Path,
+    manifest: dict[str, Any],
+    files: dict[str, bytes],
+    expected: str,
+    digest: str,
+) -> dict[str, Any]:
+    """Check a tree against already verified metadata, without target admission.
+
+    This read-only helper does not install, construct a target, or qualify its
+    architecture. The installer must first verify the bundle for actual_target().
+    """
+    actual = {
+        str(p.relative_to(folder)): sha(p.read_bytes())
+        for p in folder.rglob("*")
+        if p.is_file()
+    }
+    check(
+        not any(p.is_symlink() for p in folder.rglob("*"))
+        and actual == manifest["files"],
+        "installed byte mismatch",
+    )
+    check(expected == digest, "installed manifest identity mismatch")
+    return {
+        "manifest_sha256": digest,
+        "files": len(files),
+        "unsupported": manifest["unsupported"],
+    }
 
 
 def actual_target():
@@ -399,22 +430,7 @@ class DisposableTarget:
             row[0], component_commits=component_commits, target=actual_target()
         )
         folder = self.root / "versions" / digest
-        actual = {
-            str(p.relative_to(folder)): sha(p.read_bytes())
-            for p in folder.rglob("*")
-            if p.is_file()
-        }
-        check(
-            not any(p.is_symlink() for p in folder.rglob("*"))
-            and actual == manifest["files"],
-            "installed byte mismatch",
-        )
-        check(expected == digest, "installed manifest identity mismatch")
-        return {
-            "manifest_sha256": digest,
-            "files": len(files),
-            "unsupported": manifest["unsupported"],
-        }
+        return _metadata_tree_readback(folder, manifest, files, expected, digest)
 
     def recover(self, api_version, *, component_commits, checkpoint=lambda _: None):
         check(api_version == VERSION, "unsupported recovery version")

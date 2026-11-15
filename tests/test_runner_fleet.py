@@ -21,27 +21,39 @@ from runner_fleet.model import (
 from runner_fleet.evidence import collect
 from runner_fleet.preflight import inspect_host
 import fleet
-from runner_fleet.backend import image_binding
+from tools.runner_fleet.backend import image_binding
 
 
 class ImageBindingTests(unittest.TestCase):
-    def test_exact_candidate_binding_and_negative_mismatches(self):
+    def test_exact_candidate_binding_and_negative_mismatches(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / 'candidate.json'
-            image = Path(directory) / 'candidate.qcow2'
-            value = {'candidate_path': str(image), 'sha256': 'a' * 64,
-                     'source_sha': 'b' * 40, 'controller_sha256': 'c' * 64,
-                     'recipe_sha256': 'd' * 64, 'tool_closure_sha256': 'e' * 64}
+            path = Path(directory) / "candidate.json"
+            image = Path(directory) / "candidate.qcow2"
+            value = {
+                "candidate_path": str(image),
+                "sha256": "a" * 64,
+                "source_sha": "b" * 40,
+                "controller_sha256": "c" * 64,
+                "recipe_sha256": "d" * 64,
+                "tool_closure_sha256": "e" * 64,
+            }
             path.write_text(json.dumps(value))
-            self.assertEqual(image_binding(image, path, 'a' * 64, candidate=True)['image_source_sha'], 'b' * 40)
-            with self.assertRaisesRegex(RuntimeError, 'digest'):
-                image_binding(image, path, 'f' * 64, candidate=True)
-            with self.assertRaisesRegex(RuntimeError, 'path'):
-                image_binding(image.with_name('other.qcow2'), path, 'a' * 64, candidate=True)
-            value['recipe_sha256'] = 'bad'
+            self.assertEqual(
+                image_binding(image, path, "a" * 64, candidate=True)[
+                    "image_source_sha"
+                ],
+                "b" * 40,
+            )
+            with self.assertRaisesRegex(RuntimeError, "digest"):
+                image_binding(image, path, "f" * 64, candidate=True)
+            with self.assertRaisesRegex(RuntimeError, "path"):
+                image_binding(
+                    image.with_name("other.qcow2"), path, "a" * 64, candidate=True
+                )
+            value["recipe_sha256"] = "bad"
             path.write_text(json.dumps(value))
-            with self.assertRaisesRegex(RuntimeError, 'binding'):
-                image_binding(image, path, 'a' * 64, candidate=True)
+            with self.assertRaisesRegex(RuntimeError, "binding"):
+                image_binding(image, path, "a" * 64, candidate=True)
 
 
 class SchedulingTests(unittest.TestCase):
@@ -169,11 +181,16 @@ class EvidenceTests(unittest.TestCase):
             "event": "workflow_dispatch",
         }
         receipts = {"newdarwindev/runspindle/strix-linux-x64": 1}
-        with tempfile.TemporaryDirectory() as directory, patch(
-            "runner_fleet.evidence.gh_json", side_effect=[run, [{"jobs": [self.job]}]]
-        ), patch(
-            "runner_fleet.evidence.subprocess.run",
-            return_value=subprocess.CompletedProcess([], 0, b"workload log"),
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch(
+                "runner_fleet.evidence.gh_json",
+                side_effect=[run, [{"jobs": [self.job]}]],
+            ),
+            patch(
+                "runner_fleet.evidence.subprocess.run",
+                return_value=subprocess.CompletedProcess([], 0, b"workload log"),
+            ),
         ):
             report = collect(
                 self.cfg, {"runspindle": self.sha}, receipts, Path(directory)
@@ -213,12 +230,15 @@ class EvidenceTests(unittest.TestCase):
                         )["coverage"][0]["status"],
                         "blocked",
                     )
-            with patch(
-                "runner_fleet.evidence.gh_json",
-                side_effect=[run, [{"jobs": [self.job]}]],
-            ), patch(
-                "runner_fleet.evidence.subprocess.run",
-                side_effect=subprocess.CalledProcessError(1, "gh"),
+            with (
+                patch(
+                    "runner_fleet.evidence.gh_json",
+                    side_effect=[run, [{"jobs": [self.job]}]],
+                ),
+                patch(
+                    "runner_fleet.evidence.subprocess.run",
+                    side_effect=subprocess.CalledProcessError(1, "gh"),
+                ),
             ):
                 self.assertEqual(
                     collect(
@@ -230,8 +250,9 @@ class EvidenceTests(unittest.TestCase):
 
 class CommandTests(unittest.TestCase):
     def test_install_and_qualify_do_not_claim_success(self):
-        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(
-            io.StringIO()
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            contextlib.redirect_stdout(io.StringIO()),
         ):
             with patch(
                 "fleet.inspect_host", return_value={"status": "blocked", "checks": []}
@@ -259,16 +280,19 @@ class CommandTests(unittest.TestCase):
 
     def test_preflight_cannot_be_bypassed_with_interactive_credentials(self):
         cfg = config()
-        with tempfile.TemporaryDirectory() as directory, patch(
-            "runner_fleet.preflight.Path.read_text",
-            return_value="MemAvailable: 25000000 kB\n",
-        ), patch("runner_fleet.preflight.platform.system", return_value="Linux"), patch(
-            "runner_fleet.preflight.platform.machine", return_value="x86_64"
-        ), patch(
-            "runner_fleet.preflight.shutil.which", return_value="/tool"
-        ), patch(
-            "runner_fleet.preflight.run",
-            return_value=subprocess.CompletedProcess([], 0, "true\n"),
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch(
+                "runner_fleet.preflight.Path.read_text",
+                return_value="MemAvailable: 25000000 kB\n",
+            ),
+            patch("runner_fleet.preflight.platform.system", return_value="Linux"),
+            patch("runner_fleet.preflight.platform.machine", return_value="x86_64"),
+            patch("runner_fleet.preflight.shutil.which", return_value="/tool"),
+            patch(
+                "runner_fleet.preflight.run",
+                return_value=subprocess.CompletedProcess([], 0, "true\n"),
+            ),
         ):
             report = inspect_host(cfg, "strix", Path(directory))
             self.assertEqual(report["status"], "blocked")
@@ -293,25 +317,24 @@ class FailureBoundaryTests(unittest.TestCase):
                 return subprocess.CompletedProcess(argv, 0, "1\n")
             raise subprocess.TimeoutExpired(argv, 20)
 
-        with tempfile.TemporaryDirectory() as directory, patch(
-            "runner_fleet.preflight.platform.system", return_value="Darwin"
-        ), patch(
-            "runner_fleet.preflight.platform.machine", return_value="arm64"
-        ), patch(
-            "runner_fleet.preflight.shutil.which", return_value="/tool"
-        ), patch(
-            "runner_fleet.preflight.run", side_effect=mac_run
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch("runner_fleet.preflight.platform.system", return_value="Darwin"),
+            patch("runner_fleet.preflight.platform.machine", return_value="arm64"),
+            patch("runner_fleet.preflight.shutil.which", return_value="/tool"),
+            patch("runner_fleet.preflight.run", side_effect=mac_run),
         ):
             report = inspect_host(cfg, "macbook", Path(directory))
             checks = {c["check"]: c for c in report["checks"]}
             self.assertEqual(checks["virtualization"]["status"], "passed")
             self.assertEqual(checks["memory"]["status"], "blocked")
             self.assertEqual(checks["admin:runspindle"]["status"], "blocked")
-            with patch(
-                "runner_fleet.preflight.run", side_effect=OSError("unavailable")
-            ), patch(
-                "runner_fleet.preflight.shutil.disk_usage",
-                side_effect=OSError("unavailable"),
+            with (
+                patch("runner_fleet.preflight.run", side_effect=OSError("unavailable")),
+                patch(
+                    "runner_fleet.preflight.shutil.disk_usage",
+                    side_effect=OSError("unavailable"),
+                ),
             ):
                 checks = {
                     c["check"]: c
@@ -322,20 +345,31 @@ class FailureBoundaryTests(unittest.TestCase):
                 self.assertEqual(checks["memory"]["status"], "blocked")
 
     def test_strix_controls_use_observed_service_backend(self):
-        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(io.StringIO()):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            contextlib.redirect_stdout(io.StringIO()),
+        ):
             args = ["--host", "strix", "--state-dir", directory]
-            with patch("runner_fleet.service.control", return_value={"status": "blocked"}) as control:
+            with patch(
+                "runner_fleet.service.control", return_value={"status": "blocked"}
+            ) as control:
                 self.assertEqual(fleet.main(["resume", *args]), 2)
                 control.assert_called_once()
-            with patch("runner_fleet.service.observed", return_value={"status": "blocked"}):
+            with patch(
+                "runner_fleet.service.observed", return_value={"status": "blocked"}
+            ):
                 self.assertEqual(fleet.main(["status", *args]), 2)
-            with patch("runner_fleet.service.uninstall", return_value={"status": "blocked"}):
+            with patch(
+                "runner_fleet.service.uninstall", return_value={"status": "blocked"}
+            ):
                 self.assertEqual(fleet.main(["uninstall", *args]), 2)
 
     def test_reject_unknown_or_unpinned_revisions(self):
-        with tempfile.TemporaryDirectory() as directory, contextlib.redirect_stdout(
-            io.StringIO()
-        ), contextlib.redirect_stderr(io.StringIO()):
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            contextlib.redirect_stdout(io.StringIO()),
+            contextlib.redirect_stderr(io.StringIO()),
+        ):
             path = Path(directory) / "revisions.json"
             path.write_text(json.dumps({"runspindle": "main"}))
             with self.assertRaises(SystemExit):

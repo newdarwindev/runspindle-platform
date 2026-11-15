@@ -109,7 +109,7 @@
     }
   ],
   "artifact_sha256": {
-    "STATUS.json": "669c149bc1a2a10e40b9c3f582229449a814dfd2dec9a9baa96e11bf47a0f9aa",
+    "STATUS.json": "47b61a2c1fd0bffc7de053942c42adbe83037cd013ef48671df792d0a56badb7",
     "docs/maintained-offline-tests.json": "013c0e9ea6511485f8ad7a74e6e6061d9c8463c4d25fc347721b66a017eb0241",
     "docs/native-monitoring-validation.json": "c7b0d551051293bf5ce7153a2ef0586e0430ed69643913076bb28afa81e07fbc",
     "provenance.json": "32bfcd5f25c090adf2fc43877ce7d9c8ed44473de175971860529b32d118e191",
@@ -123,7 +123,7 @@
     "tools/check_native_monitoring.py": "2ffffa3f9c0fe7ccfb632caa341fcfeab96f01932dd2b7a526a35616b4d920c6",
     "tools/collector_privacy_check.py": "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4",
     "tools/collector_recovery_check.py": "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
-    "tools/validate.py": "797683f575f0d0f0dcf85727fdd66397ee48e2922bb2cda9660adbc9fc79d080"
+    "tools/validate.py": "b29f49b6ae71b4427328df21ee855f9ac809ea452af9729a3d1f5ada5695118a"
   },
   "prior_evidence": "docs/maintained-offline-tests.json"
 }

@@ -121,6 +121,30 @@ complete observed Strix qualification authorizes startup and required checks.
 
 ## Local checks
 
+`python3 tools/fleet.py image-status --host strix --image /private/candidate.qcow2
+--image-manifest /private/candidate.json` reads candidate bytes and the manifest
+without creating state, booting a guest or contacting GitHub. It reports every
+configured lane, the actual image digest and the recipe digest. A matching Strix
+image/recipe passes identity only; installed tooling, lifecycle faults and Mac
+lanes remain unqualified. The command exits 2 even when byte identity matches.
+
+Status now reports separately observed guest ownership and durable reservations.
+An unavailable/stale/future heartbeat or inventory poll, missing guest observation,
+guest loss, ownership mismatch or inventory error advertises zero available slots.
+Draining also advertises zero availability. Uncertain/cleaning reservations remain
+occupied after a fresh process opens the SQLite store. This readout does not change
+the scheduler or reconcile resources. Reservations retain the requested commit/run
+separately from any actual claimed job; old reservations lacking that metadata
+remain explicitly absent rather than acquiring a fabricated source identity.
+
+The bounded synthetic fault suite and deliberate source mutations run through
+`python3 tools/validate.py`; `tools/check_fleet_lifecycle_mutations.py` independently
+removes freshness, recipe and uncertain-capacity checks and requires assertion
+failures. Real QEMU/systemd/GitHub operations are mocked in the manager unit tests;
+the fresh-process SQLite tests exercise an actual local database. These checks
+cannot qualify actual guest loss, cancellation, cleanup, isolation or fairness on
+any target. Actual Strix and Mac observations remain required for issue #15.
+
 ```sh
 python3 tools/validate.py
 ```

@@ -1,0 +1,58 @@
+{
+  "base_commit": "4e9a2b38b9ebc9d79eba5d2fc0f364ab8a5f4cf0",
+  "command": "python3 tools/validate.py",
+  "deliberate_mutations": [
+    "remove freshness gate: assertion failure",
+    "remove recipe comparison: assertion failure",
+    "remove uncertain resource occupancy: assertion failure"
+  ],
+  "evidence_class": "local_component_synthetic_faults_and_actual_SQLite_process_restart",
+  "implementation": "capacity_observation_exact_candidate_identity_and_requested_source_persistence",
+  "issue": "https://github.com/newdarwindev/runspindle-platform/issues/15",
+  "observations": [
+    "matching candidate bytes and recipe identify only candidate bytes; all lane qualification remains blocked",
+    "changed image bytes and recipe drift block identity",
+    "stale future missing clocks and incomplete guest observations report zero available capacity",
+    "drained manager and inventory errors report zero available capacity",
+    "guest loss and foreign resource identity report zero available capacity",
+    "uncertain and cleaning slots remain occupied across fresh process; requested SHA/run survives without inventing claimed job identity",
+    "mutation subprocess runs from copied repository and fresh child imports copied lifecycle implementation"
+  ],
+  "product_acceptance": "not_run",
+  "real_boundaries": [
+    "local candidate file byte hashing",
+    "SQLite WAL database transactions",
+    "fresh Python process reopening actual SQLite store",
+    "read-only CLI process with absent image and state directory"
+  ],
+  "receipt_policy": "Private exact-committed-head command receipts kept outside Git; this progress record is synthetic component scope and never certifies target capacity.",
+  "remaining_gaps": [
+    "actual Strix QEMU/KVM cancellation failure and guest loss",
+    "actual manager restart during work and cleanup",
+    "target cross-job isolation two-slot contention and fairness",
+    "independent installed tooling and prepared dependency closure on exact image",
+    "Mac Linux ARM64 and native macOS images backends isolation and resource qualification",
+    "target runner capacity and required checks remain unqualified"
+  ],
+  "schema_version": 1,
+  "source_sha256": {
+    "fleet/config.json": "ac4730659c3eb42182432d761c7396e6cc0e6d959ace8173035fdb9e4749f195",
+    "fleet/image-inputs.json": "aeaeb8e75e14d3e58a119acfc00727cb5c76bb1ec041fbdd191b7cc47da564f9",
+    "tests/test_fleet_lifecycle.py": "0564dd0c887620495b9eb5791883932a3e802f558e4a1d71150449a67763ba9f",
+    "tools/check_fleet_lifecycle_mutations.py": "46f195ed7e07db0f470b838a313e980cedb1b9617b0d514da17b1ba87aef26f3",
+    "tools/runner_fleet/lifecycle.py": "93fa342c5041060c1893b44052509f01f22271d0b0d3cc499849a06b42a9a1af",
+    "tools/runner_fleet/state.py": "141e417536e9302fe1d9b1fa187e4c3edf5474e00123cabd4952481cb1c3a950"
+  },
+  "synthetic_boundaries": [
+    "image bytes and build manifest",
+    "clock service and guest observation records",
+    "manager QEMU systemd and GitHub fault test peers"
+  ],
+  "target_lifecycle_qualification": "blocked",
+  "integration_base_commit": "e3cac59dfddf1f39af8d3e01b6d745f24d6b7910",
+  "source_commits": [
+    "ee044e05ba494ed046d5113a64184c75e27691f3",
+    "d145a53bf374b3ff53be3e8cbc8e0c3370d3efe1"
+  ],
+  "mandatory_inventory": "hygiene.json includes check-fleet-lifecycle-mutations; original debt baseline unchanged"
+}

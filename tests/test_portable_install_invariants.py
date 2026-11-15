@@ -2,19 +2,18 @@
 
 Fixtures deliberately bypass DisposableTarget construction. They exercise real
 SQLite/readback code without invoking install, recover, rollback or a payload.
-The native installation suite and its mandatory mutation gate remain unchanged.
+The native installation suite and its mandatory mutation gate remain separate.
 """
 
 import json
 import os
-from pathlib import Path
-import shutil
 import sqlite3
 import subprocess
 import sys
 import tempfile
-from typing import Any
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from tools import development_bundle as development_module
@@ -107,16 +106,35 @@ class PortableInstallInvariants(unittest.TestCase):
         (folder / "notice.txt").write_bytes(files["notice.txt"])
         (self.root / "active.json").write_text(json.dumps({"manifest_sha256": digest}))
         self.db.execute("INSERT INTO installs VALUES(?,?,'verified')", (digest, bundle))
-        target = self.fixture()
-        # Only the method's manifest target input is synthetic. This is not a
-        # host architecture observation, constructor test or installed receipt.
-        with patch.object(development, "actual_target", return_value="linux/arm64"):
-            result = target.verify_installed(pins)
-            self.assertEqual(result["manifest_sha256"], digest)
-            self.assertEqual(result["files"], len(files))
-            (folder / "notice.txt").write_bytes(b"corrupt")
-            with self.assertRaisesRegex(ValueError, "installed byte mismatch"):
-                target.verify_installed(pins)
+        # A negative admission test must still stop before the portable helper.
+        # Never emulate a supported host to reach the native readback method.
+        with (
+            patch.object(development, "actual_target", return_value="unsupported"),
+            patch.object(development, "_metadata_tree_readback") as readback,
+        ):
+            with self.assertRaisesRegex(ValueError, "wrong target architecture"):
+                self.fixture().verify_installed(pins)
+            readback.assert_not_called()
+        # Manifest inspection and filesystem readback are portable. Do not patch
+        # host identity or invoke a native installer to exercise this helper.
+        manifest, expected_files, expected = development.verify(
+            bundle, component_commits=pins, target="linux/arm64"
+        )
+        result = development._metadata_tree_readback(
+            folder, manifest, expected_files, expected, digest
+        )
+        self.assertEqual(result["manifest_sha256"], digest)
+        self.assertEqual(result["files"], len(files))
+        self.assertEqual(result["unsupported"], development.UNSUPPORTED)
+        with self.assertRaisesRegex(ValueError, "installed manifest identity mismatch"):
+            development._metadata_tree_readback(
+                folder, manifest, expected_files, expected, "0" * 64
+            )
+        (folder / "notice.txt").write_bytes(b"corrupt")
+        with self.assertRaisesRegex(ValueError, "installed byte mismatch"):
+            development._metadata_tree_readback(
+                folder, manifest, expected_files, expected, digest
+            )
 
     def test_production_constructor_still_rejects_unsupported_architecture(
         self,
@@ -126,65 +144,28 @@ class PortableInstallInvariants(unittest.TestCase):
                 development.DisposableTarget.create()
 
     def test_portable_mutation_sensitivity(self) -> None:
-        cases = (
-            (
-                "development_bundle.py",
-                "def state(self):\n        self._check_journal_kind()",
-                "def state(self):\n        pass",
-                "test_journal_family_rejection",
-            ),
-            (
-                "streaming_bundle.py",
-                'check(actual == manifest["files"], "installed byte or mode mismatch")',
-                'check(True, "installed byte or mode mismatch")',
-                "test_tree_corruption_and_modes",
-            ),
-            (
-                "development_bundle.py",
-                '"manifest_sha256": digest,\n            "files": len(files),',
-                '"manifest_sha256": "0" * 64,\n            "files": len(files),',
-                "test_attribution_readback",
-            ),
+        result = subprocess.run(
+            [
+                sys.executable,
+                *(["-" + "O" * sys.flags.optimize] if sys.flags.optimize else []),
+                str(ROOT / "tools/check_maintained_mutations.py"),
+                "--suite",
+                "portable",
+            ],
+            cwd=ROOT,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+            text=True,
+            capture_output=True,
+            timeout=90,
         )
-        for filename, old, new, method in cases:
-            with (
-                self.subTest(mutation=method),
-                tempfile.TemporaryDirectory() as temporary,
-            ):
-                root = Path(temporary)
-                shutil.copytree(
-                    ROOT / "tools",
-                    root / "tools",
-                    ignore=shutil.ignore_patterns("__pycache__"),
-                )
-                shutil.copyfile(__file__, root / Path(__file__).name)
-                source = root / "tools" / filename
-                text = source.read_text()
-                self.assertEqual(text.count(old), 1)
-                source.write_text(text.replace(old, new))
-                env = {
-                    **os.environ,
-                    "PYTHONPATH": str(root),
-                    "PYTHONDONTWRITEBYTECODE": "1",
-                }
-                result = subprocess.run(
-                    [
-                        sys.executable,
-                        "-m",
-                        "unittest",
-                        f"test_portable_install_invariants.PortableInstallInvariants.{method}",
-                        "-v",
-                    ],
-                    cwd=root,
-                    env=env,
-                    text=True,
-                    capture_output=True,
-                    timeout=30,
-                )
-                self.assertEqual(result.returncode, 1, result.stderr)
-                self.assertIn("FAIL:", result.stderr)
-                self.assertNotIn("ERROR:", result.stderr)
-                self.assertNotIn("skipped", result.stderr)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        report = json.loads(result.stdout)
+        self.assertEqual(
+            report["evidence_class"], "portable_component_mutation_detection"
+        )
+        self.assertEqual(report["native_acceptance"], "not_run")
+        self.assertEqual(len(report["results"]), 5)
+        self.assertTrue(all(item["detected"] for item in report["results"]))
 
 
 if __name__ == "__main__":
