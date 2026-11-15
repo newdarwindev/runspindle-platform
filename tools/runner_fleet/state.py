@@ -36,6 +36,11 @@ class State:
             CREATE TABLE IF NOT EXISTS events(
                 id INTEGER PRIMARY KEY, at REAL NOT NULL, resource TEXT,
                 kind TEXT NOT NULL, details TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS mac_job_observations(
+                repository TEXT NOT NULL, job_id INTEGER NOT NULL,
+                run_id INTEGER NOT NULL, head_sha TEXT NOT NULL,
+                outcome TEXT NOT NULL, observed REAL NOT NULL,
+                PRIMARY KEY(repository, job_id));
         """)
 
     @contextmanager
@@ -82,19 +87,47 @@ class State:
         job: dict[str, Any],
         capacity: int = 2,
         details: dict[str, Any] | None = None,
+        binding: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
-        if capacity != 2:
-            raise ValueError("Strix capacity must be exactly two")
+        if capacity not in (1, 2):
+            raise ValueError("Fleet capacity must be one Mac slot or two Strix slots")
+        if capacity == 2 and binding is not None:
+            raise ValueError("Strix reservation cannot use a Mac binding")
+        if capacity == 1 and (
+            details is not None
+            or not isinstance(binding, dict)
+            or binding.get("host") != "macbook"
+        ):
+            raise ValueError("One-slot reservation requires a Mac host binding")
         with self.transaction():
             occupied = self.active()
             if len(occupied) >= capacity:
                 raise RuntimeError("Capacity exhausted, including uncertain resources")
+            if capacity == 1:
+                if binding is None:
+                    raise ValueError("One-slot reservation requires a Mac host binding")
+                epoch = self.get("mac_lease_epoch", 0) + 1
+                self.db.execute(
+                    "INSERT OR REPLACE INTO control VALUES(?,?)",
+                    ("mac_lease_epoch", json.dumps(epoch)),
+                )
+                binding = binding | {"lease_epoch": epoch}
             slot = next(
                 s for s in range(capacity) if s not in {r["slot"] for r in occupied}
             )
             identity = uuid.uuid4().hex
             name = "runspindle-fleet-" + identity
             now = time.time()
+            record_details = (
+                (details or {})
+                | (binding or {})
+                | {
+                    "requested_source": {
+                        key: job.get(key)
+                        for key in ("head_sha", "run_id", "event", "head_branch")
+                    }
+                }
+            )
             self.db.execute(
                 "INSERT INTO resources VALUES(?,?,?,?,?,?,?,?,?)",
                 (
@@ -106,23 +139,14 @@ class State:
                     "reserved",
                     now,
                     now,
-                    json.dumps(
-                        (details or {})
-                        | {
-                            "requested_source": {
-                                key: job.get(key)
-                                for key in (
-                                    "head_sha",
-                                    "run_id",
-                                    "event",
-                                    "head_branch",
-                                )
-                            }
-                        }
-                    ),
+                    json.dumps(record_details),
                 ),
             )
-            self._event(identity, "reserved", {"job": job, "slot": slot})
+            self._event(
+                identity,
+                "reserved",
+                {"job": job, "slot": slot, "binding": binding or {}},
+            )
         return next(r for r in self.active() if r["id"] == identity)
 
     def _event(self, identity: Any, kind: Any, details: Any) -> None:
@@ -142,3 +166,35 @@ class State:
                 (phase, time.time(), json.dumps(merged), resource["id"]),
             )
             self._event(resource["id"], phase, details)
+
+    def mac_job_observation(
+        self, repository: str, job_id: int
+    ) -> dict[str, Any] | None:
+        row = self.db.execute(
+            "SELECT * FROM mac_job_observations WHERE repository=? AND job_id=?",
+            (repository, job_id),
+        ).fetchone()
+        return dict(row) if row else None
+
+    def record_mac_job(
+        self, repository: str, job_id: int, run_id: int, head_sha: str, outcome: str
+    ) -> None:
+        if outcome not in ("completed", "queue_expired"):
+            raise ValueError("Unsupported Mac job observation")
+        with self.transaction():
+            previous = self.mac_job_observation(repository, job_id)
+            if previous and (previous["run_id"], previous["head_sha"]) != (
+                run_id,
+                head_sha,
+            ):
+                raise RuntimeError("Mac job identity changed across observations")
+            if (
+                previous
+                and previous["outcome"] == "completed"
+                and outcome != "completed"
+            ):
+                raise RuntimeError("Terminal Mac job observation cannot regress")
+            self.db.execute(
+                "INSERT OR REPLACE INTO mac_job_observations VALUES(?,?,?,?,?,?)",
+                (repository, job_id, run_id, head_sha, outcome, time.time()),
+            )

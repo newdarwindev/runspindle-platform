@@ -34,7 +34,7 @@
       "status": "implemented_local_synthetic_checks_target_qualification_blocked",
       "target_lifecycle": "not_run"
     },
-    "mac_lanes": "pending_original_resource_and_isolation_gates",
+    "mac_lanes": "qualification_routing_and_fail_closed_single_slot_ledger_locally_tested;operational_backend_and_original_resource_and_isolation_gates_pending",
     "qualification": "blocked",
     "required_checks": "unchanged",
     "status": "strix_implementation_under_qualification"
