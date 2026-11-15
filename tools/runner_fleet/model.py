@@ -28,11 +28,22 @@ SCENARIOS = (
 )
 
 
-def config():
-    value = json.loads((ROOT / "fleet/config.json").read_text())
-    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != REPOSITORIES:
+def validate_config(value, *, candidate_policy=None):
+    expected = REPOSITORIES
+    if candidate_policy is not None:
+        proposal = {"owner": "newdarwindev",
+                    "repositories": list(REPOSITORIES + ("runspindle-demo-suite",)),
+                    "activation_allowed": False}
+        if candidate_policy != proposal:
+            raise ValueError("Fleet candidate policy changed")
+        expected = tuple(proposal["repositories"])
+    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != expected:
         raise ValueError("Fleet repository allowlist changed")
     return value
+
+
+def config():
+    return validate_config(json.loads((ROOT / "fleet/config.json").read_text()))
 
 
 def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
