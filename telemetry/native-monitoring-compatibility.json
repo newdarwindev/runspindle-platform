@@ -1,0 +1,224 @@
+{
+  "schema_version": 1,
+  "source_id": "SRC-011",
+  "classification": "read_only_source_review_and_explicit_unknowns",
+  "public_sources": [
+    {
+      "id": "schema",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/core/config.schema.json",
+      "git_blob_sha": "0a48882b09c70344ce1caffebdfcf23cacc7f23b",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/core/config.schema.json",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "version",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/Cargo.toml",
+      "git_blob_sha": "75f4de1c61ec31320fb1f9fc2f30527d446eb181",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/Cargo.toml",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "provider",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/otel/src/provider.rs",
+      "git_blob_sha": "26f732da7121c53075e021f4c6c07e40cf2d1b2a",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/otel/src/provider.rs",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "initialization",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/core/src/otel_init.rs",
+      "git_blob_sha": "8b5aac5f7850bc0bc19d890dcddf622ae78598d8",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/core/src/otel_init.rs",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "cli",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/exec/src/lib.rs",
+      "git_blob_sha": "7ea8461b00de55f6b3ea153e701adce8b8b354ad",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/exec/src/lib.rs",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "app_server",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/app-server/src/lib.rs",
+      "git_blob_sha": "fa6b6cd811f7764f81709b4e14105cfae2d1df77",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/app-server/src/lib.rs",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    },
+    {
+      "id": "events",
+      "repository": "openai/codex",
+      "revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "path": "codex-rs/otel/src/events/session_telemetry.rs",
+      "git_blob_sha": "c470f8dc7cc7d83e667b7f352183a3ee57f85531",
+      "url": "https://github.com/openai/codex/blob/c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda/codex-rs/otel/src/events/session_telemetry.rs",
+      "review": "read_only_source_verification_not_installed_client_qualification"
+    }
+  ],
+  "configuration_keys": [
+    "otel.environment",
+    "otel.exporter",
+    "otel.log_user_prompt",
+    "otel.metrics_exporter",
+    "otel.span_attributes",
+    "otel.trace_exporter",
+    "otel.tracestate"
+  ],
+  "http_protocols": [
+    "binary",
+    "json"
+  ],
+  "surfaces": [
+    {
+      "surface": "cli",
+      "version": "0.143.0",
+      "source_revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "status": "source_review_only",
+      "source_evidence": [
+        "schema",
+        "cli",
+        "provider",
+        "version"
+      ],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "app_server",
+      "version": "0.143.0",
+      "source_revision": "c4d748f586a84a3ed5b6aceb82e9a1db4abb1cda",
+      "status": "source_review_only",
+      "source_evidence": [
+        "schema",
+        "app_server",
+        "provider",
+        "version"
+      ],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "ide_desktop",
+      "version": null,
+      "source_revision": null,
+      "status": "unknown",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "hosted",
+      "version": null,
+      "source_revision": null,
+      "status": "unknown",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "collector_traces",
+      "version": "0.163.2",
+      "source_revision": "6c65793ec707f673304e52dfcb642684fda1a048",
+      "status": "prior_synthetic_file_lane_only",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "native_logs",
+      "version": null,
+      "source_revision": null,
+      "status": "unqualified",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "bounded_messages",
+      "version": null,
+      "source_revision": null,
+      "status": "unavailable",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "langfuse",
+      "version": "3.63.0",
+      "source_revision": "a136ac8184b876a90afafe8cd2ebfef8a7b05858",
+      "status": "blocked",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "tokscale",
+      "version": null,
+      "source_revision": null,
+      "status": "unqualified",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "homarr",
+      "version": null,
+      "source_revision": null,
+      "status": "unqualified",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "agentsview",
+      "version": null,
+      "source_revision": null,
+      "status": "unavailable",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "langfuse_plugin",
+      "version": null,
+      "source_revision": null,
+      "status": "excluded",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "full_conversations",
+      "version": null,
+      "source_revision": null,
+      "status": "unavailable",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    },
+    {
+      "surface": "optional_backends",
+      "version": null,
+      "source_revision": null,
+      "status": "unqualified",
+      "source_evidence": [],
+      "installed_qualified": false,
+      "live_acceptance": "not_run"
+    }
+  ],
+  "collector_dependencies": "telemetry/dependencies.json",
+  "langfuse_dependency_status": "telemetry/langfuse-qualification.json",
+  "source_bytes_imported": false
+}
