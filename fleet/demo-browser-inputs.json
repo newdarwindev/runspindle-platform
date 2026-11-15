@@ -36,7 +36,15 @@
       "sha256": "5ad70cf662e7090354edbe84e1a01ac531fd217f37f5001f0d2efbe0d152b396",
       "bytes": 182333649,
       "revision": "1194",
-      "license_sha256": {}
+      "license_sha256": {},
+      "embedded_notice": {
+        "member": "chrome-linux/resources.pak",
+        "pak_sha256": "bc5005c6e5d4a37d6ee5352cb3adbf529b1f2974bbba61d2a45db0b94af695da",
+        "resource_id": 38961,
+        "frame_sha256": "d7d19517aafab73e925433a24557da331388c34ba4067779cf3499f277e4b42c",
+        "decoded_bytes": 15001941,
+        "decoded_sha256": "3cd30266c2af794339f7b529c838074468743300ad392b815dc42b05ed6831bd"
+      }
     },
     {
       "filename": "1194-chromium-headless-shell-linux.zip",
@@ -45,7 +53,15 @@
       "sha256": "d745c7210cc88b73c7991a22c9624819960d84bc3de77ac7336d2de841a8c91f",
       "bytes": 109380198,
       "revision": "1194",
-      "license_sha256": {}
+      "license_sha256": {},
+      "embedded_notice": {
+        "member": "chrome-linux/headless_lib_data.pak",
+        "pak_sha256": "67c0deaef5dac36c9bea8eb11d4836824d0fc7163bc51b4df4d1c52d0fbcfdd7",
+        "resource_id": 38961,
+        "frame_sha256": "d7d19517aafab73e925433a24557da331388c34ba4067779cf3499f277e4b42c",
+        "decoded_bytes": 15001941,
+        "decoded_sha256": "3cd30266c2af794339f7b529c838074468743300ad392b815dc42b05ed6831bd"
+      }
     },
     {
       "filename": "1011-ffmpeg-linux.zip",
@@ -60,7 +76,7 @@
     }
   ],
   "remaining_gates": [
-    "Chromium redistributed notice closure",
+    "Independent review of matching embedded Chromium notices for redistribution",
     "signed Ubuntu Noble ffmpeg/ffprobe/gh and full dependency closure",
     "offline installation and sandboxed browser/media tests in isolated disposable guest",
     "exact image/controller/recipe/tool binding and independent qualification"

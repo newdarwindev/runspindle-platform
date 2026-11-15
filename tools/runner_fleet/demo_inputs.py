@@ -12,6 +12,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from .demo_notices import audit_notice
 from .quality import verified_file
 
 
@@ -40,6 +41,7 @@ def audit(manifest: dict[str, Any], downloads: Path) -> dict[str, object]:
     ) != 5:
         raise ValueError("wrong demo input inventory")
     files = 0
+    notice_receipts: list[dict[str, object]] = []
     for row in manifest["archives"]:
         name = row["filename"]
         path = downloads / name
@@ -102,6 +104,11 @@ def audit(manifest: dict[str, Any], downloads: Path) -> dict[str, object]:
                     if stat.S_ISLNK(zip_member.external_attr >> 16):
                         raise ValueError("unsupported browser archive symlink")
                     files += int(not zip_member.is_dir())
+                if name.startswith("1194-"):
+                    pin = row["embedded_notice"]
+                    notice_receipts.append(
+                        audit_notice(archive.read(pin["member"]), pin)
+                    )
                 for notice, sha256 in row.get("license_sha256", {}).items():
                     if hashlib.sha256(archive.read(notice)).hexdigest() != sha256:
                         raise ValueError("browser notice changed")
@@ -109,12 +116,14 @@ def audit(manifest: dict[str, Any], downloads: Path) -> dict[str, object]:
         "status": "partial_external_inputs_audited",
         "archive_count": 5,
         "member_files": files,
+        "embedded_notice_receipts": notice_receipts,
         "assertions": {
             "archive_digests_and_sizes": True,
             "npm_sha512_integrity": True,
             "npm_identity_and_notices": True,
             "playwright_browser_revisions": True,
             "safe_archive_paths": True,
+            "matching_embedded_chromium_notice_bytes": len(notice_receipts) == 2,
             "chromium_notice_closure": False,
             "noble_ffmpeg_gh_dependency_closure": False,
             "guest_qualification": False,

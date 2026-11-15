@@ -15,6 +15,7 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from tests.test_demo_notices import notice_fixture
 from tools.runner_fleet.demo_inputs import audit
 
 
@@ -74,12 +75,25 @@ class DemoInputTests(unittest.TestCase):
                 if filename.startswith("1011")
                 else {}
             )
+            pak, pin = notice_fixture()
             with zipfile.ZipFile(path, "w") as archive:
                 archive.writestr("synthetic/binary", b"not executable")
+                if filename.startswith("1194"):
+                    archive.writestr("synthetic/resources.pak", pak)
                 for key, value in notices.items():
                     archive.writestr(key, value)
             rows.append(
                 {
+                    **(
+                        {
+                            "embedded_notice": {
+                                **pin,
+                                "member": "synthetic/resources.pak",
+                            }
+                        }
+                        if filename.startswith("1194")
+                        else {}
+                    ),
                     "filename": filename,
                     "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                     "bytes": path.stat().st_size,
