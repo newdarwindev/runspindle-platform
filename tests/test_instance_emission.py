@@ -5,13 +5,16 @@ import os
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
 
 from tools.runner_fleet import backend
 
 
 class InstanceEmissionTests(unittest.TestCase):
-    def exercise(self, *, missing=None, wrong_digest=False):
+    def exercise(
+        self, *, missing: str | None = None, wrong_digest: bool = False
+    ) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             image = root / "images/qualified.qcow2"
@@ -36,7 +39,7 @@ class InstanceEmissionTests(unittest.TestCase):
             (machine.directory(resource) / "key.pub").write_text("synthetic-key")
             original_stat = Path.stat
 
-            def sealed_stat(path, *args, **kwargs):
+            def sealed_stat(path: Path, *args: Any, **kwargs: Any) -> os.stat_result:
                 result = original_stat(path, *args, **kwargs)
                 if path == image:
                     fields = list(result)
@@ -88,10 +91,10 @@ class InstanceEmissionTests(unittest.TestCase):
                     },
                 )
 
-    def test_serialized_guest_has_complete_manifest_binding(self):
+    def test_serialized_guest_has_complete_manifest_binding(self) -> None:
         self.exercise()
 
-    def test_missing_provenance_fails_before_effects(self):
+    def test_missing_provenance_fails_before_effects(self) -> None:
         for field in (
             "source_sha",
             "controller_sha256",
@@ -101,7 +104,7 @@ class InstanceEmissionTests(unittest.TestCase):
             with self.subTest(field=field):
                 self.exercise(missing=field)
 
-    def test_wrong_image_bytes_fail_before_effects(self):
+    def test_wrong_image_bytes_fail_before_effects(self) -> None:
         self.exercise(wrong_digest=True)
 
 
