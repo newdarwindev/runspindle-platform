@@ -15,6 +15,7 @@ from tools.runner_fleet import backend as _backend
 from tools.runner_fleet import model as _model
 from tools.runner_fleet import state as _state
 from tools.runner_fleet.identity import binding
+from tools.runner_fleet.retention import capture_bytes
 from tools.runner_fleet.staging import verify as verify_staged
 
 # Existing process/state helpers exchange dynamic JSON records. Their boundary
@@ -119,8 +120,11 @@ def main():
                 timeout=3600,
                 check=False,
             )
-            log = backend.directory(resource) / "image-build.log"
-            log.write_text(result.stdout + result.stderr)
+            log = capture_bytes(
+                backend.directory(resource),
+                "image-build.log",
+                (result.stdout + result.stderr).encode(),
+            )
             manifests = [
                 line.removeprefix("RUNSPINDLE_IMAGE=")
                 for line in result.stdout.splitlines()

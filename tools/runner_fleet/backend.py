@@ -7,13 +7,15 @@ import os
 import re
 import resource as process_resource
 import shlex
-import shutil
 import socket
 import subprocess
 import tempfile
 import time
+import uuid
 from pathlib import Path
 from typing import Any, cast
+
+from .retention import capture_bytes, capture_file
 
 ROOT = Path("/var/lib/runspindle-fleet")
 HELPER = "/opt/runspindle-fleet/tools/runner_fleet/host_helper.py"
@@ -426,9 +428,13 @@ nohup env -u SSH_AUTH_SOCK ./run.sh > /home/runner/job.log 2>&1 < /dev/null &
 echo $! > /home/runner/runner.pid
 """
         result = self.ssh(resource, script, timeout=90, check=False)
-        (self.directory(resource) / "registration.log").write_text(
-            result.stdout.replace(token, "[REDACTED]")
-            + result.stderr.replace(token, "[REDACTED]")
+        capture_bytes(
+            self.directory(resource),
+            "registration.log",
+            (
+                result.stdout.replace(token, "[REDACTED]")
+                + result.stderr.replace(token, "[REDACTED]")
+            ).encode(),
         )
         if result.returncode:
             raise RuntimeError(
@@ -450,7 +456,7 @@ echo $! > /home/runner/runner.pid
         directory = self.directory(resource)
         serial = self.slot(resource) / "serial.log"
         if serial.exists():
-            shutil.copyfile(serial, directory / "serial.log")
+            capture_file(serial, directory, "serial.log")
         try:
             result = self.ssh(
                 resource,
@@ -459,8 +465,10 @@ echo $! > /home/runner/runner.pid
                 check=False,
             )
             if result.returncode == 0:
-                (directory / "guest-diagnostics.log").write_text(
-                    result.stdout + result.stderr
+                capture_bytes(
+                    directory,
+                    "guest-diagnostics.log",
+                    (result.stdout + result.stderr).encode(),
                 )
                 archive = self.ssh(
                     resource,
@@ -469,8 +477,10 @@ echo $! > /home/runner/runner.pid
                     check=False,
                 )
                 if archive.returncode == 0:
-                    (directory / "guest-diagnostics.tar.gz").write_bytes(
-                        base64.b64decode(archive.stdout, validate=True)
+                    capture_bytes(
+                        directory,
+                        "guest-diagnostics.tar.gz",
+                        base64.b64decode(archive.stdout, validate=True),
                     )
             else:
                 with (directory / "diagnostic-errors.log").open("a") as stream:
@@ -493,10 +503,55 @@ echo $! > /home/runner/runner.pid
 
     def destroy(self, resource):
         helper("stop", resource["slot"], resource["id"])
+        directory = self.directory(resource)
+        disk = self.slot(resource) / "disk.qcow2"
+        if disk.is_symlink():
+            raise RuntimeError("Linked guest disk retained; cleanup blocked")
+        if disk.exists():
+            # A text tail or runner-only tar cannot prove all guest logs were
+            # captured. Keep the complete stopped overlay and its backing
+            # dependency, rather than deleting unobserved guest evidence.
+            expected_disk = digest(disk)
+            expected_base = resource.get("details", {}).get("image_sha256")
+            if expected_base != digest(self.image):
+                raise RuntimeError("Guest backing image changed; cleanup blocked")
+            retained_disk = directory / f"guest-disk-{uuid.uuid4().hex}.qcow2"
+            if retained_disk.exists() or retained_disk.is_symlink():
+                raise RuntimeError("Retained guest disk destination occupied")
+            disk.rename(retained_disk)
+            if digest(retained_disk) != expected_disk:
+                raise RuntimeError("Retained guest disk changed; cleanup blocked")
+            capture_bytes(
+                directory,
+                "retained-guest-disk.json",
+                json.dumps(
+                    {
+                        "overlay": str(retained_disk),
+                        "overlay_sha256": expected_disk,
+                        "backing_image": str(self.image),
+                        "backing_image_sha256": expected_base,
+                        "scope": "original overlay; backing bytes must also remain retained",
+                    },
+                    sort_keys=True,
+                ).encode(),
+            )
         serial = self.slot(resource) / "serial.log"
+        if serial.is_symlink():
+            raise RuntimeError("Linked serial log retained; cleanup blocked")
         if serial.exists():
-            shutil.copyfile(serial, self.directory(resource) / "serial.log")
-        for name in ("disk.qcow2", "seed.iso", "serial.log"):
+            captured = capture_file(serial, directory, "serial.log")
+            expected = digest(serial)
+            if digest(captured) != expected:
+                raise RuntimeError("Stopped serial log changed; cleanup blocked")
+            original = directory / f"serial-original-{uuid.uuid4().hex}.log"
+            if original.exists() or original.is_symlink():
+                raise RuntimeError("Retained serial destination occupied")
+            # Keep the original inode, as well as the verified capture. Rename
+            # fails closed across filesystems; never copy/delete as a fallback.
+            serial.rename(original)
+            if digest(original) != expected:
+                raise RuntimeError("Retained serial log changed; cleanup blocked")
+        for name in ("seed.iso",):
             path = self.slot(resource) / name
             path.unlink(missing_ok=True)
         if any(self.slot(resource).iterdir()):
