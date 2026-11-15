@@ -7,6 +7,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -24,6 +25,47 @@ Backend: Any = backend.Backend
 
 
 class RetentionTests(unittest.TestCase):
+    def test_preparation_output_overrun_retains_prefix_and_failure_receipt(
+        self,
+    ) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaisesRegex(RuntimeError, "output limit"):
+                backend.execute(
+                    [sys.executable, "-c", "import sys;sys.stdout.write('x'*1000000)"],
+                    input="synthetic-private-input",
+                    output_limit=4096,
+                    retained_output_directory=root,
+                )
+            generation = next(root.glob("preparation-output-*"))
+            self.assertEqual((generation / "stdout.log").read_bytes(), b"x" * 4096)
+            receipt = json.loads((generation / "receipt.json").read_text())
+            self.assertFalse(receipt["complete_within_bound"])
+            self.assertEqual(receipt["exception"], "RuntimeError")
+            self.assertNotIn("argv", receipt)
+            self.assertNotIn("stdin", receipt)
+            self.assertNotIn("synthetic-private-input", json.dumps(receipt))
+
+    def test_preparation_timeout_retains_partial_raw_output(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            with self.assertRaises(subprocess.TimeoutExpired):
+                backend.execute(
+                    [
+                        sys.executable,
+                        "-c",
+                        "import time;print('partial',flush=True);time.sleep(2)",
+                    ],
+                    timeout=0.2,
+                    output_limit=4096,
+                    retained_output_directory=root,
+                )
+            generation = next(root.glob("preparation-output-*"))
+            self.assertEqual((generation / "stdout.log").read_bytes(), b"partial\n")
+            receipt = json.loads((generation / "receipt.json").read_text())
+            self.assertEqual(receipt["exception"], "TimeoutExpired")
+            self.assertFalse(receipt["complete_within_bound"])
+
     def fake_snapshot(
         self,
         disk: Path,

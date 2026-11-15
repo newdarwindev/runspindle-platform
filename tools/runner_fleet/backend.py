@@ -12,10 +12,11 @@ import subprocess
 import tempfile
 import time
 import uuid
+from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, cast
 
-from .retention import capture_bytes, capture_file, snapshot_guest_disk
+from .retention import capture_bytes, capture_file, file_digest, snapshot_guest_disk
 
 ROOT = Path("/var/lib/runspindle-fleet")
 HELPER = "/opt/runspindle-fleet/tools/runner_fleet/host_helper.py"
@@ -29,7 +30,10 @@ def execute(
     input: str | None = None,
     check: bool = True,
     output_limit: int | None = None,
+    retained_output_directory: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    if retained_output_directory is not None and output_limit is None:
+        raise ValueError("Raw nonsecret output retention requires an explicit bound")
     if output_limit is None:
         result = subprocess.run(
             argv, input=input, text=True, capture_output=True, timeout=timeout
@@ -37,37 +41,98 @@ def execute(
     else:
         # Guest-controlled stdout must not become unbounded host memory/disk.
         # RLIMIT_FSIZE applies to the host SSH process, never guest workloads.
-        with tempfile.TemporaryFile() as stdout, tempfile.TemporaryFile() as stderr:
+        with ExitStack() as stack:
+            generation = None
+            if retained_output_directory is None:
+                stdout = stack.enter_context(tempfile.TemporaryFile())
+                stderr = stack.enter_context(tempfile.TemporaryFile())
+            else:
+                generation = (
+                    retained_output_directory / f"preparation-output-{uuid.uuid4().hex}"
+                )
+                generation.mkdir(mode=0o700)
+                stdout = stack.enter_context(
+                    os.fdopen(
+                        os.open(
+                            generation / "stdout.log",
+                            os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                            0o600,
+                        ),
+                        "w+b",
+                    )
+                )
+                stderr = stack.enter_context(
+                    os.fdopen(
+                        os.open(
+                            generation / "stderr.log",
+                            os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                            0o600,
+                        ),
+                        "w+b",
+                    )
+                )
 
             def bounded_files() -> None:
                 process_resource.setrlimit(
                     process_resource.RLIMIT_FSIZE, (output_limit, output_limit)
                 )
 
-            completed = subprocess.run(
-                argv,
-                input=input,
-                text=True,
-                stdout=stdout,
-                stderr=stderr,
-                timeout=timeout,
-                preexec_fn=bounded_files,
-            )
-            if (
-                max(
-                    os.fstat(stdout.fileno()).st_size, os.fstat(stderr.fileno()).st_size
+            completed = None
+            error_kind = None
+            try:
+                completed = subprocess.run(
+                    argv,
+                    input=input,
+                    text=True,
+                    stdout=stdout,
+                    stderr=stderr,
+                    timeout=timeout,
+                    preexec_fn=bounded_files,
                 )
-                >= output_limit
-            ):
-                raise RuntimeError("Guest diagnostic output limit exceeded")
-            stdout.seek(0)
-            stderr.seek(0)
-            result = subprocess.CompletedProcess(
-                argv,
-                completed.returncode,
-                stdout.read(output_limit).decode("utf-8", errors="replace"),
-                stderr.read(output_limit).decode("utf-8", errors="replace"),
-            )
+                if (
+                    max(
+                        os.fstat(stdout.fileno()).st_size,
+                        os.fstat(stderr.fileno()).st_size,
+                    )
+                    >= output_limit
+                ):
+                    raise RuntimeError("Guest diagnostic output limit exceeded")
+                stdout.seek(0)
+                stderr.seek(0)
+                result = subprocess.CompletedProcess(
+                    argv,
+                    completed.returncode,
+                    stdout.read(output_limit).decode("utf-8", errors="replace"),
+                    stderr.read(output_limit).decode("utf-8", errors="replace"),
+                )
+            except BaseException as error:
+                error_kind = type(error).__name__
+                raise
+            finally:
+                if generation is not None:
+                    for stream in (stdout, stderr):
+                        stream.flush()
+                        os.fsync(stream.fileno())
+                    capture_bytes(
+                        generation,
+                        "receipt.json",
+                        json.dumps(
+                            {
+                                "scope": "raw nonsecret preparation output; no stdin or argv captured",
+                                "exception": error_kind,
+                                "returncode": completed.returncode
+                                if completed is not None
+                                else None,
+                                "output_limit": output_limit,
+                                "stdout_bytes": os.fstat(stdout.fileno()).st_size,
+                                "stderr_bytes": os.fstat(stderr.fileno()).st_size,
+                                "stdout_sha256": file_digest(generation / "stdout.log"),
+                                "stderr_sha256": file_digest(generation / "stderr.log"),
+                                "complete_within_bound": error_kind is None,
+                            },
+                            sort_keys=True,
+                        ).encode(),
+                    )
     if check and result.returncode:
         # Never embed input (registration token) or argv in an exception.
         raise RuntimeError(
@@ -91,6 +156,18 @@ def digest(path: str | os.PathLike[str]) -> str:
         for chunk in iter(lambda: stream.read(4 * 1024 * 1024), b""):
             value.update(chunk)
     return value.hexdigest()
+
+
+def frozen_preparation_text(source: Path, revision: str, relative: str) -> str:
+    if (
+        not re.fullmatch(r"[0-9a-f]{40}", revision)
+        or Path(relative).is_absolute()
+        or ".." in Path(relative).parts
+    ):
+        raise RuntimeError("Exact committed preparation source required")
+    return subprocess.check_output(
+        ["git", "-C", str(source), "show", f"{revision}:{relative}"], text=True
+    )
 
 
 def image_binding(
@@ -119,9 +196,16 @@ def image_binding(
 
 
 class Backend:
-    def __init__(self, state, image=None):
+    def __init__(
+        self,
+        state: Any,
+        image: str | os.PathLike[str] | None = None,
+        *,
+        preparation_source_sha: str | None = None,
+    ) -> None:
         self.state = state
         self.image = Path(image or ROOT / "images/qualified.qcow2")
+        self.preparation_source_sha = preparation_source_sha
 
     def directory(self, resource: dict[str, Any]) -> Path:
         path = self.state.directory / "resources" / resource["id"]
@@ -137,7 +221,11 @@ class Backend:
         script: str,
         timeout: float = 30,
         check: bool = True,
+        *,
+        retain_nonsecret_output: bool = False,
     ) -> subprocess.CompletedProcess[str]:
+        # Raw retention is opt-in only for known nonsecret preparation scripts.
+        # Registration keeps its separate redacted capture; stdin is never logged.
         directory = self.directory(resource)
         return execute(
             [
@@ -168,6 +256,7 @@ class Backend:
             timeout=timeout,
             check=check,
             output_limit=32 * 1024**2,
+            retained_output_directory=directory if retain_nonsecret_output else None,
         )
 
     def copy_prepared(
@@ -212,6 +301,13 @@ class Backend:
             raise RuntimeError("verified preparation transfer failed")
 
     def create(self, resource, prepare=False):
+        if prepare and (
+            not isinstance(self.preparation_source_sha, str)
+            or not re.fullmatch(r"[0-9a-f]{40}", self.preparation_source_sha)
+        ):
+            raise RuntimeError(
+                "Preparation requires frozen source revision before effects"
+            )
         directory = self.directory(resource)
         slot = self.slot(resource)
         image_sha = digest(self.image)
@@ -220,6 +316,8 @@ class Backend:
             "slot": resource["slot"],
             "image_sha256": image_sha,
         }
+        if prepare:
+            instance["preparation"] = True
         if not prepare:
             if (
                 self.image.is_symlink()
@@ -314,6 +412,7 @@ class Backend:
                 "temporal/LICENSE-CLI",
                 "temporal/LICENSE-SERVER",
                 "tools/runner_fleet/prepare_temporal.sh",
+                "tools/runner_fleet/seal_preparation_guest.py",
                 "tests/test_temporal_lane.py",
                 "fleet/image-inputs.json",
                 "fleet/quality-closure.json",
@@ -328,7 +427,9 @@ class Backend:
                 cloud["write_files"].append(
                     {
                         "path": "/opt/runspindle-image-tools/" + relative,
-                        "content": (source / relative).read_text(),
+                        "content": frozen_preparation_text(
+                            source, str(self.preparation_source_sha), relative
+                        ),
                         "permissions": "0644",
                     }
                 )

@@ -1,5 +1,6 @@
 """Build budgets include preserved originals and independent guest copies."""
 
+import os
 import pwd
 import shutil
 import tempfile
@@ -10,6 +11,7 @@ from typing import Any
 from unittest.mock import patch
 
 from tools.runner_fleet import build_image, host_helper
+from tools.runner_fleet.state import State
 
 Build: Any = build_image
 
@@ -60,6 +62,45 @@ class BuildCapacityTests(unittest.TestCase):
             observe.assert_not_called()
             account.assert_not_called()
             self.assertEqual(log.read_bytes(), b"original serial bytes")
+
+    def test_missing_mounts_or_root_fallback_refuse_before_state(self) -> None:
+        root, state = Path("/synthetic/fleet"), Path("/synthetic/state")
+        with patch.object(Path, "is_mount", return_value=False):
+            with self.assertRaisesRegex(SystemExit, "mounts are required"):
+                build_image.require_build_storage(root, state)
+        with (
+            patch.object(Path, "is_mount", return_value=True),
+            patch.object(Path, "stat", return_value=SimpleNamespace(st_dev=1)),
+            self.assertRaisesRegex(SystemExit, "no stale root fallback"),
+        ):
+            build_image.require_build_storage(root, state)
+
+    def test_cleanup_reads_durable_boot_identity_instead_of_stale_reserve(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            state = State(temporary)
+            initial = state.reserve({"repository": "synthetic", "id": -2})
+            state.update(initial, "starting", image_sha256="a" * 64)
+            observed = build_image.current_reservation(state, initial)
+            self.assertNotIn("image_sha256", initial["details"])
+            self.assertEqual(observed["details"]["image_sha256"], "a" * 64)
+            state.update(initial, "destroyed")
+            with self.assertRaisesRegex(RuntimeError, "missing or ambiguous"):
+                build_image.current_reservation(state, initial)
+            state.db.close()
+
+    def test_memory_gate_preserves_host_reserve_and_kvm_denial(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            meminfo = Path(temporary) / "meminfo"
+            meminfo.write_text(f"MemAvailable: {18 * 1024**2} kB\n")
+            with patch.object(os, "access", return_value=True):
+                observed = build_image.require_build_runtime(6, 6, 2, meminfo)
+                self.assertEqual(observed["required_bytes"], 18 * 1024**3)
+                meminfo.write_text(f"MemAvailable: {18 * 1024**2 - 1} kB\n")
+                with self.assertRaisesRegex(SystemExit, "host reserve"):
+                    build_image.require_build_runtime(6, 6, 2, meminfo)
+            with patch.object(os, "access", return_value=False):
+                with self.assertRaisesRegex(SystemExit, "no privilege fallback"):
+                    build_image.require_build_runtime(6, 6, 2, meminfo)
 
 
 if __name__ == "__main__":

@@ -1,37 +1,43 @@
 #!/bin/bash
+# Guest-only reviewed preparation: Docker/group/timer/identity changes stay inside this image.
 set -euo pipefail
 set -a
 . /etc/environment
 set +a
+# Explicit guest preparation mode: stop execution and retain Docker diagnostics.
+export RUNSPINDLE_TEMPORAL_RETAIN=1
 sudo sed -i 's,http://,https://,g' /etc/apt/sources.list.d/ubuntu.sources
 sudo -E env DEBIAN_FRONTEND=noninteractive apt-get update
 sudo -E env DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io docker-buildx
 sudo systemctl enable --now docker
 sudo usermod -aG docker runner
 sudo docker load -i /home/runner/preparation/builder-closure.tar.gz >/dev/null
-python3 - <<'PY'
-import json,pathlib,subprocess
+sudo -E python3 - <<'PY'
+import json,pathlib,subprocess,sys
+sys.path.insert(0,'/opt/runspindle-image-tools/tools')
+from temporal_lane import retained_probe
+pathlib.Path('/opt/runspindle-temporal').mkdir(mode=0o755,exist_ok=True)
 pins=json.loads(pathlib.Path('/opt/runspindle-image-tools/fleet/builder-closure.json').read_text())
 builder=pins['docker_loaded_builder_image_id']
 observed=json.loads(subprocess.check_output(['sudo','docker','image','inspect',builder],text=True))[0]
 if observed['Id']!=builder or observed['Architecture']!='amd64':
     raise SystemExit('staged runtime builder image identity or architecture mismatch')
 paths=['/usr/bin/protoc','/usr/local/rustup/toolchains/1.94.1-x86_64-unknown-linux-gnu/bin/clippy-driver',*pins['license_sha256']]
-output=subprocess.check_output(['sudo','docker','run','--rm','--pull','never','--network','none',builder,'sha256sum',*paths],text=True)
+output=retained_probe(builder,['sha256sum',*paths],pathlib.Path('/opt/runspindle-temporal')).stdout
 hashes={path:value for value,path in (line.split() for line in output.splitlines())}
 required={'/usr/bin/protoc':pins['protoc_sha256'],paths[1]:pins['clippy_driver_sha256'],**pins['license_sha256']}
 if hashes!=required:
     raise SystemExit('staged runtime builder tool or license bytes mismatch')
 for package,version in pins['packages'].items():
-    observed=subprocess.check_output(['sudo','docker','run','--rm','--pull','never','--network','none',builder,'dpkg-query','-W',package],text=True).split()[-1]
+    observed=retained_probe(builder,['dpkg-query','-W',package],pathlib.Path('/opt/runspindle-temporal')).stdout.split()[-1]
     if observed!=version:
         raise SystemExit('staged runtime builder package version mismatch')
 PY
 sudo install -d -m 0755 /opt/runspindle-temporal
 sudo install -m 0644 /home/runner/preparation/temporal_cli_1.10.0_linux_amd64.tar.gz /opt/runspindle-temporal/
 sudo install -m 0644 /home/runner/preparation/LICENSE-CLI /opt/runspindle-temporal/LICENSE
-sudo -H -E python3 /opt/runspindle-image-tools/tools/temporal_lane.py prepare --directory /opt/runspindle-temporal --architecture amd64 --offline
-sudo -H -E python3 /opt/runspindle-image-tools/tools/temporal_lane.py smoke --directory /opt/runspindle-temporal
+sudo -H -E python3 /opt/runspindle-image-tools/tools/temporal_lane.py prepare --directory /opt/runspindle-temporal --architecture amd64 --offline --retain-diagnostics
+sudo -H -E python3 /opt/runspindle-image-tools/tools/temporal_lane.py smoke --directory /opt/runspindle-temporal --retain-diagnostics
 python3 - <<'PY' | sudo tee /etc/runspindle-image.json >/dev/null
 import hashlib,json,pathlib,subprocess
 v={'schema_version':1, 'ubuntu_sha256':'04e8f2461a16a44e78a370284471f29616cdd9baf1893df25807b71f985b6c94','runner_sha256':'baebf204307bac6193480852732f0aba2ae97b6c5597c244f4d5558390147c40','rust_sha256':'294b3d81fa72e62581276290c60c81eb8b58498d333d422ca1dfc432877d0c40'}
@@ -52,10 +58,18 @@ v['identity'] += '-rust-closure'
 print(json.dumps(v,sort_keys=True))
 PY
 sudo -E env RUNSPINDLE_TEMPORAL_PREPARED=/opt/runspindle-temporal python3 -m unittest discover -s /opt/runspindle-image-tools/tests -v
-sudo rm -rf /tmp/debugbuild
-sudo chown -R runner:runner /home/runner/.docker 2>/dev/null || true
+if [ -L /home/runner/.docker ]; then
+  echo 'Linked guest Docker configuration retained; refuse ownership cleanup' >&2
+  exit 1
+fi
+if [ -d /home/runner/.docker ]; then
+  sudo chown -R runner:runner /home/runner/.docker
+fi
 sudo apt-get clean
+# Preserve original cloud metadata, guest keys and any debug build before sealing.
+# The helper refuses host use and cross-filesystem diagnostic moves.
+sudo python3 /opt/runspindle-image-tools/tools/runner_fleet/seal_preparation_guest.py
+sudo cloud-init clean --machine-id
+# Emit terminal image metadata only after successful preservation and sealing.
 printf 'RUNSPINDLE_IMAGE='; cat /etc/runspindle-image.json
-sudo cloud-init clean --logs --machine-id
-sudo rm -f /etc/ssh/ssh_host_* /home/runner/.ssh/authorized_keys
 sudo shutdown -h now
