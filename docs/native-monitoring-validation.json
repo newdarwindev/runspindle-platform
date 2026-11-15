@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "source_id": "SRC-011",
+  "base_revision": "0df57c2283d973f695b017ce35855b14d160516c",
+  "evidence_class": "offline_document_and_evidence_contract_tests",
+  "python": "3.12.14",
+  "machine": "x86_64",
+  "commands": [
+    {
+      "command": "python3 tools/check_native_monitoring.py",
+      "result": "passed",
+      "source_units": 19,
+      "surfaces": 14
+    },
+    {
+      "command": "python3 -m unittest discover -s tests -p 'test_native_monitoring*.py' -v",
+      "result": "passed",
+      "tests": 25
+    },
+    {
+      "command": "python3 -m unittest discover -s tests -p 'test_telemetry_evidence.py' -v",
+      "result": "passed",
+      "tests": 4
+    },
+    {
+      "command": "python3 tools/check_scaffold.py",
+      "result": "passed"
+    },
+    {
+      "command": "python3 tools/validate.py",
+      "result": "passed",
+      "tests": 132,
+      "passed": 119,
+      "skipped": 13,
+      "skip_reasons": [
+        "8 disposable Linux arm64 installation cases unavailable",
+        "5 prepared Temporal real-lane cases not requested"
+      ]
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "python -m mypy --strict --explicit-package-bases --follow-imports=silent --no-incremental tools/check_native_monitoring.py tests/test_native_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "python -m ruff check --select E4,E7,E9,F,I tools/check_native_monitoring.py tests/test_native_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "python -m ruff format --check tools/check_native_monitoring.py tests/test_native_monitoring.py",
+      "result": "passed"
+    },
+    {
+      "command": "PYTHONOPTIMIZE=1 python3 -O tools/validate.py",
+      "result": "passed",
+      "tests": 132,
+      "passed": 119,
+      "skipped": 13,
+      "skip_reasons": [
+        "8 disposable Linux arm64 installation cases unavailable",
+        "5 prepared Temporal real-lane cases not requested"
+      ]
+    }
+  ],
+  "synthetic_lifecycle_tests": "snapshot classification only; not actual flushing, outage injection or restart",
+  "prior_runtime_evidence": "docs/maintained-offline-tests.json; unchanged Collector harness and config hashes checked, not re-executed",
+  "not_run": [
+    "native_client",
+    "Collector_runtime",
+    "Langfuse",
+    "TLS_auth_denial",
+    "native_shutdown_flush",
+    "backend_API_readback",
+    "authenticated_UI",
+    "hosted_telemetry",
+    "deployment",
+    "installation",
+    "enrollment",
+    "GitHub_CI",
+    "independent_review"
+  ],
+  "retained_limits": [
+    "Original expression excluded for missing rights clearance",
+    "Private linked dependency documents excluded and unreviewed",
+    "Installed client identity and effective configuration unknown",
+    "Trusted synthetic identity values only; producer/config/policy matching not implemented by fixture classifier",
+    "No production or native qualification"
+  ],
+  "strict_tools": {
+    "ruff": "0.14.5",
+    "mypy": "1.18.2"
+  }
+}

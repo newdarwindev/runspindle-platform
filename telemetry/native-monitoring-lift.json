@@ -1,0 +1,129 @@
+{
+  "schema_version": 1,
+  "source_id": "SRC-011",
+  "classification": "original_concept_document_lift",
+  "original_expression": "excluded_missing_rights_clearance",
+  "private_dependencies": "excluded_unreviewed",
+  "historical_reference": "exact_identity_retained_privately",
+  "adapted_content": "all_selected_source_sections_accounted_with_exclusions",
+  "executable_implementation": "original_offline_checker_and_tests_only",
+  "runtime_validation": "prior_synthetic_evidence_referenced_not_rerun",
+  "native_telemetry": "blocked",
+  "live_acceptance": "not_run",
+  "independent_review": "pending",
+  "source_units": [
+    {
+      "id": "SRC-011-01",
+      "destination": "specs/native-monitoring.md#scope-and-ownership",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-02",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-03",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-04",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-05",
+      "destination": "specs/native-monitoring.md#privacy-and-unresolved-gaps",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-06",
+      "destination": "specs/native-monitoring.md#configuration-prerequisites",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-07",
+      "destination": "specs/native-monitoring.md#event-and-usage-semantics",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-08",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-09",
+      "destination": "specs/native-monitoring.md#privacy-and-unresolved-gaps",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-10",
+      "destination": "specs/native-monitoring.md#configuration-prerequisites",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-11",
+      "destination": "specs/native-monitoring.md#privacy-and-unresolved-gaps",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-12",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-13",
+      "destination": "specs/native-monitoring.md#compatibility-matrix",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-14",
+      "destination": "specs/native-monitoring.md#configuration-prerequisites",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-15",
+      "destination": "specs/native-monitoring.md#configuration-prerequisites",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-16",
+      "destination": "specs/native-monitoring.md#privacy-and-unresolved-gaps",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-17",
+      "destination": "specs/native-monitoring.md#acceptance-procedure-and-evidence-levels",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-18",
+      "destination": "specs/native-monitoring.md#event-and-usage-semantics",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    },
+    {
+      "id": "SRC-011-19",
+      "destination": "specs/native-monitoring.md#source-accounting-and-rights",
+      "disposition": "original_concept_adaptation_with_original_expression_and_private_dependency_exclusions"
+    }
+  ],
+  "artifact_sha256": {
+    "STATUS.json": "669c149bc1a2a10e40b9c3f582229449a814dfd2dec9a9baa96e11bf47a0f9aa",
+    "docs/maintained-offline-tests.json": "013c0e9ea6511485f8ad7a74e6e6061d9c8463c4d25fc347721b66a017eb0241",
+    "docs/native-monitoring-validation.json": "c7b0d551051293bf5ce7153a2ef0586e0430ed69643913076bb28afa81e07fbc",
+    "provenance.json": "32bfcd5f25c090adf2fc43877ce7d9c8ed44473de175971860529b32d118e191",
+    "specs/native-monitoring.md": "2c4c05a14ddf506e8e41e78dbd0413f6fc7cdf7d5998f3fd8e059c952cc9878b",
+    "telemetry/collector.yaml": "fec1a0ba56d53bf2db070073118687595a6f373e39a5a16df5a62962ce75cf55",
+    "telemetry/dependencies.json": "e6f028e3047b4a2914444b73a38f12cdc93be4d504c460123c863d2291e27f80",
+    "telemetry/langfuse-qualification.json": "c8d2f905079abcc8c6ef4f121ab254f5369f2256eefcd8919cb3c65688536427",
+    "telemetry/native-monitoring-compatibility.json": "30ff00c82af8fa5c0ca8f2b3465f8ecf0b10395be9d47dec35743c2e4dd483a6",
+    "tests/test_native_monitoring.py": "e93d02f0b1b6823ca2ea26f177ea9bb0be67115ab8b9f899322848b4039e1447",
+    "tests/test_telemetry_evidence.py": "87100b51d7ece38bcc9216dbd07e3064ceb50d911a37ea37dc220547aedd16e0",
+    "tools/check_native_monitoring.py": "2ffffa3f9c0fe7ccfb632caa341fcfeab96f01932dd2b7a526a35616b4d920c6",
+    "tools/collector_privacy_check.py": "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4",
+    "tools/collector_recovery_check.py": "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
+    "tools/validate.py": "b29f49b6ae71b4427328df21ee855f9ac809ea452af9729a3d1f5ada5695118a"
+  },
+  "prior_evidence": "docs/maintained-offline-tests.json"
+}

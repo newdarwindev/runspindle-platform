@@ -46,6 +46,17 @@
       "timeout_seconds": 300
     },
     {
+      "id": "check-native-monitoring",
+      "command": [
+        "python3",
+        "tools/check_native_monitoring.py"
+      ],
+      "required_files": [
+        "tools/check_native_monitoring.py"
+      ],
+      "timeout_seconds": 300
+    },
+    {
       "id": "check-temporal-mutations",
       "command": [
         "python3",
