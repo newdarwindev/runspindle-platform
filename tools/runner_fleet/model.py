@@ -34,7 +34,7 @@ def validate_config(value, *, candidate_policy=None):
         proposal = {"owner": "newdarwindev",
                     "repositories": list(REPOSITORIES + ("runspindle-demo-suite",)),
                     "activation_allowed": False}
-        if candidate_policy != proposal:
+        if candidate_policy != proposal or candidate_policy.get("activation_allowed") is not False:
             raise ValueError("Fleet candidate policy changed")
         expected = tuple(proposal["repositories"])
     if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != expected:

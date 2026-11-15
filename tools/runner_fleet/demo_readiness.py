@@ -11,12 +11,15 @@ def validate_candidate(config, policy):
     """Validate the exact paired proposal, without widening the active policy."""
     expected = {"owner": "newdarwindev", "repositories": list(CANDIDATE_REPOSITORIES),
                 "activation_allowed": False}
-    if policy != expected:
+    if policy != expected or policy.get("activation_allowed") is not False:
         raise ValueError("Unexpected demo candidate policy")
     model.validate_config(config, candidate_policy=policy)
     lane = config.get("lanes", {}).get("strix-linux-x64")
     if not lane or lane.get("architecture") != "X64" or lane.get("host") != "strix":
         raise ValueError("Expected isolated Strix x64 lane")
+    if not {"self-hosted", "linux", "x64", "runspindle-isolated", "strix"} <= {
+            label.lower() for label in lane.get("labels", [])}:
+        raise ValueError("Expected explicit isolated Linux x64 labels")
     return config
 
 

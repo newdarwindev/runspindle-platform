@@ -31,8 +31,13 @@ class DemoReadinessTests(unittest.TestCase):
             changed[target]['repositories'].append('unexpected-repository')
             with self.assertRaises(ValueError):
                 validate_candidate(changed['candidate_config'], changed['candidate_policy'])
-        policy['activation_allowed'] = True
-        with self.assertRaises(ValueError): validate_candidate(cfg, policy)
+        for activation in [True, 0, None]:
+            policy['activation_allowed'] = activation
+            with self.assertRaises(ValueError): validate_candidate(cfg, policy)
+        plan = prepare(self.config, {}, None, None)
+        plan['candidate_config']['lanes']['strix-linux-x64']['labels'].remove('runspindle-isolated')
+        with self.assertRaises(ValueError):
+            validate_candidate(plan['candidate_config'], plan['candidate_policy'])
 
     def test_missing_tools_and_wrong_browser_report_blockers(self):
         plan = prepare(self.config, {}, '1248', '1.56.1')
