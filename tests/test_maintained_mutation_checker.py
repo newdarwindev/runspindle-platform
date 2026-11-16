@@ -3,6 +3,7 @@
 import contextlib
 import io
 import json
+import platform
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,10 @@ def completed(code: int = 0, stderr: str = "OK") -> subprocess.CompletedProcess[
 
 class MutationCheckerTests(unittest.TestCase):
     def setUp(self) -> None:
+        for name, value in (("system", "Linux"), ("machine", "aarch64")):
+            mocked = patch.object(platform, name, return_value=value)
+            mocked.start()
+            self.addCleanup(mocked.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.root = Path(temporary.name)
@@ -130,6 +135,31 @@ class MutationCheckerTests(unittest.TestCase):
                 contextlib.redirect_stdout(io.StringIO()),
             ):
                 self.assertEqual(checker.main(args), 1)
+
+    def test_installed_wrong_architecture_blocks_without_running_controls(self) -> None:
+        for system, machine in (
+            ("Linux", "x86_64"),
+            ("Darwin", "arm64"),
+            ("Linux", "unknown"),
+        ):
+            with (
+                self.subTest(system=system, machine=machine),
+                patch.object(platform, "system", return_value=system),
+                patch.object(platform, "machine", return_value=machine),
+                patch.object(checker, "run_case") as run,
+                contextlib.redirect_stdout(io.StringIO()) as output,
+            ):
+                self.assertEqual(checker.main([]), 2)
+            run.assert_not_called()
+            self.assertEqual(
+                json.loads(output.getvalue()),
+                {
+                    "status": "blocked",
+                    "reason": "unsupported_installed_platform",
+                    "required_platform": "linux/arm64",
+                    "native_acceptance": "not_run",
+                },
+            )
 
     def test_child_preserves_optimization_mode(self) -> None:
         with patch.object(subprocess, "run", return_value=completed()) as run:

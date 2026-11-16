@@ -25,7 +25,7 @@ from tools.runner_fleet.candidate import (
     verify_image,
 )
 
-config = cast(Callable[[], dict[str, Any]], _model.config)
+config = _model.config
 State: Any = _state.State
 
 

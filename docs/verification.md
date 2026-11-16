@@ -48,3 +48,45 @@ template checks, provenance, ownership and exceptions. Existing acceptance and
 runner trust boundaries remain unchanged. No additional coverage floors, automatic
 PR triggers, security scanners, cross-repository compatibility policy, retention
 policy or UI quality policy is introduced by this change.
+
+## Partition platform contracts (schema v2)
+
+`validation-partitions.json` now declares the OS/architecture, qualification
+status and image reference for every partition and the aggregate runner. The
+image registry retains the existing x64 pins unchanged. `pinned` means those
+reviewed validation input pins are available; it does not promote the candidate
+image to full fleet, lifecycle or product qualification. Observed host platform
+and instance metadata are comparison evidence, never qualification authority.
+
+The mandatory `mutation_2` installed gate requires Linux ARM64 and is explicitly
+`unqualified`, with no image reference. It fails before metadata reads or child
+checks on every host until independently verified pins are reviewed into this
+contract. The installed checker also refuses non-Linux-ARM64 execution before
+running its controls. Portable checks and skipped controls cannot replace it.
+The existing workflow stays unchanged on x64; therefore full validation remains
+blocked, not green. No lane, image, workflow or infrastructure is enabled here.
+
+Schema v1 manifests and receipts intentionally fail closed: they cannot express
+this binding. Schema v2 receipts bind the selected partition platform and exact
+contract/image-pin digest in addition to the existing source/run/inventory and
+instance bindings. Aggregate validation resolves each partition's own reviewed
+image, never substitutes the aggregate x64 image, and still requires all seven
+partitions and every mandatory check. A forged success for an unqualified
+partition is rejected. These checks detect inconsistent claims within the
+existing trusted CI boundary; receipts are not cryptographic attestations.
+
+A future ARM64 qualification requires independently reviewed exact image, source,
+controller, recipe, tool, quality, Rust and builder pins plus separate authorized
+runner work. A self-reported ARM64 platform, matching fabricated receipt or unit
+test fixture does not establish that qualification. Unit tests use explicitly
+synthetic separate ARM64 pins to exercise future aggregate binding only.
+
+## Explicit Temporal coverage
+
+The `python-tests` command in `hygiene.json` selects required Temporal integration
+and its prepared directory explicitly. `tools/validate.py` no longer activates
+integration by probing directory presence. Missing preparation fails closed rather
+than returning a green suite with five integration skips. The local command
+`python3 tools/python_tests.py --temporal boundary` is separate, reports Temporal
+not run and cannot satisfy canonical receipts. Installed ARM64 tests are unchanged.
+See [Temporal selection and evidence limits](TEMPORAL_LANE.md#explicit-validation-selection).

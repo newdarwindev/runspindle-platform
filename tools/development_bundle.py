@@ -52,6 +52,7 @@ def path_name(name):
     check(
         type(name) is str
         and 1 <= len(name) <= 256
+        and bool(path.parts)
         and str(path) == name
         and not path.is_absolute()
         and ".." not in path.parts
@@ -92,6 +93,8 @@ def build(
     )
     for name, content in files.items():
         path_name(name)
+        if any(str(parent) in files for parent in PurePosixPath(name).parents):
+            raise ValueError("file/directory path conflict")
         check(
             type(content) is bytes and len(content) <= 1_048_576,
             "bounded immutable bundle bytes required",
@@ -419,9 +422,11 @@ class DisposableTarget:
         )
         return value["manifest_sha256"]
 
-    def verify_installed(self, component_commits):
+    def verify_installed(self: Any, component_commits: Any) -> dict[str, Any]:
+        state = self.state()
         digest = self._observed()
-        check(digest is not None, "no installed development bundle")
+        if digest is None or digest not in (state["active"], state["pending"]):
+            raise ValueError("conflicting installation readback")
         row = self.db.execute(
             "SELECT bundle FROM installs WHERE digest=?", (digest,)
         ).fetchone()

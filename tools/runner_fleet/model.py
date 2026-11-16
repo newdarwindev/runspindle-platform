@@ -1,8 +1,10 @@
 """Pure scheduling and evidence rules, independent of host virtualization."""
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORIES = (
@@ -28,19 +30,47 @@ SCENARIOS = (
 )
 
 
-def config():
-    value = json.loads((ROOT / "fleet/config.json").read_text())
-    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != REPOSITORIES:
+def validate_config(
+    value: dict[str, Any], *, candidate_policy: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    # Existing fleet boundaries exchange dynamic JSON; candidate checks remain explicit.
+    expected: tuple[str, ...] = REPOSITORIES
+    if candidate_policy is not None:
+        proposal = {
+            "owner": "newdarwindev",
+            "repositories": list(REPOSITORIES + ("runspindle-demo-suite",)),
+            "activation_allowed": False,
+        }
+        if (
+            candidate_policy != proposal
+            or candidate_policy.get("activation_allowed") is not False
+        ):
+            raise ValueError("Fleet candidate policy changed")
+        expected = REPOSITORIES + ("runspindle-demo-suite",)
+    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != expected:
         raise ValueError("Fleet repository allowlist changed")
     return value
 
 
-def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
+def config() -> dict[str, Any]:
+    return validate_config(json.loads((ROOT / "fleet/config.json").read_text()))
+
+
+def choose_jobs(
+    cfg: dict[str, Any],
+    host: str,
+    queued: list[dict[str, Any]],
+    active: list[dict[str, Any]],
+    cursor: int = 0,
+    drained: bool = False,
+) -> tuple[list[dict[str, Any]], int]:
     """One reservation per queued job, round-robin, capacity shared by lanes.
 
     Reservations include booting/unknown resources; callers must reconcile them
     before removing them. Existing persistent runners are never counted as ours.
     """
+    # An offline candidate must never become an operational repository allowlist.
+    validate_config(cfg)
     if drained:
         return [], cursor
     slots = max(0, cfg["hosts"][host]["capacity"] - len(active))
@@ -67,6 +97,7 @@ def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
                     for j in remaining
                     if j["repository"] == repo
                     and matching_lane(cfg, host, j["labels"]) is not None
+                    and (host != "macbook" or admissible_mac_job(cfg, j))
                 ),
                 None,
             )
@@ -81,14 +112,52 @@ def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
     return selected, cursor
 
 
-def matching_lane(cfg, host, labels):
-    requested = {label.lower() for label in labels}
-    # Require explicit host and isolation labels. Generic self-hosted jobs do
-    # not grant permission to provision disposable infrastructure.
-    if not {"self-hosted", "runspindle-isolated", host} <= requested:
+def admissible_mac_job(cfg: dict[str, Any], job: dict[str, Any]) -> bool:
+    """Require a repository, source revision and approved workflow binding.
+
+    Labels alone are a routing request, not authority to start a guest.
+    The future Mac manager must use this predicate on authoritative GitHub
+    run/job data before reserving its single slot.
+    """
+    try:
+        validate_config(cfg)
+    except (KeyError, TypeError, ValueError):
+        return False
+    repo = job.get("repository")
+    if repo not in cfg["repositories"]:
+        return False
+    lane = matching_lane(cfg, "macbook", job.get("labels"))
+    if lane is None:
+        return False
+    if job.get("head_repository") != f"{cfg['owner']}/{repo}":
+        return False
+    if job.get("event") != "workflow_dispatch":
+        return False
+    branch = job.get("head_branch")
+    if not isinstance(branch, str) or not (
+        branch == "main" or branch.startswith("ci/")
+    ):
+        return False
+    if not isinstance(job.get("head_sha"), str) or not re.fullmatch(
+        r"[0-9a-f]{40}", job["head_sha"]
+    ):
+        return False
+    path = job.get("workflow_path")
+    names = {".github/workflows/fleet-qualification.yml": lane}
+    return path in names and job.get("name") == names[path]
+
+
+def matching_lane(cfg: dict[str, Any], host: str, labels: object) -> str | None:
+    if not isinstance(labels, list) or not all(isinstance(x, str) for x in labels):
         return None
-    for name, lane in cfg["lanes"].items():
-        if lane["host"] == host and requested <= {x.lower() for x in lane["labels"]}:
+    requested = {label.lower() for label in labels}
+    # An incomplete or augmented request must never be interpreted as a fleet
+    # lane. In particular, generic Mac jobs lack an OS/architecture binding.
+    if len(requested) != len(labels):
+        return None
+    lanes: dict[str, dict[str, Any]] = cfg["lanes"]
+    for name, lane in lanes.items():
+        if lane["host"] == host and requested == {x.lower() for x in lane["labels"]}:
             return name
     return None
 
@@ -127,7 +196,7 @@ def empty_report(cfg, revisions):
         "status": "blocked",
         "coverage": [
             {
-                "repository": f'{cfg["owner"]}/{repo}',
+                "repository": f"{cfg['owner']}/{repo}",
                 "lane": lane,
                 "requested_sha": revisions.get(repo),
                 "status": "blocked",

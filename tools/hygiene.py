@@ -10,10 +10,12 @@ import os
 import platform
 import re
 import resource
+import selectors
 import shutil
+import signal
 import subprocess
-import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -44,13 +46,27 @@ KNOWN_FAILURE_REASONS = frozenset(
         "required_tool_missing",
         "timeout",
         "process_start_failed",
+        "process_ownership_unavailable",
+        "output_incomplete",
+        "output_read_failed",
+        "output_close_failed",
         "declared_artifact_missing",
         "unsafe_artifact_path",
         "lockfile_changed_during_verification",
         "source_changed_during_verification",
         "invalid_or_missing_manifest",
+        "required_temporal_coverage_missing",
     }
 )
+
+
+def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate coverage key")
+        value[key] = item
+    return value
 
 
 def digest(path: Path) -> str:
@@ -270,6 +286,175 @@ def diagnostic_summary(entry: dict[str, Any]) -> str:
     return f"reported={category} (unverified)"
 
 
+PROCESS_CLEANUP_SECONDS = 2.0
+PROCESS_POLL_SECONDS = 0.05
+
+
+class OutputCapture:
+    """Bound memory while observing Temporal markers across the entire stream."""
+
+    def __init__(self) -> None:
+        self.tail = bytearray()
+        self.line = bytearray()
+        self.overlong = False
+        self.coverage_count = 0
+        self.coverage_line: bytes | None = None
+
+    def finish_line(self) -> None:
+        if self.line.startswith(b"TEMPORAL_COVERAGE="):
+            # Two observations reject duplicates, however far apart they occur.
+            self.coverage_count = min(2, self.coverage_count + 1)
+            if self.coverage_count == 1 and not self.overlong:
+                self.coverage_line = bytes(self.line)
+            else:
+                self.coverage_line = None
+        self.line.clear()
+        self.overlong = False
+
+    def feed(self, chunk: bytes) -> None:
+        self.tail.extend(chunk)
+        if len(self.tail) > 65536:
+            del self.tail[:-65536]
+        pieces = chunk.split(b"\n")
+        for index, piece in enumerate(pieces):
+            remaining = 8192 - len(self.line)
+            self.line.extend(piece[:remaining])
+            self.overlong = self.overlong or len(piece) > remaining
+            if index < len(pieces) - 1:
+                self.finish_line()
+
+
+def cleanup_error_code(error: OSError) -> str:
+    """Fixed diagnostics only; exception content may contain private child data."""
+    if isinstance(error, ProcessLookupError):
+        return "not_found"
+    if isinstance(error, PermissionError):
+        return "permission_denied"
+    if isinstance(error, ChildProcessError):
+        return "not_child"
+    if isinstance(error, InterruptedError):
+        return "interrupted"
+    return "os_error"
+
+
+def stop_owned_process(process: subprocess.Popen[bytes]) -> dict[str, str]:
+    """Signal once before reaping, then wait within a fixed bound.
+
+    Requires sole-waiter ownership and unchanged default SIGCHLD handling. A
+    reaped leader's old PID is never authority to signal its former group.
+    """
+    if process.returncode is not None:
+        return {}
+    if signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL:
+        return {"cleanup": "unknown", "signal_error": "ownership_unavailable"}
+    result: dict[str, str] = {}
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except OSError as error:
+        result.update(cleanup="unknown", signal_error=cleanup_error_code(error))
+    try:
+        process.wait(timeout=PROCESS_CLEANUP_SECONDS)
+    except subprocess.TimeoutExpired:
+        result.update(cleanup="unknown", reap_error="timeout")
+    except OSError as error:
+        result.update(cleanup="unknown", reap_error=cleanup_error_code(error))
+    return result
+
+
+def collect_process(
+    process: subprocess.Popen[bytes], timeout: float
+) -> tuple[dict[str, Any], OutputCapture]:
+    """Read an unbuffered nonblocking pipe in its sole owning thread.
+
+    Leader exit ends signaling authority. Retained writers get bounded draining,
+    not late cleanup signals or claims that descendants have been contained.
+    """
+    result: dict[str, Any] = {}
+    capture = OutputCapture()
+    eof = False
+    stop_attempted = False
+    primary_exception: BaseException | None = None
+    deadline = time.monotonic() + timeout
+    drain_deadline: float | None = None
+    stream = process.stdout
+    try:
+        if stream is None:
+            raise OSError("missing output pipe")
+        os.set_blocking(stream.fileno(), False)
+        with selectors.DefaultSelector() as selector:
+            selector.register(stream, selectors.EVENT_READ)
+            while True:
+                if signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL:
+                    result.setdefault("reason", "process_ownership_unavailable")
+                    result["cleanup"] = "unknown"
+                    break
+                code = process.poll()
+                now = time.monotonic()
+                if code is None and drain_deadline is None and now >= deadline:
+                    result["reason"] = "timeout"
+                    stop_attempted = True
+                    result.update(stop_owned_process(process))
+                    code = process.returncode
+                    drain_deadline = time.monotonic() + PROCESS_CLEANUP_SECONDS
+                if code is not None and drain_deadline is None:
+                    drain_deadline = now + PROCESS_CLEANUP_SECONDS
+                if drain_deadline is not None and (eof or now >= drain_deadline):
+                    break
+                remaining = (drain_deadline or deadline) - time.monotonic()
+                delay = min(PROCESS_POLL_SECONDS, max(0.0, remaining))
+                if eof:
+                    time.sleep(delay)
+                elif selector.select(delay):
+                    try:
+                        chunk = os.read(stream.fileno(), 8192)
+                    except BlockingIOError:
+                        continue
+                    if chunk:
+                        capture.feed(chunk)
+                    else:
+                        capture.finish_line()
+                        eof = True
+                        selector.unregister(stream)
+    except OSError as error:
+        result.setdefault("reason", "output_read_failed")
+        result["output_read_error"] = cleanup_error_code(error)
+    except BaseException as error:
+        primary_exception = error
+        raise
+    finally:
+        # Preserve cancellation and never retry a stop whose outcome is uncertain.
+        cleanup_exception: BaseException | None = None
+        try:
+            if process.returncode is None and not stop_attempted:
+                result.update(stop_owned_process(process))
+        except BaseException as error:
+            cleanup_exception = error
+            if primary_exception is None:
+                raise
+        finally:
+            if stream is not None:
+                try:
+                    # FileIO, not a buffered reader shared with a thread.
+                    stream.close()
+                except OSError as error:
+                    result.setdefault("reason", "output_close_failed")
+                    result["output_close_error"] = cleanup_error_code(error)
+                    result["cleanup"] = "unknown"
+                except BaseException:
+                    if primary_exception is None and cleanup_exception is None:
+                        raise
+    if not eof:
+        result.setdefault("reason", "output_incomplete")
+        result["cleanup"] = "unknown"
+    result["output_complete"] = eof
+    if process.returncode is not None and result.get("reason") != "timeout":
+        result["exit_code"] = process.returncode
+    result["status"] = (
+        "passed" if process.returncode == 0 and "reason" not in result else "failed"
+    )
+    return result, capture
+
+
 def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
     receipt: dict[str, Any] = {"id": entry["id"]}
     if "not_applicable" in entry:
@@ -308,51 +493,35 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
             "reason": "required_tool_missing",
             "missing_tool": tool if SAFE_ID.fullmatch(tool) else "unknown",
         }
+    child_env = dict(os.environ)
+    child_env.pop("RUNSPINDLE_TEMPORAL_PREPARED", None)
+    invocation = uuid.uuid4().hex
+    child_env["RUNSPINDLE_TEST_INVOCATION"] = invocation
     started = time.monotonic()
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
+    if signal.getsignal(signal.SIGCHLD) != signal.SIG_DFL:
+        return {
+            **receipt,
+            "status": "failed",
+            "reason": "process_ownership_unavailable",
+        }
     try:
         process = subprocess.Popen(
             entry["command"],
             cwd=root,
+            env=child_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,
+            bufsize=0,
         )
-        # Drain without persisting logs or allowing unbounded captured output.
-        tail = bytearray()
-
-        def drain() -> None:
-            assert process.stdout is not None
-            while True:
-                chunk = process.stdout.read(8192)
-                if not chunk:
-                    break
-                tail.extend(chunk)
-                if len(tail) > 65536:
-                    del tail[:-65536]
-
-        reader = threading.Thread(target=drain, daemon=True)
-        reader.start()
-        code: int | None = None
-        try:
-            code = process.wait(timeout=entry.get("timeout_seconds", 300))
-            receipt.update(status="passed" if code == 0 else "failed", exit_code=code)
-        except subprocess.TimeoutExpired:
-            import signal
-
-            os.killpg(process.pid, signal.SIGKILL)
-            process.wait()
-            receipt.update(status="failed", reason="timeout")
-        reader.join(timeout=2)
-        if reader.is_alive():
-            import signal
-
-            try:
-                os.killpg(process.pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
-            reader.join(timeout=2)
-        output = bytes(tail).decode("utf-8", errors="replace")
+    except OSError:
+        receipt.update(status="failed", reason="process_start_failed")
+    else:
+        outcome, capture = collect_process(process, entry.get("timeout_seconds", 300))
+        receipt.update(outcome)
+        code = receipt.get("exit_code")
+        output = bytes(capture.tail).decode("utf-8", errors="replace")
         if receipt["status"] == "failed":
             receipt["reported_diagnostic"] = reported_failure(output)
         if entry["id"] == "static-quality" and code is not None and code != 0:
@@ -376,12 +545,34 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
                 receipt["test_summary"] = "node_trailing_summary"
             else:
                 receipt["test_summary"] = "unavailable"
-        tail.clear()
-        del output
-        if process.stdout is not None:
-            process.stdout.close()
-    except OSError:
-        receipt.update(status="failed", reason="process_start_failed")
+        if entry["id"] == "python-tests":
+            from tools.python_tests import CANONICAL_COMMAND, valid_coverage
+
+            line = capture.coverage_line if capture.coverage_count == 1 else None
+            try:
+                coverage = (
+                    json.loads(line.split(b"=", 1)[1], object_pairs_hook=unique_object)
+                    if line is not None
+                    else None
+                )
+            except (ValueError, RecursionError):
+                coverage = None
+            observed_invocation = (
+                coverage.pop("invocation", None) if isinstance(coverage, dict) else None
+            )
+            if (
+                receipt["status"] != "passed"
+                or not receipt["output_complete"]
+                or code != 0
+                or observed_invocation != invocation
+                or entry["command"] != CANONICAL_COMMAND
+                or not valid_coverage(coverage)
+            ):
+                receipt["status"] = "failed"
+                receipt.setdefault("reason", "required_temporal_coverage_missing")
+            else:
+                receipt["temporal_coverage"] = coverage
+        del capture, output
     after = resource.getrusage(resource.RUSAGE_CHILDREN)
     receipt.update(
         wall_seconds=round(time.monotonic() - started, 6),
@@ -450,11 +641,9 @@ def preflight(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     component = root / "component.json"
     if component.exists() and os.environ.get("CI", "").lower() == "true":
         if json.loads(component.read_text()).get("component") == "platform":
-            prepared = Path(
-                os.environ.get(
-                    "RUNSPINDLE_TEMPORAL_PREPARED", "/opt/runspindle-temporal"
-                )
-            )
+            from tools.python_tests import CANONICAL_COMMAND
+
+            prepared = Path(CANONICAL_COMMAND[-1])
             if not prepared.is_dir():
                 problems.append("prepared_temporal_missing")
     pins: dict[str, str] = {}

@@ -131,3 +131,29 @@ sealing, Docker retention, service startup or a built image. Those need the
 separately approved bounded guest build and independent actual-byte checks.
 
 Retention also binds the container ID across the before/after stop observations before reading logs; stop/log requests use that immutable ID. Network creation IDs and stable network configuration are pinned and rechecked, as are volume name/driver/mountpoint/creation-time/scope/options/labels. Docker volumes do not expose an immutable generation ID: those metadata observations do not prove arbitrary external content mutation absent. Original-volume claims assume the reviewed private guest has no external Docker/data mutator; actual Temporal history persistence and retained disk-byte checks remain separate. Machine-id lstat/hash preflight rejects linked or nonregular input before any sealing mutation and is rechecked before capture/clean.
+
+## Explicit validation selection
+
+Canonical `hygiene.json` now pins `python3 tools/python_tests.py --temporal required
+--prepared /opt/runspindle-temporal`. Both `tools/validate.py` and the partition
+producer use this command. Neither directory presence nor an inherited environment
+variable selects integration. Missing or invalid prepared release inputs fail
+before discovery or Docker. This pure byte check is not installed-image qualification;
+the five real tests still perform their existing independent runtime/image checks.
+Canonical validation is an integration request, including outside CI; it is not a
+local source-only command. It remains blocked by unqualified ARM64 `mutation_2`.
+
+For explicitly non-integration Temporal boundary evidence use:
+`python3 tools/python_tests.py --temporal boundary`. It ignores ambient Temporal
+opt-in and reports Temporal `not_run`. Other installed tests retain their own
+platform gates: on Linux ARM64 this is not a general source-only suite.
+The direct environment-selected unittest invocation above remains supported for
+explicit local integration, but is not canonical aggregate evidence.
+
+The launcher observes starts and successful completions for all five exact
+`test_temporal_lane.RealLaneTests` identities. Missing, duplicated, substituted,
+skipped or failed required cases cannot satisfy canonical coverage. The producer
+transports that observation; the aggregate requires it alongside exact command,
+source and platform bindings. These receipts remain claims inside the existing
+trusted source-check boundary, not cryptographic attestations. Arbitrary untrusted
+code can fabricate output; JSON does not establish independent operational proof.

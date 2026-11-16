@@ -8,6 +8,7 @@ import base64
 import hashlib
 import json
 import os
+import platform
 import re
 import subprocess
 import sys
@@ -36,6 +37,7 @@ SOURCE_SHA = re.compile(r"^[0-9a-f]{40}$")
 
 class Stage(str, Enum):
     MANIFEST = "manifest"
+    PLATFORM_CONTRACT = "platform_contract"
     INSTANCE_METADATA = "instance_metadata"
     IMAGE_METADATA = "image_metadata"
     IMAGE_BINDING = "image_binding"
@@ -50,8 +52,20 @@ class Stage(str, Enum):
     RECEIPT_OUTPUT = "receipt_output"
 
 
+class UnqualifiedPlatform(ValueError):
+    """The reviewed partition contract has no qualified image pins."""
+
+
+class UnsupportedPlatform(ValueError):
+    """The observed OS/architecture does not match the reviewed contract."""
+
+
 def failure_category(error: BaseException) -> str:
     # Closed vocabulary only: no exception text, paths, metadata or dynamic names.
+    if type(error) is UnqualifiedPlatform:
+        return "unqualified_platform"
+    if type(error) is UnsupportedPlatform:
+        return "unsupported_platform"
     if isinstance(error, json.JSONDecodeError):
         return "invalid_json"
     if isinstance(error, UnicodeError):
@@ -99,7 +113,7 @@ def manifests(root: Path = ROOT) -> tuple[dict[str, Any], dict[str, Any], str, s
     )
     partitions = manifest.get("partitions")
     if (
-        manifest.get("schema_version") != 1
+        manifest.get("schema_version") != 2
         or not isinstance(partitions, dict)
         or set(partitions) != set(PARTITIONS)
     ):
@@ -113,7 +127,18 @@ def manifests(root: Path = ROOT) -> tuple[dict[str, Any], dict[str, Any], str, s
     expected = [item["id"] for item in inventory["checks"]]
     if len(observed) != len(set(observed)) or set(observed) != set(expected):
         raise ValueError("missing or duplicate mandatory check coverage")
-    image = manifest.get("image", {})
+    validate_contracts(manifest)
+    return (
+        manifest,
+        inventory,
+        hashlib.sha256(raw).hexdigest(),
+        digest(root / "hygiene.json"),
+    )
+
+
+def validate_image(image: Any) -> None:
+    if not isinstance(image, dict):
+        raise ValueError("invalid image pins")
     required = (
         "sha256",
         "controller_sha256",
@@ -132,12 +157,89 @@ def manifests(root: Path = ROOT) -> tuple[dict[str, Any], dict[str, Any], str, s
         image["source_sha"]
     ):
         raise ValueError("missing exact image source revision")
-    return (
-        manifest,
-        inventory,
-        hashlib.sha256(raw).hexdigest(),
-        digest(root / "hygiene.json"),
+
+
+def validate_contracts(manifest: dict[str, Any]) -> None:
+    # Only the versioned reviewed manifest defines allowed images/platforms.
+    # Runner observations and receipt claims cannot add qualification authority.
+    if manifest.get("schema_version") != 2:
+        raise ValueError("unsupported partition schema")
+    images = manifest.get("images")
+    contracts = manifest.get("contracts")
+    if not isinstance(images, dict) or not images:
+        raise ValueError("missing image contracts")
+    if not isinstance(contracts, dict) or set(contracts) != set(PARTITIONS):
+        raise ValueError("missing partition contracts")
+    for image in images.values():
+        if (
+            not isinstance(image, dict)
+            or set(image) != {"platform", "pins"}
+            or image["platform"] not in ("linux/amd64", "linux/arm64")
+        ):
+            raise ValueError("invalid image platform")
+        validate_image(image["pins"])
+    for contract in [*contracts.values(), manifest.get("aggregate_contract")]:
+        if (
+            not isinstance(contract, dict)
+            or set(contract) != {"platform", "qualification", "image"}
+            or contract["platform"] not in ("linux/amd64", "linux/arm64")
+        ):
+            raise ValueError("invalid platform contract")
+        if contract["qualification"] == "unqualified":
+            if contract["image"] is not None:
+                raise ValueError("unqualified contract cannot select an image")
+        elif contract["qualification"] == "pinned":
+            key = contract["image"]
+            if (
+                not isinstance(key, str)
+                or key not in images
+                or images[key]["platform"] != contract["platform"]
+            ):
+                raise ValueError("missing or mismatched contract image")
+        else:
+            raise ValueError("invalid qualification status")
+    for name, checks in manifest["partitions"].items():
+        if (
+            "maintained-mutations" in checks
+            and contracts[name]["platform"] != "linux/arm64"
+        ):
+            raise ValueError("installed mutations require linux/arm64")
+
+
+def contract_image(
+    manifest: dict[str, Any], name: str
+) -> tuple[dict[str, Any], dict[str, str]]:
+    validate_contracts(manifest)
+    contract = (
+        manifest["aggregate_contract"]
+        if name == "aggregate"
+        else manifest["contracts"][name]
     )
+    if contract["qualification"] != "pinned":
+        raise UnqualifiedPlatform("partition platform is unqualified")
+    return contract, manifest["images"][contract["image"]]["pins"]
+
+
+def observed_platform() -> str:
+    # Observation is comparison evidence only, never qualification authority.
+    if platform.system() != "Linux":
+        return "unsupported"
+    return {"x86_64": "linux/amd64", "aarch64": "linux/arm64"}.get(
+        platform.machine(), "unsupported"
+    )
+
+
+def require_platform(contract: dict[str, Any]) -> None:
+    if observed_platform() != contract["platform"]:
+        raise UnsupportedPlatform("unsupported execution platform")
+
+
+def contract_digest(contract: dict[str, Any], image: dict[str, str]) -> str:
+    return hashlib.sha256(
+        json.dumps(
+            {"contract": contract, "pins": image}, sort_keys=True, separators=(",", ":")
+        ).encode()
+    ).hexdigest()
 
 
 def validate_instance_binding(instance: dict[str, Any], image: dict[str, str]) -> None:
@@ -193,6 +295,9 @@ def receipt(
     head_sha: str,
     run_id: str,
 ) -> dict[str, Any]:
+    contract, image = contract_image(manifest, name)
+    require_platform(contract)
+    validate_instance_binding(instance, image)
     by_id = {item["id"]: item for item in inventory["checks"]}
     before = hygiene.source_fingerprint(ROOT)
     preflight = hygiene.preflight(ROOT, inventory) if name == "quality" else None
@@ -210,7 +315,9 @@ def receipt(
             }
         )
     return {
-        "schema_version": 1,
+        "schema_version": 2,
+        "platform": contract["platform"],
+        "contract_sha256": contract_digest(contract, image),
         "partition": name,
         "run_id": run_id,
         "source_sha": head_sha,
@@ -246,6 +353,9 @@ def aggregate(
     head_sha: str,
     run_id: str,
 ) -> dict[str, Any]:
+    _, aggregate_image = contract_image(manifest, "aggregate")
+    if image_sha != aggregate_image["sha256"]:
+        raise ValueError("mismatched aggregate image")
     if set(receipts) != set(PARTITIONS) or set(job_results) != set(PARTITIONS):
         raise ValueError("missing partition result")
     if any(job_results[name] != "success" for name in PARTITIONS):
@@ -254,19 +364,22 @@ def aggregate(
     covered = []
     fingerprints = set()
     for name in PARTITIONS:
+        contract, image = contract_image(manifest, name)
         value = receipts[name]
         expected = {
-            "schema_version": 1,
+            "schema_version": 2,
+            "platform": contract["platform"],
+            "contract_sha256": contract_digest(contract, image),
             "partition": name,
             "run_id": run_id,
             "source_sha": head_sha,
             "manifest_sha256": manifest_sha,
             "hygiene_sha256": hygiene_sha,
-            "image_sha256": image_sha,
+            "image_sha256": image["sha256"],
             "binding": {
-                "image_source_sha": manifest["image"]["source_sha"],
+                "image_source_sha": image["source_sha"],
                 **{
-                    k: manifest["image"][k]
+                    k: image[k]
                     for k in (
                         "controller_sha256",
                         "recipe_sha256",
@@ -320,6 +433,13 @@ def aggregate(
                     or check.get("command_sha256") != command_sha
                 ):
                     raise ValueError("failed or forged mandatory check receipt")
+            if check["id"] == "python-tests":
+                from tools.python_tests import CANONICAL_COMMAND, valid_coverage
+
+                if entry["command"] != CANONICAL_COMMAND or not valid_coverage(
+                    check.get("temporal_coverage")
+                ):
+                    raise ValueError("required Temporal coverage missing")
             covered.append(check["id"])
     if len(covered) != len(set(covered)) or set(covered) != set(by_id):
         raise ValueError("missing or duplicate mandatory check")
@@ -341,7 +461,10 @@ def main() -> int:
     args = parser.parse_args()
     with diagnostic_stage(Stage.MANIFEST):
         manifest, inventory, manifest_sha, hygiene_sha = manifests()
-    instance = guest_identity(manifest["image"])
+    with diagnostic_stage(Stage.PLATFORM_CONTRACT):
+        contract, image = contract_image(manifest, args.action)
+        require_platform(contract)
+    instance = guest_identity(image)
     image_sha = cast(str, instance["image_sha256"])
     with diagnostic_stage(Stage.SOURCE_IDENTITY):
         head_sha = source_sha()
@@ -420,6 +543,7 @@ def failure_record(error: BaseException) -> dict[str, str]:
     stage, category = attributes.get("stage"), attributes.get("category")
     stages = {
         Stage.MANIFEST: "manifest",
+        Stage.PLATFORM_CONTRACT: "platform_contract",
         Stage.INSTANCE_METADATA: "instance_metadata",
         Stage.IMAGE_METADATA: "image_metadata",
         Stage.IMAGE_BINDING: "image_binding",
@@ -434,6 +558,8 @@ def failure_record(error: BaseException) -> dict[str, str]:
         Stage.RECEIPT_OUTPUT: "receipt_output",
     }
     categories = {
+        "unqualified_platform",
+        "unsupported_platform",
         "invalid_json",
         "invalid_encoding",
         "missing_file",
