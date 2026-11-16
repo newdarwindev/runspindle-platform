@@ -1,6 +1,16 @@
 name: fleet-qualification
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: Exact fleet lane to qualify
+        required: true
+        default: strix-linux-x64
+        type: choice
+        options:
+          - strix-linux-x64
+          - macbook-linux-arm64
+          - macbook-macos-arm64
 permissions:
   contents: read
 concurrency:
@@ -8,8 +18,31 @@ concurrency:
   cancel-in-progress: false
 jobs:
   strix-linux-x64:
+    if: inputs.lane == 'strix-linux-x64'
     name: strix-linux-x64
     runs-on: [self-hosted, linux, x64, runspindle-isolated, strix]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run implemented validation
+        run: python3 tools/validate.py
+  macbook-linux-arm64:
+    if: inputs.lane == 'macbook-linux-arm64'
+    name: macbook-linux-arm64
+    runs-on: [self-hosted, linux, ARM64, runspindle-isolated, macbook]
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          persist-credentials: false
+      - name: Run implemented validation
+        run: python3 tools/validate.py
+  macbook-macos-arm64:
+    if: inputs.lane == 'macbook-macos-arm64'
+    name: macbook-macos-arm64
+    runs-on: [self-hosted, macOS, ARM64, runspindle-isolated, macbook]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683

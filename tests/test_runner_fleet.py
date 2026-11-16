@@ -1,25 +1,28 @@
 """Synthetic unit evidence only; no VM or GitHub workload qualification."""
 
-import json
 import contextlib
 import io
-from pathlib import Path
+import json
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
+from runner_fleet.evidence import collect
 from runner_fleet.model import (
-    config,
+    admissible_mac_job,
     choose_jobs,
     classify_job,
+    config,
     empty_report,
     matching_lane,
 )
-from runner_fleet.evidence import collect
 from runner_fleet.preflight import inspect_host
+
 import fleet
 from tools.runner_fleet.backend import image_binding
 
@@ -60,11 +63,19 @@ class SchedulingTests(unittest.TestCase):
     def setUp(self):
         self.cfg = config()
 
-    def job(self, repo, lane="strix-linux-x64", identity=1):
+    def job(
+        self, repo: str, lane: str = "strix-linux-x64", identity: int = 1
+    ) -> dict[str, Any]:
         return {
             "id": identity,
             "repository": repo,
             "labels": self.cfg["lanes"][lane]["labels"],
+            "name": lane,
+            "workflow_path": ".github/workflows/fleet-qualification.yml",
+            "head_repository": "newdarwindev/" + repo,
+            "head_branch": "ci/synthetic",
+            "head_sha": "a" * 40,
+            "event": "workflow_dispatch",
         }
 
     def test_round_robin_and_shared_capacity(self):
@@ -131,6 +142,45 @@ class SchedulingTests(unittest.TestCase):
                 ["self-hosted", "runspindle-isolated", "strix", "gpu"],
             )
         )
+        self.assertIsNone(
+            matching_lane(
+                self.cfg, "macbook", ["self-hosted", "runspindle-isolated", "macbook"]
+            )
+        )
+        for lane in ("macbook-linux-arm64", "macbook-macos-arm64"):
+            labels = self.cfg["lanes"][lane]["labels"]
+            self.assertEqual(matching_lane(self.cfg, "macbook", labels), lane)
+            self.assertIsNone(matching_lane(self.cfg, "macbook", labels[:-1]))
+            self.assertIsNone(matching_lane(self.cfg, "macbook", labels + ["personal"]))
+            self.assertIsNone(matching_lane(self.cfg, "macbook", labels + [labels[0]]))
+        self.assertEqual(
+            choose_jobs(
+                self.cfg, "macbook", [self.job("attacker", "macbook-linux-arm64")], []
+            )[0],
+            [],
+        )
+
+    def test_mac_repository_workflow_and_revision_binding(self) -> None:
+        job = self.job("runspindle-platform", "macbook-linux-arm64")
+        self.assertTrue(admissible_mac_job(self.cfg, job))
+        for mutation in (
+            {"head_repository": "other/runspindle-platform"},
+            {"head_branch": "feat/unreviewed"},
+            {"head_sha": "main"},
+            {"event": "pull_request"},
+            {"event": "push"},
+            {"workflow_path": ".github/workflows/deploy.yml"},
+            {"name": "macbook-macos-arm64"},
+            {"labels": job["labels"][:-1]},
+        ):
+            denied = job | mutation
+            self.assertFalse(admissible_mac_job(self.cfg, denied))
+            self.assertEqual(choose_jobs(self.cfg, "macbook", [denied], [])[0], [])
+        validation = job | {
+            "workflow_path": ".github/workflows/validation.yml",
+            "name": "validation / macbook-linux-arm64",
+        }
+        self.assertFalse(admissible_mac_job(self.cfg, validation))
 
 
 class EvidenceTests(unittest.TestCase):

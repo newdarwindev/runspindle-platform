@@ -6,6 +6,39 @@ enabled or branch protections require `validation / strix-linux-x64`. Source
 implementation and synthetic tests alone do not establish deployment evidence.
 Both Mac lanes remain pending with their original memory reserves and gates.
 
+The Mac ARM64 qualification workflow now names the two labels already present
+in `fleet/config.json`. Manual dispatch chooses exactly one lane, defaulting
+to Strix for the existing qualification collector. The partitioned validation
+workflow retains its existing Strix route; Mac validation remains pending.
+Admission requires the complete configured label set, including OS and
+architecture. The [Mac ownership ledger](MAC_LEDGER.md) reserves a single
+slot and reconciles owned guest identity, but boot is blocked. This workflow
+definition and ledger do not provide a qualified Mac guest image, operational
+manager or successful Actions execution. Do not dispatch them until the
+Mac prerequisites below are qualified; no runner is presently registered by
+the Mac preparation commands.
+
+For the one shared Mac slot, the existing preflight requires 6 GiB host reserve
+plus the larger 4 GiB Tart lane, or 10 GiB conservatively available. The 3 GiB
+Lima lane would separately require 9 GiB. Preflight counts only free and
+inactive pages on macOS; a memory-pressure percentage does not replace that
+gate. Preserve the reserve and run one guest at a time. If the threshold is
+unmet, close optional foreground workloads and remeasure or use a machine
+with enough RAM. Do not reclaim memory by deleting user data or changing
+global services. Keep raw host observations in private state, outside Git.
+
+Mac activation additionally requires a digest-pinned ARM64 Linux image and
+runner/toolchain closure, a separately pinned macOS Tart image and toolchain,
+recorded notices, host-enforced guest egress denial with live host/LAN
+canaries, a single-slot durable manager with restart reconciliation and
+repository-scoped ephemeral registration, and real launchd-context credential
+checks. The existing stopped Tart pilot and an interactive `gh` session do
+not satisfy these gates. A Linux ARM64 DSPy test must use its locked Linux
+Python/wheel closure inside a disposable Linux guest; macOS host packages
+cannot be substituted. After code and independent negative tests, run the
+24-cell qualification and operational fault matrix before any owner-operated
+activation or requirement change.
+
 ## Execution boundary
 
 Two fixed slots each reserve 4 vCPU and 6 GiB. Starting, cleaning and uncertain

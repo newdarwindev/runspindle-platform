@@ -112,7 +112,7 @@ def inspect_host(cfg, host, state):
                     [
                         "gh",
                         "api",
-                        f'repos/{cfg["owner"]}/{repo}',
+                        f"repos/{cfg['owner']}/{repo}",
                         "--jq",
                         ".permissions.admin",
                     ]
@@ -135,7 +135,11 @@ def inspect_host(cfg, host, state):
         "pinned_images": "no verified guest image/toolchain/runner lock has been prepared",
         "licenses": "guest image and installed tool licenses not recorded",
         "network_isolation": "no host-enforced allowlist and denied host/LAN canary evidence",
-        "disposable_backend": "QEMU/Lima/Tart lifecycle drivers are not implemented",
+        "disposable_backend": (
+            "Mac ledger and read-only polling are locally tested; Lima/Tart boot, host isolation, registration and launchd service remain unimplemented"
+            if host == "macbook"
+            else "Strix QEMU implementation exists; live backend qualification remains pending"
+        ),
     }.items():
         record(name, False, detail)
     return {

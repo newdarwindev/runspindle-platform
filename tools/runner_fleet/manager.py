@@ -109,6 +109,10 @@ class Manager:
                         "head_sha": run["head_sha"],
                         "event": run["event"],
                         "head_branch": run["head_branch"],
+                        "head_repository": run.get("head_repository", {}).get(
+                            "full_name"
+                        ),
+                        "workflow_path": run.get("path"),
                     }
                     jobs.append(job)
                     if job["status"] == "queued":
