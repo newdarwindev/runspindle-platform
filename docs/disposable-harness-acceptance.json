@@ -1,0 +1,255 @@
+{
+  "base_commit": "16cd5667bce6a71f23bda52b67ad4ca844b341ea",
+  "boundary_discovery": {
+    "baseline_tests": 410,
+    "command": "python3 tools/python_tests.py --temporal boundary",
+    "errors": 1,
+    "failure_identities_equal_baseline": true,
+    "failure_records": 16,
+    "failure_scope": "unchanged test_native_monitoring; stale STATUS.json and Collector diagnostic binding; historical source qualification cannot be repaired by rehashing alone",
+    "normal_and_optimized": true,
+    "skip_scope": "eight native Linux arm64 installation cases and five explicitly unselected real Temporal cases",
+    "skips": 13,
+    "tests": 433
+  },
+  "evidence_class": "local_synthetic_acceptance_only",
+  "finished_at": "2026-11-16T20:29:09.676386+00:00",
+  "implementation_input_sha256": {
+    ".github/workflows/deploy.yml": "20edabf9f81caa25e023d965d0102c3cd2c75f47b8cd590aedf3c3870be1d538",
+    ".github/workflows/dev-smoke.yml": "c487f96eb34380f15872b681b86c7d576e896b330242f5ce7744ada069dfa6a2",
+    ".github/workflows/fleet-qualification.yml": "668288e673d4ea34e12313202f06a79445c431d31b6315f08b4b59bef8e604e7",
+    ".github/workflows/platform-ci.yml": "c41f2e2057821d6d3b76067ef3e76ed5eaa7f64029c1ecf72ed9ab2ddedc7b64",
+    ".github/workflows/validation.yml": "984c0d8fc34f2fabbf9bf68e7ce13de4e8948806217f64c4426d9ca171b89746",
+    "fixtures/harness/NOTICE.txt": "2ecd5599878f381671784dfdbee5a975000e49d22815644d14fdbf46aee334b7",
+    "fixtures/harness/dependency.txt": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+    "fixtures/harness/manifest.json": "1589deaadede42c3e38dc8bf3f816118d444a14d9907d2e7bdbe489009b9359b",
+    "fleet/config.json": "ac4730659c3eb42182432d761c7396e6cc0e6d959ace8173035fdb9e4749f195",
+    "tests/test_disposable_harness.py": "fb640f67c367861ae80c6b442d56d0dfe935a25133f5ecf7b53238be370a7349",
+    "tools/check_disposable_harness.py": "80193b54a8097809c2c88e2cd27cd75c193c19c9418f0019e37b9342370e8cf3",
+    "tools/check_disposable_harness_mutations.py": "6db5ac3a6ff2f81802c6693a6d3a8a8230414cb582aae1b1d0d843245762c17a",
+    "tools/collector_privacy_check.py": "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+    "tools/disposable_harness/__init__.py": "5750c5aa449b3d4214cc4e8229c3290cd54cba881649c90ba86c3d8d586dc786",
+    "tools/disposable_harness/contracts.py": "a7ac36260da32c907bd40a80588d86cbef2810f8d9df430c98c8b95bb9cbfa0a",
+    "tools/disposable_harness/packaging.py": "a3f5997208740864b6075f15d73f00dafc3d638935c08e6bc197e9a76760a61d",
+    "tools/disposable_harness/runtime.py": "e32db571515bfc0d16c74e8d63a6a6c1a7ef96eabf3d83637c8fdfa2133f5ec0",
+    "tools/disposable_harness/telemetry.py": "48caf0d8052c06dcd5ca2e2df41c97b7f221a86e28defd8044fd102eab1b6fc8",
+    "tools/runner_fleet/model.py": "99068f0615c4b6e68b457f768ac5a7f971fa6e0bda47d56cf031780fbba51fc4"
+  },
+  "independent_review": "pending",
+  "installed_service_persistence": "not_run",
+  "issue": "https://github.com/newdarwindev/runspindle-platform/issues/1",
+  "issue_closure": "not_requested",
+  "live_acceptance": "not_run",
+  "native_installation": "not_run",
+  "portable_existing_mutations": {
+    "evidence_class": "portable_component_mutation_detection",
+    "native_acceptance": "not_run",
+    "results": [
+      {
+        "detected": true,
+        "mutation": "journal_family_fence_disabled"
+      },
+      {
+        "detected": true,
+        "mutation": "stream_checksum_ignored"
+      },
+      {
+        "detected": true,
+        "mutation": "stream_installed_modes_ignored"
+      },
+      {
+        "detected": true,
+        "mutation": "fabricated_persistence"
+      },
+      {
+        "detected": true,
+        "mutation": "wrong_installed_attribution"
+      }
+    ]
+  },
+  "provenance": "Original implementation, synthetic text and tests. Existing local Collector oracle is reused; no third-party source/binary or private data imported. See provenance.json and LEGAL.md.",
+  "quality": {
+    "debt_baseline_changed": false,
+    "existing_baseline_debt": 776,
+    "introduced_diagnostics": 0,
+    "new_files_ruff_lint_format": "passed 0.14.5",
+    "new_files_strict_mypy": "passed 1.18.2",
+    "unbaselined_main_diagnostics": 70,
+    "whole_repository": "failed"
+  },
+  "real_namespace_isolation": "not_run",
+  "remote_ci": "not_run",
+  "required_aggregate": {
+    "checks": [
+      {
+        "id": "reproducible-inputs",
+        "problems": [],
+        "status": "passed"
+      },
+      {
+        "exit_code": 0,
+        "id": "scaffold",
+        "status": "passed"
+      },
+      {
+        "exit_code": 1,
+        "id": "static-quality",
+        "status": "failed"
+      },
+      {
+        "exit_code": 0,
+        "id": "repository-hygiene",
+        "status": "passed"
+      },
+      {
+        "exit_code": 0,
+        "id": "check-shared-fixtures",
+        "status": "passed"
+      },
+      {
+        "exit_code": 1,
+        "id": "check-native-monitoring",
+        "status": "failed"
+      },
+      {
+        "exit_code": 0,
+        "id": "check-temporal-mutations",
+        "status": "passed"
+      },
+      {
+        "exit_code": 0,
+        "id": "check-fleet-lifecycle-mutations",
+        "status": "passed"
+      },
+      {
+        "exit_code": 2,
+        "id": "python-tests",
+        "reason": "required_temporal_coverage_missing",
+        "status": "failed"
+      },
+      {
+        "id": "distributable-build",
+        "reason": "No distributable build command exists in this repository validation contract; this does not claim release acceptance.",
+        "status": "not_applicable"
+      },
+      {
+        "exit_code": 2,
+        "id": "maintained-mutations",
+        "status": "failed"
+      }
+    ],
+    "command": "python3 tools/validate.py",
+    "interpretation": "required gate remains failed; no missing upstream/native prerequisite counted as passed",
+    "status": "failed"
+  },
+  "schema": "runspindle.synthetic-harness-acceptance.v1",
+  "seed": 17,
+  "source_identity": "candidate worktree at stated base; input digests bind tested implementation; final published commit is recorded in PR",
+  "started_at": "2026-11-16T20:29:01.932534+00:00",
+  "status": "partial",
+  "synthetic_lane": {
+    "commands": [
+      "python3 tools/check_disposable_harness.py",
+      "python3 -O tools/check_disposable_harness.py --output .verification/disposable-harness-optimized.json"
+    ],
+    "mutations": [
+      {
+        "detected": true,
+        "mutation": "manifest_checksum_bypass"
+      },
+      {
+        "detected": true,
+        "mutation": "accepted_is_persisted"
+      },
+      {
+        "detected": true,
+        "mutation": "uncorrelated_readback"
+      },
+      {
+        "detected": true,
+        "mutation": "duplicate_usage"
+      },
+      {
+        "detected": true,
+        "mutation": "ignore_envelope_canary"
+      },
+      {
+        "detected": true,
+        "mutation": "cancel_skips_rollback"
+      },
+      {
+        "detected": true,
+        "mutation": "allow_unregistered_endpoint"
+      }
+    ],
+    "normal_and_optimized": true,
+    "scenario_assertions": 131,
+    "skipped": 0,
+    "status": "passed",
+    "tests": 23
+  },
+  "toolchain": {
+    "executable_sha256": "098f865cad2de188bdbad3baac99dd91ebb74bab361d2359f0baaf1929b1dd82",
+    "reason": "observed_synthetic_interpreter_pin",
+    "status": "passed"
+  },
+  "upstream_lanes": [
+    {
+      "compatibility": "unknown",
+      "lane": "tools/collector_privacy_check.py",
+      "pins": "telemetry/dependencies.json",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "Collector"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "blocked_no_qualified_lane",
+      "pins": "unselected",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "DSPy"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "blocked_no_qualified_lane",
+      "pins": "unselected",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "KasmVNC"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "blocked_dependency_closure",
+      "pins": "telemetry/langfuse-qualification.json",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "Langfuse"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "blocked_no_qualified_lane",
+      "pins": "unselected",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "OpenBao"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "blocked_no_qualified_lane",
+      "pins": "unselected",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "PinchTab"
+    },
+    {
+      "compatibility": "unknown",
+      "lane": "tools/temporal_lane.py",
+      "pins": "temporal/dependencies.json",
+      "reason": "independent_pins_preparation_and_isolation_required",
+      "status": "blocked",
+      "upstream": "Temporal"
+    }
+  ],
+  "upstream_schema_url_qualification": "blocked_current_exact_source_not_rerun"
+}

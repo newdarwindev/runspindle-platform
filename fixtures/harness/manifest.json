@@ -1,0 +1,107 @@
+{
+  "schema": "runspindle.synthetic-harness.v1",
+  "evidence_class": "synthetic",
+  "targets": [
+    "darwin/amd64",
+    "darwin/arm64",
+    "linux/amd64",
+    "linux/arm64"
+  ],
+  "toolchain": {
+    "implementation": "CPython",
+    "version": "3.14.8",
+    "target": "linux/amd64",
+    "executable_sha256": "098f865cad2de188bdbad3baac99dd91ebb74bab361d2359f0baaf1929b1dd82",
+    "dependencies": "stdlib-only",
+    "qualification": "observed_local_synthetic_only"
+  },
+  "files": {
+    "dependency.txt": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+    "NOTICE.txt": "2ecd5599878f381671784dfdbee5a975000e49d22815644d14fdbf46aee334b7"
+  },
+  "dependencies": {
+    "Collector": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "Collector"
+    },
+    "DSPy": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "DSPy"
+    },
+    "KasmVNC": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "KasmVNC"
+    },
+    "Langfuse": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "Langfuse"
+    },
+    "OpenBao": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "OpenBao"
+    },
+    "PinchTab": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "PinchTab"
+    },
+    "Temporal": {
+      "version": "synthetic-v1",
+      "source_revision": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "artifact": "dependency.txt",
+      "sha256": "48a90fd2f8d58a86d8144b4316d072ff64faec73f962a7392ebb01076a6b4f21",
+      "license": "LicenseRef-Original-Synthetic-Fixture",
+      "notice": "NOTICE.txt",
+      "qualification": "double_only",
+      "upstream": "Temporal"
+    }
+  },
+  "sbom": {
+    "format": "runspindle.synthetic-sbom.v1",
+    "components": [
+      "Collector",
+      "DSPy",
+      "KasmVNC",
+      "Langfuse",
+      "OpenBao",
+      "PinchTab",
+      "Temporal"
+    ],
+    "notice_sha256": "2ecd5599878f381671784dfdbee5a975000e49d22815644d14fdbf46aee334b7"
+  }
+}

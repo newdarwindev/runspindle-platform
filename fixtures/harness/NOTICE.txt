@@ -1,0 +1,2 @@
+Original synthetic Runspindle fixture. No imported third-party material.
+No blanket license is granted; see LEGAL.md.
