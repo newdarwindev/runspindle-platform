@@ -82,6 +82,56 @@ application recovery, browser fencing or production-store durability. Core owns
 those separate workflow tests. No service survives the verified bounded runs;
 the prepared image/download cache remains local for offline reuse.
 
+## Explicit preparation diagnostic retention
+
+Default lane cleanup and its `independently_absent` contract remain unchanged.
+An owner-reviewed preparation build can opt in with `--retain-diagnostics` on
+prepare/smoke, `Lane(..., retain_diagnostics=True)`, or
+`RUNSPINDLE_TEMPORAL_RETAIN=1` for smoke and the real opt-in test suite. The guest
+preparation script explicitly selects this mode; setting a prepared-directory
+variable alone does not change the default cleanup contract.
+
+In this mode, version/package probes and every server/client generation remain
+as stopped Docker containers with their original logs. Restart uses a new server
+name and the same original database volume. Original volume and isolated network
+are retained; no container/volume/network removal is falsely reported as success.
+Containers explicitly use restart=no and unrotated json-file logging. Raw
+tracked clients must use those same settings or retention verification blocks. Actual
+command results, stopped inspection and repeat-read verified log captures are
+stored in private diagnostics under the prepared directory. Native Docker log
+files remain in guest /var/lib/docker; text captures are additional readbacks,
+not replacements for the originals. There is no global Docker/journald policy
+change. This preserves the known persisted stdout/stderr and preparation data,
+not volatile kernel RAM or unobserved application buffers.
+
+The independent cleanup verifier requires every tracked container to be stopped
+with no running/paused/restarting state or PID, no restart authority, matching
+original container identity and unchanged complete log readback. It also checks
+retained volume/network identity and isolation observations. Cleanup is labeled
+`stopped_execution_retained_diagnostics`; this is not `independently_absent`.
+Unknown stop/inspection/log outcomes fail with artifacts retained and no automatic
+retry. A stopped retained artifact is not an active persistent service.
+
+Guest image preparation enables its own Docker daemon, grants its runner Docker
+group membership, and disables guest apt timers. These guest-only service and
+authority changes need the reviewed image-build approval; they do not change host
+services, credentials or fleet activation. The root-only sealing helper also
+requires a root-owned explicit disposable-preparation marker. It inventories,
+hashes and verifies a same-filesystem rename of original cloud metadata into
+root0700 private evidence, then creates fresh metadata before cloud-init cleans
+machine-id without --logs. Original new-guest SSH host keys/authorized key and
+machine-id evidence stay private. Any /tmp/debugbuild is similarly retained
+persistently; a cross-filesystem diagnostic move fails before sealing with no
+copy/delete fallback. No secrets enter source Git. No cloud-init log deletion or
+host sealer execution is authorized by these source changes.
+
+The terminal image metadata is emitted only after successful preservation and
+sealing. Component/mock and temporary-file tests do not qualify actual guest
+sealing, Docker retention, service startup or a built image. Those need the
+separately approved bounded guest build and independent actual-byte checks.
+
+Retention also binds the container ID across the before/after stop observations before reading logs; stop/log requests use that immutable ID. Network creation IDs and stable network configuration are pinned and rechecked, as are volume name/driver/mountpoint/creation-time/scope/options/labels. Docker volumes do not expose an immutable generation ID: those metadata observations do not prove arbitrary external content mutation absent. Original-volume claims assume the reviewed private guest has no external Docker/data mutator; actual Temporal history persistence and retained disk-byte checks remain separate. Machine-id lstat/hash preflight rejects linked or nonregular input before any sealing mutation and is rechecked before capture/clean.
+
 ## Explicit validation selection
 
 Canonical `hygiene.json` now pins `python3 tools/python_tests.py --temporal required

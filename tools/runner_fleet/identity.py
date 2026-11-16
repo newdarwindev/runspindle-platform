@@ -25,6 +25,7 @@ RECIPE = (
     "tools/runner_fleet/build_image.py",
     "tools/runner_fleet/prepare_image.sh",
     "tools/runner_fleet/prepare_temporal.sh",
+    "tools/runner_fleet/seal_preparation_guest.py",
 )
 CLOSURE = (
     "requirements-quality.txt",

@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 
+import grp
 import json
+import os
 import shlex
+import shutil
+import stat
 import subprocess
 import sys
 import time
@@ -15,6 +19,7 @@ from tools.runner_fleet import backend as _backend
 from tools.runner_fleet import model as _model
 from tools.runner_fleet import state as _state
 from tools.runner_fleet.identity import binding
+from tools.runner_fleet.retention import capture_bytes, capture_file
 from tools.runner_fleet.staging import verify as verify_staged
 
 # Existing process/state helpers exchange dynamic JSON records. Their boundary
@@ -26,10 +31,175 @@ execute: Any = _backend.execute
 helper: Any = _backend.helper
 SOURCE = _model.ROOT
 State: Any = _state.State
+config: Any = _model.config
 
 
-def main():
-    state = State(Path.home() / ".local/state/runspindle-fleet")
+def require_build_group() -> int:
+    try:
+        group = grp.getgrnam("runspindle-fleet").gr_gid
+    except KeyError as error:
+        raise SystemExit(
+            "Existing fleet group required; no membership changes"
+        ) from error
+    if group not in {os.getgid(), *os.getgroups()}:
+        raise SystemExit(
+            "Existing fleet group must be active before build; no fallback"
+        )
+    return group
+
+
+def verify_private_candidate(candidate: Path, group: int) -> None:
+    info = candidate.stat()
+    if (
+        candidate.is_symlink()
+        or not stat.S_ISREG(info.st_mode)
+        or info.st_uid != 0
+        or info.st_gid != group
+        or stat.S_IMODE(info.st_mode) != 0o440
+        or "system.posix_acl_access" in os.listxattr(candidate)
+        or not os.access(candidate, os.R_OK)
+    ):
+        raise RuntimeError("Candidate must be private root:fleet0440 and readable")
+
+
+def verify_private_staging(directory: Path, group: int) -> None:
+    info = directory.stat()
+    if (
+        directory.is_symlink()
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != 0
+        or info.st_gid != group
+        or stat.S_IMODE(info.st_mode) != 0o750
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(directory))
+    ):
+        raise RuntimeError("Private root:fleet0750 staging without ACLs required")
+
+
+def verify_image_parent(directory: Path) -> None:
+    info = directory.stat()
+    if (
+        directory.is_symlink()
+        or not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != 0
+        or info.st_mode & 0o022
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(directory))
+    ):
+        raise RuntimeError("Root-owned image parent without writable aliases required")
+
+
+def publish_private_candidate(temporary: Path, candidate: Path, group: int) -> None:
+    verify_private_candidate(temporary, group)
+    original = temporary.stat()
+    if original.st_dev != candidate.parent.stat().st_dev:
+        raise RuntimeError("Candidate publication must stay on one filesystem")
+    execute(
+        [
+            "sudo",
+            "-n",
+            "mv",
+            "--no-copy",
+            "--no-clobber",
+            "--no-target-directory",
+            str(temporary),
+            str(candidate),
+        ]
+    )
+    verify_private_candidate(candidate, group)
+    installed = candidate.stat()
+    if temporary.exists() or (installed.st_dev, installed.st_ino) != (
+        original.st_dev,
+        original.st_ino,
+    ):
+        raise RuntimeError("Private candidate install uncertain; artifacts retained")
+
+
+def require_build_capacity(root: Path, reserve_gib: int) -> dict[str, int]:
+    # Slot overlay + sealed candidate + independent retained guest snapshot.
+    # Eight GiB also cover incremental receipts and preparation growth.
+    required = reserve_gib + 3 * _backend.GUEST_DISK_GIB + 8
+    available = shutil.disk_usage(root).free
+    if available < required * 1024**3:
+        raise SystemExit(
+            f"Image build needs {required} GiB including reserve and retention"
+        )
+    return {"available_bytes": available, "required_gib": required}
+
+
+def require_build_runtime(
+    memory_gib: int,
+    reserve_gib: int,
+    capacity: int,
+    meminfo: Path = Path("/proc/meminfo"),
+) -> dict[str, int]:
+    if not os.access("/dev/kvm", os.R_OK | os.W_OK):
+        raise SystemExit("Existing principal lacks KVM access; no privilege fallback")
+    available = next(
+        (
+            int(line.split()[1]) * 1024
+            for line in meminfo.read_text().splitlines()
+            if line.startswith("MemAvailable:")
+        ),
+        0,
+    )
+    required = (reserve_gib + memory_gib * capacity) * 1024**3
+    if available < required:
+        raise SystemExit("Insufficient memory including configured host reserve")
+    return {"available_bytes": available, "required_bytes": required}
+
+
+def current_reservation(state: Any, resource: dict[str, Any]) -> dict[str, Any]:
+    matching = [
+        row
+        for row in state.active()
+        if row["id"] == resource["id"] and row["slot"] == resource["slot"]
+    ]
+    if len(matching) != 1:
+        raise RuntimeError("Build reservation is missing or ambiguous; no cleanup")
+    current: dict[str, Any] = matching[0]
+    return current
+
+
+def require_build_storage(root: Path, state_directory: Path) -> dict[str, int]:
+    if not root.is_mount() or not state_directory.is_mount():
+        raise SystemExit("Approved dedicated fleet and state mounts are required")
+    device = root.stat().st_dev
+    if state_directory.stat().st_dev != device or device == Path("/").stat().st_dev:
+        raise SystemExit(
+            "Fleet/state must share dedicated storage; no stale root fallback"
+        )
+    return {"device": device}
+
+
+def verify_build_source(source_sha: str, source_binding: dict[str, str]) -> None:
+    observed_sha = subprocess.check_output(
+        ["git", "-C", str(SOURCE), "rev-parse", "HEAD"], text=True
+    ).strip()
+    dirty = subprocess.check_output(
+        ["git", "-C", str(SOURCE), "status", "--porcelain", "--untracked-files=all"],
+        text=True,
+    ).strip()
+    if observed_sha != source_sha or dirty or binding(SOURCE) != source_binding:
+        raise RuntimeError(
+            "Build source drift; guest/artifacts retained without qualification"
+        )
+
+
+def main() -> None:
+    cfg = config()
+    require_build_capacity(ROOT, cfg["hosts"]["strix"]["minimum_disk_gib"])
+    require_build_runtime(
+        cfg["lanes"]["strix-linux-x64"]["memory_gib"],
+        cfg["hosts"]["strix"]["reserve_memory_gib"],
+        cfg["hosts"]["strix"]["capacity"],
+    )
+    state_directory = Path.home() / ".local/state/runspindle-fleet"
+    require_build_storage(ROOT, state_directory)
+    fleet_group = require_build_group()
+    verify_image_parent(ROOT)
+    verify_image_parent(ROOT / "images")
+    state = State(state_directory)
     pins = json.loads((SOURCE / "fleet/image-inputs.json").read_text())
     source_sha = subprocess.check_output(
         ["git", "-C", str(SOURCE), "rev-parse", "HEAD"], text=True
@@ -61,19 +231,19 @@ def main():
         if digest(download) != pins["ubuntu"]["sha256"]:
             raise SystemExit("Pinned Ubuntu checksum mismatch; no guest booted")
         verify_staged(SOURCE, download.parent)
-        execute(
-            [
-                "sudo",
-                "-n",
-                "install",
-                "-m",
-                "0444",
-                str(download),
-                str(ROOT / "images/ubuntu-base.qcow2"),
-            ]
-        )
+        base = ROOT / "images/ubuntu-base.qcow2"
+        if (
+            base.is_symlink()
+            or not base.is_file()
+            or base.stat().st_uid != 0
+            or base.stat().st_mode & 0o222
+            or digest(base) != pins["ubuntu"]["sha256"]
+        ):
+            raise SystemExit(
+                "Existing sealed pinned Ubuntu base required; no file replaced"
+            )
         resource = state.reserve({"repository": "runspindle-platform", "id": -2})
-        backend = Backend(state, ROOT / "images/ubuntu-base.qcow2")
+        backend = Backend(state, base, preparation_source_sha=source_sha)
         try:
             backend.create(resource, prepare=True)
             deadline = time.monotonic() + 240
@@ -113,14 +283,22 @@ def main():
                     ("RUNSPINDLE_HOST_SHA", "host"),
                 )
             )
+            verify_build_source(source_sha, source_binding)
+            preparation_script = _backend.frozen_preparation_text(
+                SOURCE, source_sha, "tools/runner_fleet/prepare_image.sh"
+            )
             result = backend.ssh(
                 resource,
-                exports + (SOURCE / "tools/runner_fleet/prepare_image.sh").read_text(),
+                exports + preparation_script,
                 timeout=3600,
                 check=False,
+                retain_nonsecret_output=True,
             )
-            log = backend.directory(resource) / "image-build.log"
-            log.write_text(result.stdout + result.stderr)
+            log = capture_bytes(
+                backend.directory(resource),
+                "image-build.log",
+                (result.stdout + result.stderr).encode(),
+            )
             manifests = [
                 line.removeprefix("RUNSPINDLE_IMAGE=")
                 for line in result.stdout.splitlines()
@@ -131,6 +309,7 @@ def main():
                     "Image build did not emit one terminal package/license manifest"
                 )
             manifest = json.loads(manifests[0])
+            verify_build_source(source_sha, source_binding)
             deadline = time.monotonic() + 60
             while helper("observe", resource["slot"]).get("ActiveState") in (
                 "active",
@@ -140,9 +319,21 @@ def main():
                     raise RuntimeError("Image preparation did not shut down")
                 time.sleep(2)
             helper("stop", resource["slot"], resource["id"])
+            verify_image_parent(ROOT)
+            verify_image_parent(ROOT / "images")
             candidate = ROOT / "images" / f"candidate-{source_sha[:12]}.qcow2"
-            if candidate.exists():
+            if candidate.exists() or candidate.is_symlink():
                 raise RuntimeError("Exact-source candidate image already exists")
+            private = ROOT / "images" / f"build-private-{source_sha[:12]}"
+            if private.exists() or private.is_symlink():
+                raise RuntimeError("Private build path occupied; no retry or overwrite")
+            execute(["sudo", "-n", "mkdir", "--mode=0700", "--", str(private)])
+            execute(["sudo", "-n", "chown", "root:runspindle-fleet", str(private)])
+            execute(["sudo", "-n", "chmod", "0750", str(private)])
+            verify_private_staging(private, fleet_group)
+            if private.stat().st_dev != candidate.parent.stat().st_dev:
+                raise RuntimeError("Private staging must share final image filesystem")
+            temporary_candidate = private / "candidate.qcow2"
             execute(
                 [
                     "sudo",
@@ -152,14 +343,23 @@ def main():
                     "-O",
                     "qcow2",
                     str(backend.slot(resource) / "disk.qcow2"),
-                    str(candidate),
+                    str(temporary_candidate),
                 ],
                 timeout=600,
             )
-            execute(["sudo", "-n", "chown", "root:root", str(candidate)])
-            execute(["sudo", "-n", "chmod", "0444", str(candidate)])
-            if candidate.stat().st_uid != 0 or candidate.stat().st_mode & 0o222:
-                raise RuntimeError("Candidate image was not sealed read-only")
+            # Retained cloud/SSH originals make this a private artifact even
+            # though its guest filesystem has root-only evidence directories.
+            execute(
+                [
+                    "sudo",
+                    "-n",
+                    "chown",
+                    "root:runspindle-fleet",
+                    str(temporary_candidate),
+                ]
+            )
+            execute(["sudo", "-n", "chmod", "0440", str(temporary_candidate)])
+            publish_private_candidate(temporary_candidate, candidate, fleet_group)
             manifest = {
                 "sha256": digest(candidate),
                 "candidate_path": str(candidate),
@@ -169,14 +369,23 @@ def main():
                 "source_sha": source_sha,
                 **source_binding,
             }
+            verify_build_source(source_sha, source_binding)
             path = state.directory / "candidate.json"
+            if path.exists() or path.is_symlink():
+                capture_file(path, state.directory, "candidate-before-build.json")
+            capture_bytes(
+                state.directory,
+                f"candidate-{source_sha}.json",
+                json.dumps(manifest, indent=2).encode(),
+            )
             path.write_text(json.dumps(manifest, indent=2))
+            resource = current_reservation(state, resource)
             backend.destroy(resource)
             state.update(
                 resource,
                 "destroyed",
                 cleanup_verified=True,
-                image_sha256=manifest["sha256"],
+                built_image_sha256=manifest["sha256"],
             )
             print(
                 json.dumps(

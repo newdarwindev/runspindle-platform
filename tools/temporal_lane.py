@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import base64
 import hashlib
 import json
 import os
@@ -15,6 +16,7 @@ import tarfile
 import tempfile
 import time
 import uuid
+from collections.abc import Iterable
 from typing import Any
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -41,6 +43,308 @@ def docker(
     *args: object, timeout: float = 30, check: bool = True
 ) -> subprocess.CompletedProcess[str]:
     return command(["docker", *map(str, args)], timeout, check)
+
+
+def retention_requested(explicit: bool | None = None) -> bool:
+    if explicit is not None:
+        return explicit
+    value = os.environ.get("RUNSPINDLE_TEMPORAL_RETAIN", "0")
+    if value not in ("0", "1"):
+        raise ValueError("RUNSPINDLE_TEMPORAL_RETAIN must be 0 or 1")
+    return value == "1"
+
+
+def diagnostic_directory(root: pathlib.Path, name: str) -> pathlib.Path:
+    if not re.fullmatch(r"[A-Za-z0-9_.-]+", name):
+        raise ValueError("unsafe Temporal diagnostic directory")
+    parent = root / "diagnostics"
+    parent.mkdir(mode=0o700, exist_ok=True)
+    if parent.is_symlink() or not parent.is_dir():
+        raise RuntimeError("unsafe Temporal diagnostics parent")
+    path = parent / name
+    path.mkdir(mode=0o700)
+    return path
+
+
+def diagnostic_capture(
+    directory: pathlib.Path, name: str, payload: bytes
+) -> pathlib.Path:
+    if pathlib.Path(name).name != name or name in ("", ".", ".."):
+        raise ValueError("unsafe Temporal diagnostic capture")
+    path = directory / name
+    descriptor = os.open(
+        path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600
+    )
+    with os.fdopen(descriptor, "wb") as output:
+        output.write(payload)
+        output.flush()
+        os.fsync(output.fileno())
+    if path.read_bytes() != payload:
+        raise RuntimeError("Temporal diagnostic capture changed; originals retained")
+    descriptor = os.open(directory, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+    return path
+
+
+def recorded_docker(
+    directory: pathlib.Path, *args: object, timeout: float = 30
+) -> subprocess.CompletedProcess[str]:
+    def observed(value: bytes | str | None) -> dict[str, str]:
+        if isinstance(value, bytes):
+            return {"base64_original_bytes": base64.b64encode(value).decode()}
+        return {"text": value or ""}
+
+    try:
+        result = docker(*args, timeout=timeout, check=False)
+    except (OSError, subprocess.SubprocessError) as error:
+        diagnostic_capture(
+            directory,
+            "command-" + uuid.uuid4().hex + ".json",
+            json.dumps(
+                {
+                    "argv": list(map(str, args)),
+                    "error": str(error),
+                    "stdout": observed(error.stdout)
+                    if isinstance(error, subprocess.TimeoutExpired)
+                    else {},
+                    "stderr": observed(error.stderr)
+                    if isinstance(error, subprocess.TimeoutExpired)
+                    else {},
+                },
+                sort_keys=True,
+            ).encode(),
+        )
+        raise
+    diagnostic_capture(
+        directory,
+        "command-" + uuid.uuid4().hex + ".json",
+        json.dumps(
+            {
+                "argv": list(map(str, args)),
+                "returncode": result.returncode,
+                "stdout": result.stdout,
+                "stderr": result.stderr,
+            },
+            sort_keys=True,
+        ).encode(),
+    )
+    return result
+
+
+def container_observation(
+    result: subprocess.CompletedProcess[str], name: str
+) -> dict[str, Any] | None:
+    if result.returncode:
+        if "No such container" in result.stderr or "No such object" in result.stderr:
+            return None
+        raise RuntimeError("container observation denied or unavailable; no fallback")
+    values = json.loads(result.stdout)
+    if (
+        not isinstance(values, list)
+        or len(values) != 1
+        or values[0].get("Name", "").lstrip("/") != name
+    ):
+        raise RuntimeError("unexpected retained container identity")
+    container = values[0]
+    if not isinstance(container, dict):
+        raise RuntimeError("unexpected retained container record")
+    return container
+
+
+def require_stopped(container: dict[str, Any]) -> None:
+    state = container.get("State", {})
+    if (
+        state.get("Running") is not False
+        or state.get("Paused") is not False
+        or state.get("Restarting") is not False
+        or state.get("Pid") != 0
+        or state.get("Status") not in ("created", "exited", "dead")
+        or container.get("HostConfig", {}).get("RestartPolicy", {}).get("Name") != "no"
+        or container.get("HostConfig", {}).get("LogConfig", {}).get("Type")
+        != "json-file"
+        or container.get("HostConfig", {})
+        .get("LogConfig", {})
+        .get("Config", {})
+        .get("max-size")
+        != "-1"
+    ):
+        raise RuntimeError(
+            "retained container still has execution or restart authority"
+        )
+
+
+def archive_container(name: str, directory: pathlib.Path) -> dict[str, Any]:
+    generation = directory / ("container-" + uuid.uuid4().hex)
+    generation.mkdir(mode=0o700)
+    before = container_observation(
+        recorded_docker(generation, "container", "inspect", name), name
+    )
+    if before is None:
+        receipt: dict[str, Any] = {
+            "name": name,
+            "status": "not_created",
+            "evidence": str(generation),
+        }
+    else:
+        original_id = before.get("Id")
+        if not isinstance(original_id, str) or not original_id:
+            raise RuntimeError("original container ID missing; no log receipt")
+        state = before.get("State", {})
+        if state.get("Running") or state.get("Paused") or state.get("Restarting"):
+            stopped = recorded_docker(
+                generation, "stop", "--time", "10", original_id, timeout=15
+            )
+            if stopped.returncode:
+                raise RuntimeError(
+                    "retained container stop failed; no removal attempted"
+                )
+        after = container_observation(
+            recorded_docker(generation, "container", "inspect", name), name
+        )
+        if after is None or after.get("Id") != original_id:
+            raise RuntimeError(
+                "original container disappeared or was replaced before log capture"
+            )
+        require_stopped(after)
+        logs = recorded_docker(generation, "logs", "--timestamps", original_id)
+        if logs.returncode:
+            raise RuntimeError("complete retained container logs unavailable")
+        stdout = diagnostic_capture(generation, "stdout.log", logs.stdout.encode())
+        stderr = diagnostic_capture(generation, "stderr.log", logs.stderr.encode())
+        repeated = recorded_docker(generation, "logs", "--timestamps", original_id)
+        if repeated.returncode or (logs.stdout, logs.stderr) != (
+            repeated.stdout,
+            repeated.stderr,
+        ):
+            raise RuntimeError("stopped container logs changed; original retained")
+        receipt = {
+            "name": name,
+            "status": "stopped_retained",
+            "evidence": str(generation),
+            "container_id": after["Id"],
+            "exit_code": after["State"]["ExitCode"],
+            "native_log_path": after.get("LogPath"),
+            "capture_scope": "text readback; original unrotated Docker json-file logs retained",
+            "stdout": str(stdout),
+            "stderr": str(stderr),
+            "stdout_sha256": digest(stdout),
+            "stderr_sha256": digest(stderr),
+        }
+    diagnostic_capture(
+        generation,
+        "retained-container.json",
+        json.dumps(receipt, sort_keys=True).encode(),
+    )
+    return receipt
+
+
+def verify_retained_container(receipt: dict[str, Any]) -> None:
+    name = receipt["name"]
+    current = container_observation(
+        docker("container", "inspect", name, check=False), name
+    )
+    if receipt["status"] == "not_created":
+        if current is not None:
+            raise RuntimeError("unexpected container appeared after failed creation")
+        return
+    if current is None or current.get("Id") != receipt["container_id"]:
+        raise RuntimeError("retained original container missing or replaced")
+    require_stopped(current)
+    logs = docker("logs", "--timestamps", receipt["container_id"], check=False)
+    if (
+        logs.returncode
+        or digest(receipt["stdout"]) != receipt["stdout_sha256"]
+        or digest(receipt["stderr"]) != receipt["stderr_sha256"]
+        or pathlib.Path(receipt["stdout"]).read_bytes() != logs.stdout.encode()
+        or pathlib.Path(receipt["stderr"]).read_bytes() != logs.stderr.encode()
+    ):
+        raise RuntimeError(
+            "retained logs do not match independent stopped-container readback"
+        )
+
+
+def auxiliary_identity(kind: str, record: dict[str, Any]) -> dict[str, Any]:
+    if kind == "volume":
+        required = ("Name", "Driver", "Mountpoint", "CreatedAt", "Scope")
+        fields: tuple[str, ...] = required + ("Labels", "Options")
+    elif kind == "network":
+        required = ("Name", "Id", "Created", "Driver", "Scope")
+        fields = required + ("Internal", "EnableIPv6", "Labels", "Options")
+        if record.get("Internal") is not True:
+            raise RuntimeError("retained network no longer isolated")
+    else:
+        raise ValueError("unsupported auxiliary identity kind")
+    if any(
+        not isinstance(record.get(field), str) or not record[field]
+        for field in required
+    ):
+        raise RuntimeError("incomplete stable auxiliary identity")
+    return {field: record.get(field) for field in fields}
+
+
+def retained_probe(
+    image: str, arguments: list[str], root: pathlib.Path
+) -> subprocess.CompletedProcess[str]:
+    if not re.fullmatch("sha256:[a-f0-9]{64}", image):
+        raise Blocked("retained probe requires immutable image identity")
+    name = "runspindle-temporal-probe-" + uuid.uuid4().hex
+    evidence = diagnostic_directory(root, name)
+    try:
+        created = recorded_docker(
+            evidence,
+            "create",
+            "--name",
+            name,
+            "--pull",
+            "never",
+            "--network",
+            "none",
+            "--cap-drop",
+            "ALL",
+            "--security-opt",
+            "no-new-privileges",
+            "--read-only",
+            "--log-driver",
+            "json-file",
+            "--log-opt",
+            "max-size=-1",
+            "--restart",
+            "no",
+            "--pids-limit",
+            "128",
+            "--memory",
+            "1g",
+            "--cpus",
+            "2",
+            image,
+            *arguments,
+        )
+        if created.returncode:
+            raise RuntimeError("retained probe creation failed")
+        if recorded_docker(evidence, "start", name).returncode:
+            raise RuntimeError("retained probe start failed")
+        waited = recorded_docker(evidence, "wait", name, timeout=60)
+        if waited.returncode or not waited.stdout.strip().isdigit():
+            raise RuntimeError("retained probe termination uncertain")
+    finally:
+        receipt = archive_container(name, evidence)
+    verify_retained_container(receipt)
+    if receipt["status"] != "stopped_retained":
+        raise RuntimeError("retained probe never produced stopped execution evidence")
+    raw_logs = recorded_docker(evidence, "logs", receipt["container_id"])
+    if raw_logs.returncode:
+        raise RuntimeError("retained probe raw output unavailable")
+    result = subprocess.CompletedProcess(
+        arguments, receipt["exit_code"], raw_logs.stdout, raw_logs.stderr
+    )
+    if result.returncode:
+        raise subprocess.CalledProcessError(
+            result.returncode, arguments, result.stdout, result.stderr
+        )
+    return result
 
 
 def read_pins() -> Any:
@@ -119,7 +423,10 @@ def verified_assets(
 
 
 def prepare(
-    directory: str | pathlib.Path, architecture: str, offline: bool = False
+    directory: str | pathlib.Path,
+    architecture: str,
+    offline: bool = False,
+    retain_diagnostics: bool | None = None,
 ) -> dict[str, Any]:
     """Explicit acquisition only. Reuses only checksum-verified downloads."""
     pins = read_pins()
@@ -177,9 +484,12 @@ def prepare(
     os.utime(license_path, (0, 0))
     image = build_verified_image(binary, license_bytes, architecture)
     (directory / "image.id").write_text(image + "\n")
-    version = docker(
-        "run", "--rm", "--network", "none", "--pull", "never", image, "--version"
-    ).stdout.strip()
+    if retention_requested(retain_diagnostics):
+        version = retained_probe(image, ["--version"], directory).stdout.strip()
+    else:
+        version = docker(
+            "run", "--rm", "--network", "none", "--pull", "never", image, "--version"
+        ).stdout.strip()
     if "1.10.0" not in version:
         raise Blocked("unexpected CLI executable version")
     metadata = {
@@ -204,7 +514,12 @@ class Lane:
 
     address = "temporal:7233"
 
-    def __init__(self, prepared_dir, readiness_deadline=60):
+    def __init__(
+        self,
+        prepared_dir: str | pathlib.Path,
+        readiness_deadline: float = 60,
+        retain_diagnostics: bool | None = None,
+    ) -> None:
         self.directory = pathlib.Path(prepared_dir).resolve()
         self.metadata = json.loads((self.directory / "prepared.json").read_text())
         pins = read_pins()
@@ -232,15 +547,77 @@ class Lane:
         self.network = self.name + "-net"
         self.volume = self.name + "-db"
         self.server = self.name + "-server"
-        self.clients = set()
+        self.clients: set[str] = set()
+        self.retain_diagnostics = retention_requested(retain_diagnostics)
+        self.owned_containers = {self.server}
+        self.archived_containers: dict[str, dict[str, Any]] = {}
+        self.retention_error: str | None = None
+        self.auxiliary_identities: dict[str, dict[str, Any]] = {}
+        if self.retain_diagnostics:
+            self.diagnostics = diagnostic_directory(self.directory, self.name)
         self.readiness_deadline = float(readiness_deadline)
         if not 0 < self.readiness_deadline <= 180:
             raise ValueError("readiness deadline must be in (0,180] seconds")
-        self._handlers = {}
+        self._handlers: dict[int, Any] = {}
         self._created = False
 
+    def _call(
+        self, *args: object, timeout: float = 30, check: bool = True
+    ) -> subprocess.CompletedProcess[str]:
+        if not getattr(self, "retain_diagnostics", False):
+            return docker(*args, timeout=timeout, check=check)
+        result = recorded_docker(self.diagnostics, *args, timeout=timeout)
+        if check and result.returncode:
+            raise subprocess.CalledProcessError(
+                result.returncode, list(map(str, args)), result.stdout, result.stderr
+            )
+        return result
+
+    def _observe_auxiliary(self, kind: str, name: str) -> dict[str, Any] | None:
+        observed = self._call(kind, "inspect", name, check=False)
+        if observed.returncode:
+            lower = observed.stderr.lower()
+            missing = (kind == "volume" and "no such volume" in lower) or (
+                kind == "network"
+                and (
+                    ("network" in lower and "not found" in lower)
+                    or "no such network" in lower
+                )
+            )
+            if missing:
+                return None
+            raise RuntimeError(
+                "retained auxiliary resource observation denied or unavailable"
+            )
+        values = json.loads(observed.stdout)
+        if (
+            not isinstance(values, list)
+            or len(values) != 1
+            or not isinstance(values[0], dict)
+            or values[0].get("Name") != name
+        ):
+            raise RuntimeError("unexpected retained auxiliary identity")
+        record = values[0]
+        return record
+
+    def _pin_auxiliary(
+        self, kind: str, name: str, created_id: str | None = None
+    ) -> None:
+        record = self._observe_auxiliary(kind, name)
+        if record is None:
+            raise RuntimeError("newly created auxiliary resource disappeared")
+        identity = auxiliary_identity(kind, record)
+        if created_id is not None and identity.get("Id") != created_id:
+            raise RuntimeError("created network ID differs from first observation")
+        self.auxiliary_identities[kind] = identity
+        diagnostic_capture(
+            self.diagnostics,
+            kind + "-identity.json",
+            json.dumps(identity, sort_keys=True).encode(),
+        )
+
     @staticmethod
-    def _image(image):
+    def _image(image: str) -> None:
         if not re.fullmatch("sha256:[a-f0-9]{64}", image):
             raise Blocked("runtime requires an immutable local image ID")
         docker("image", "inspect", image)
@@ -267,7 +644,7 @@ class Lane:
         # Resource names are known before each request; cleanup handles lost replies.
         self._created = True
         try:
-            docker(
+            created_network = self._call(
                 "network",
                 "create",
                 "--internal",
@@ -277,16 +654,24 @@ class Lane:
                 "runspindle.synthetic=true",
                 self.network,
             )
-            docker(
+            if getattr(self, "retain_diagnostics", False):
+                self._pin_auxiliary(
+                    "network", self.network, created_network.stdout.strip()
+                )
+            self._call(
                 "volume", "create", "--label", "runspindle.synthetic=true", self.volume
             )
+            if getattr(self, "retain_diagnostics", False):
+                self._pin_auxiliary("volume", self.volume)
             self._start_server()
         except BaseException:
             self.close()
             raise
         return self
 
-    def _limits(self, name, image, mounts=()):
+    def _limits(
+        self, name: str, image: str, mounts: Iterable[dict[str, Any]] = ()
+    ) -> list[str]:
         self._image(image)
         args = [
             "run",
@@ -315,6 +700,15 @@ class Lane:
             "--env",
             "USER=synthetic",
         ]
+        if getattr(self, "retain_diagnostics", False):
+            args += [
+                "--restart",
+                "no",
+                "--log-driver",
+                "json-file",
+                "--log-opt",
+                "max-size=-1",
+            ]
         for mount in mounts:
             source = pathlib.Path(mount["source"]).resolve(strict=True)
             target = mount["target"]
@@ -345,10 +739,10 @@ class Lane:
             "--log-level",
             "error",
         ]
-        docker(*args)
+        self._call(*args)
         deadline = time.monotonic() + self.readiness_deadline
         while time.monotonic() < deadline:
-            result = docker(
+            result = self._call(
                 "exec",
                 self.server,
                 "/temporal",
@@ -365,7 +759,7 @@ class Lane:
             if result.returncode == 0:
                 return
             if (
-                docker(
+                self._call(
                     "inspect", "--format", "{{.State.Running}}", self.server
                 ).stdout.strip()
                 != "true"
@@ -374,18 +768,39 @@ class Lane:
             time.sleep(0.1)
         raise Blocked("Temporal readiness deadline exceeded")
 
+    def _archive_owned(self, name: str) -> dict[str, Any]:
+        try:
+            receipt = archive_container(name, self.diagnostics)
+        except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as error:
+            self.retention_error = "retention failed; no automatic retry: " + str(error)
+            raise RuntimeError(self.retention_error) from error
+        self.archived_containers[name] = receipt
+        return receipt
+
     def restart(self, abrupt=False):
         if not self._created:
             raise RuntimeError("lane not running")
-        if abrupt:
-            docker("kill", self.server)
+        try:
+            if abrupt:
+                self._call("kill", self.server)
+            else:
+                self._call("stop", "--time", "10", self.server, timeout=15)
+        except (OSError, subprocess.SubprocessError) as error:
+            if getattr(self, "retain_diagnostics", False):
+                self.retention_error = (
+                    "restart outcome uncertain; no automatic retry: " + str(error)
+                )
+            raise
+        if getattr(self, "retain_diagnostics", False):
+            self._archive_owned(self.server)
+            self.server = self.name + "-server-" + uuid.uuid4().hex[:12]
+            self.owned_containers.add(self.server)
         else:
-            docker("stop", "--time", "10", self.server, timeout=15)
-        docker("rm", "--force", self.server)
+            self._call("rm", "--force", self.server)
         self._start_server()
 
     def cli(self, *args, timeout=30, check=True):
-        return docker(
+        return self._call(
             "exec",
             self.server,
             "/temporal",
@@ -399,36 +814,131 @@ class Lane:
     def spawn_client(self, image_id, args, mounts=()):
         name = self.name + "-client-" + uuid.uuid4().hex[:12]
         self.clients.add(name)
-        docker(*self._limits(name, image_id, mounts), image_id, *args)
+        if getattr(self, "retain_diagnostics", False):
+            self.owned_containers.add(name)
+        self._call(*self._limits(name, image_id, mounts), image_id, *args)
         return name
 
     def exec_client(self, name, args, deadline=60, check=True):
         if name not in self.clients:
             raise ValueError("client does not belong to this lane")
-        return docker("exec", name, *args, timeout=deadline, check=check)
+        return self._call("exec", name, *args, timeout=deadline, check=check)
 
     def run_client(self, image_id, args, mounts=(), deadline=60):
         name = self.spawn_client(image_id, args, mounts)
         try:
-            result = docker("wait", name, timeout=deadline)
-            logs = docker("logs", name)
+            result = self._call("wait", name, timeout=deadline)
+            logs = self._call("logs", name)
             if result.stdout.strip() != "0":
                 raise RuntimeError(
                     f"client failed with exit {result.stdout.strip()}: {logs.stderr}"
                 )
             return logs
         finally:
-            removed = docker("rm", "--force", name, check=False)
-            if removed.returncode == 0 or "No such container" in removed.stderr:
+            if getattr(self, "retain_diagnostics", False):
+                self._archive_owned(name)
                 self.clients.discard(name)
             else:
-                # Retain ownership for context cleanup; an unacknowledged delete
-                # must never turn a surviving client into an untracked process.
-                raise RuntimeError(
-                    "client cleanup incomplete: " + removed.stderr.strip()
-                )
+                removed = self._call("rm", "--force", name, check=False)
+                if removed.returncode == 0 or "No such container" in removed.stderr:
+                    self.clients.discard(name)
+                else:
+                    # Retain ownership after an unacknowledged removal.
+                    raise RuntimeError(
+                        "client cleanup incomplete: " + removed.stderr.strip()
+                    )
+
+    def verify_retained(self) -> dict[str, Any]:
+        if not getattr(self, "retain_diagnostics", False):
+            raise RuntimeError("retention verification requires explicit opt-in")
+        if self.retention_error:
+            raise RuntimeError(self.retention_error)
+        if self.clients:
+            raise RuntimeError("unreconciled tracked clients remain")
+        if set(self.archived_containers) != self.owned_containers:
+            raise RuntimeError("retained container inventory incomplete")
+        for receipt in self.archived_containers.values():
+            verify_retained_container(receipt)
+        auxiliary = {}
+        identity_receipts: dict[str, dict[str, Any]] = {}
+        for kind, name in (("volume", self.volume), ("network", self.network)):
+            original = self.auxiliary_identities.get(kind)
+            record = self._observe_auxiliary(kind, name)
+            if record is None:
+                if original is not None:
+                    raise RuntimeError(
+                        "original retained auxiliary resource disappeared"
+                    )
+                auxiliary[kind] = "not_created"
+                identity_receipts[kind] = {"baseline": "not_created"}
+                continue
+            identity = auxiliary_identity(kind, record)
+            if original is not None and identity != original:
+                raise RuntimeError("original retained auxiliary identity changed")
+            auxiliary[kind] = "retained"
+            identity_receipts[kind] = {
+                "identity": identity,
+                "baseline": "creation_observation"
+                if original is not None
+                else "first_observed_after_partial_creation",
+            }
+        return {
+            "classification": "stopped_execution_retained_diagnostics",
+            "artifacts": auxiliary,
+            "auxiliary_identity_receipts": identity_receipts,
+            "creation_identities_confirmed": set(self.auxiliary_identities)
+            == {"volume", "network"},
+            "containers": list(self.archived_containers),
+            "evidence": str(self.diagnostics),
+        }
+
+    def close_retained(self) -> None:
+        if self.retention_error:
+            raise RuntimeError(self.retention_error)
+        errors = []
+        if self._created:
+            # Preserve the documented raw-client API: names tracked before creation.
+            self.owned_containers.update(self.clients)
+            for name in sorted(self.owned_containers):
+                if name in self.archived_containers:
+                    continue
+                try:
+                    self.archived_containers[name] = archive_container(
+                        name, self.diagnostics
+                    )
+                    self.clients.discard(name)
+                except (
+                    OSError,
+                    RuntimeError,
+                    subprocess.SubprocessError,
+                    ValueError,
+                ) as error:
+                    errors.append(str(error))
+        for sig, handler in self._handlers.items():
+            signal.signal(sig, handler)
+        self._handlers = {}
+        if errors:
+            self.retention_error = (
+                "lane retention incomplete; no automatic retry: " + "; ".join(errors)
+            )
+            raise RuntimeError(self.retention_error)
+        try:
+            receipt = self.verify_retained()
+            diagnostic_capture(
+                self.diagnostics,
+                "cleanup-" + uuid.uuid4().hex + ".json",
+                json.dumps(receipt, sort_keys=True).encode(),
+            )
+        except (OSError, RuntimeError, subprocess.SubprocessError, ValueError) as error:
+            self.retention_error = (
+                "lane retention verification failed; no automatic retry: " + str(error)
+            )
+            raise RuntimeError(self.retention_error) from error
+        self._created = False
 
     def close(self):
+        if getattr(self, "retain_diagnostics", False):
+            return self.close_retained()
         errors = []
         if self._created:
             for args in [
@@ -437,7 +947,7 @@ class Lane:
                 ("network", "rm", self.network),
             ]:
                 try:
-                    result = docker(*args, check=False)
+                    result = self._call(*args, check=False)
                     # A missing resource after a lost reply is already reconciled.
                     if result.returncode and (
                         not result.stderr.strip()
@@ -457,9 +967,11 @@ class Lane:
             raise RuntimeError("lane cleanup incomplete: " + "; ".join(errors))
 
 
-def smoke(directory: str | pathlib.Path) -> dict[str, Any]:
+def smoke(
+    directory: str | pathlib.Path, retain_diagnostics: bool | None = None
+) -> dict[str, Any]:
     """No worker involved: independently observe persisted workflow history."""
-    with Lane(directory) as lane:
+    with Lane(directory, retain_diagnostics=retain_diagnostics) as lane:
         workflow = "synthetic-persistence-" + uuid.uuid4().hex
         lane.cli(
             "workflow",
@@ -510,10 +1022,22 @@ def smoke(directory: str | pathlib.Path) -> dict[str, Any]:
             "image": lane.image,
         }
         resources = [lane.server, lane.network, lane.volume]
-    for kind, name in zip(("container", "network", "volume"), resources):
-        if docker(kind, "inspect", name, check=False).returncode == 0:
-            raise AssertionError("resource survived cleanup: " + name)
-    observation["cleanup"] = "independently_absent"
+    if lane.retain_diagnostics:
+        receipt = lane.verify_retained()
+        if (
+            receipt["artifacts"] != {"volume": "retained", "network": "retained"}
+            or not receipt["creation_identities_confirmed"]
+        ):
+            raise AssertionError(
+                "real Temporal artifacts or their creation identities were not retained"
+            )
+        observation["cleanup"] = receipt["classification"]
+        observation["retention"] = receipt
+    else:
+        for kind, name in zip(("container", "network", "volume"), resources):
+            if docker(kind, "inspect", name, check=False).returncode == 0:
+                raise AssertionError("resource survived cleanup: " + name)
+        observation["cleanup"] = "independently_absent"
     return observation
 
 
@@ -527,12 +1051,23 @@ def main():
         action="store_true",
         help="require staged verified bytes; never download",
     )
+    parser.add_argument(
+        "--retain-diagnostics",
+        action="store_true",
+        default=None,
+        help="retain stopped containers, original volume and verified logs",
+    )
     options = parser.parse_args()
     try:
         result = (
-            prepare(options.directory, options.architecture, options.offline)
+            prepare(
+                options.directory,
+                options.architecture,
+                options.offline,
+                options.retain_diagnostics,
+            )
             if options.action == "prepare"
-            else smoke(options.directory)
+            else smoke(options.directory, options.retain_diagnostics)
         )
         print(json.dumps(result, sort_keys=True))
     except (Blocked, OSError, subprocess.SubprocessError, ValueError, KeyError) as exc:
