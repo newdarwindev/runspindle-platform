@@ -81,3 +81,29 @@ asserts identical history. It does not claim worker replay, completed activities
 application recovery, browser fencing or production-store durability. Core owns
 those separate workflow tests. No service survives the verified bounded runs;
 the prepared image/download cache remains local for offline reuse.
+
+## Explicit validation selection
+
+Canonical `hygiene.json` now pins `python3 tools/python_tests.py --temporal required
+--prepared /opt/runspindle-temporal`. Both `tools/validate.py` and the partition
+producer use this command. Neither directory presence nor an inherited environment
+variable selects integration. Missing or invalid prepared release inputs fail
+before discovery or Docker. This pure byte check is not installed-image qualification;
+the five real tests still perform their existing independent runtime/image checks.
+Canonical validation is an integration request, including outside CI; it is not a
+local source-only command. It remains blocked by unqualified ARM64 `mutation_2`.
+
+For explicitly non-integration Temporal boundary evidence use:
+`python3 tools/python_tests.py --temporal boundary`. It ignores ambient Temporal
+opt-in and reports Temporal `not_run`. Other installed tests retain their own
+platform gates: on Linux ARM64 this is not a general source-only suite.
+The direct environment-selected unittest invocation above remains supported for
+explicit local integration, but is not canonical aggregate evidence.
+
+The launcher observes starts and successful completions for all five exact
+`test_temporal_lane.RealLaneTests` identities. Missing, duplicated, substituted,
+skipped or failed required cases cannot satisfy canonical coverage. The producer
+transports that observation; the aggregate requires it alongside exact command,
+source and platform bindings. These receipts remain claims inside the existing
+trusted source-check boundary, not cryptographic attestations. Arbitrary untrusted
+code can fabricate output; JSON does not establish independent operational proof.

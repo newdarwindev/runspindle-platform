@@ -140,7 +140,7 @@ structural, artifact, reference, mutation, fixture, Python, Rust and JavaScript
 checks where present. Rust tests and Clippy run offline. It prints the checkout
 SHA, image/tool versions, command exit codes, elapsed times, artifact checksums
 and remaining implementation gaps. Unimplemented builds are reported explicitly.
-The fleet image includes the prepared x64 Temporal dependency and a guest-local Docker daemon, so its real integration suite runs in canonical fleet validation. Local runs without that prepared environment explicitly report the integration skips. No host Docker socket is mounted.
+The fleet image includes the prepared x64 Temporal dependency and a guest-local Docker daemon, so its real integration suite runs in canonical fleet validation. Canonical validation now explicitly requires that prepared path and fails when its five required Temporal tests do not execute successfully. For local Temporal boundary-only evidence use `python3 tools/python_tests.py --temporal boundary`; this ignores ambient Temporal opt-in and reports integration not run, and cannot qualify the canonical aggregate. Other installed tests retain their platform gates. No host Docker socket is mounted.
 Acceptance workflows keep their failing gates separately.
 
 First qualify a platform `ci/*` push at its exact SHA, then all eight repositories.

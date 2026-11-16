@@ -123,7 +123,7 @@
     "tools/check_native_monitoring.py": "2ffffa3f9c0fe7ccfb632caa341fcfeab96f01932dd2b7a526a35616b4d920c6",
     "tools/collector_privacy_check.py": "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4",
     "tools/collector_recovery_check.py": "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
-    "tools/validate.py": "b29f49b6ae71b4427328df21ee855f9ac809ea452af9729a3d1f5ada5695118a"
+    "tools/validate.py": "f402a2ae6bf16fb4112035c066ca9851db17a73e496c54a16a50849ff033ad05"
   },
   "prior_evidence": "docs/maintained-offline-tests.json"
 }

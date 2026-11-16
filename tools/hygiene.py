@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import threading
 import time
+import uuid
 from pathlib import Path
 from typing import Any
 
@@ -49,8 +50,18 @@ KNOWN_FAILURE_REASONS = frozenset(
         "lockfile_changed_during_verification",
         "source_changed_during_verification",
         "invalid_or_missing_manifest",
+        "required_temporal_coverage_missing",
     }
 )
+
+
+def unique_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise ValueError("duplicate coverage key")
+        value[key] = item
+    return value
 
 
 def digest(path: Path) -> str:
@@ -308,25 +319,58 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
             "reason": "required_tool_missing",
             "missing_tool": tool if SAFE_ID.fullmatch(tool) else "unknown",
         }
+    child_env = dict(os.environ)
+    child_env.pop("RUNSPINDLE_TEMPORAL_PREPARED", None)
+    invocation = uuid.uuid4().hex
+    child_env["RUNSPINDLE_TEST_INVOCATION"] = invocation
     started = time.monotonic()
     before = resource.getrusage(resource.RUSAGE_CHILDREN)
     try:
         process = subprocess.Popen(
             entry["command"],
             cwd=root,
+            env=child_env,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT,
             start_new_session=True,
         )
         # Drain without persisting logs or allowing unbounded captured output.
         tail = bytearray()
+        coverage_lines: list[bytes] = []
+        coverage_count = 0
+        drain_completed = False
+        drain_forced = False
 
         def drain() -> None:
+            nonlocal coverage_count, drain_completed
             assert process.stdout is not None
+            line = bytearray()
+            overlong = False
+
+            def finish_line() -> None:
+                nonlocal coverage_count
+                if line.startswith(b"TEMPORAL_COVERAGE="):
+                    coverage_count += 1
+                    if coverage_count == 1 and not overlong:
+                        coverage_lines.append(bytes(line))
+
             while True:
-                chunk = process.stdout.read(8192)
+                try:
+                    chunk = process.stdout.read(8192)
+                except (OSError, ValueError):
+                    return
                 if not chunk:
+                    finish_line()
+                    drain_completed = True
                     break
+                for piece in chunk.splitlines(keepends=True):
+                    remaining = 8192 - len(line)
+                    line.extend(piece[:remaining])
+                    overlong = overlong or len(piece) > remaining
+                    if piece.endswith(b"\n"):
+                        finish_line()
+                        line.clear()
+                        overlong = False
                 tail.extend(chunk)
                 if len(tail) > 65536:
                     del tail[:-65536]
@@ -345,6 +389,7 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
             receipt.update(status="failed", reason="timeout")
         reader.join(timeout=2)
         if reader.is_alive():
+            drain_forced = True
             import signal
 
             try:
@@ -376,6 +421,40 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
                 receipt["test_summary"] = "node_trailing_summary"
             else:
                 receipt["test_summary"] = "unavailable"
+        if entry["id"] == "python-tests":
+            from tools.python_tests import CANONICAL_COMMAND, valid_coverage
+
+            lines = (
+                coverage_lines
+                if coverage_count == 1
+                and drain_completed
+                and not drain_forced
+                and not reader.is_alive()
+                else []
+            )
+            try:
+                coverage = (
+                    json.loads(
+                        lines[0].split(b"=", 1)[1], object_pairs_hook=unique_object
+                    )
+                    if len(lines) == 1
+                    else None
+                )
+            except ValueError:
+                coverage = None
+            observed_invocation = (
+                coverage.pop("invocation", None) if isinstance(coverage, dict) else None
+            )
+            if (
+                code != 0
+                or observed_invocation != invocation
+                or entry["command"] != CANONICAL_COMMAND
+                or not valid_coverage(coverage)
+            ):
+                receipt["status"] = "failed"
+                receipt.setdefault("reason", "required_temporal_coverage_missing")
+            else:
+                receipt["temporal_coverage"] = coverage
         tail.clear()
         del output
         if process.stdout is not None:
@@ -450,11 +529,9 @@ def preflight(root: Path, manifest: dict[str, Any]) -> dict[str, Any]:
     component = root / "component.json"
     if component.exists() and os.environ.get("CI", "").lower() == "true":
         if json.loads(component.read_text()).get("component") == "platform":
-            prepared = Path(
-                os.environ.get(
-                    "RUNSPINDLE_TEMPORAL_PREPARED", "/opt/runspindle-temporal"
-                )
-            )
+            from tools.python_tests import CANONICAL_COMMAND
+
+            prepared = Path(CANONICAL_COMMAND[-1])
             if not prepared.is_dir():
                 problems.append("prepared_temporal_missing")
     pins: dict[str, str] = {}
