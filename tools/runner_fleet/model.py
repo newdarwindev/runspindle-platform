@@ -3,6 +3,7 @@
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[2]
 REPOSITORIES = (
@@ -28,11 +29,30 @@ SCENARIOS = (
 )
 
 
-def config():
-    value = json.loads((ROOT / "fleet/config.json").read_text())
-    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != REPOSITORIES:
+def validate_config(
+    value: dict[str, Any], *, candidate_policy: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    # Existing fleet boundaries exchange dynamic JSON; candidate checks remain explicit.
+    expected: tuple[str, ...] = REPOSITORIES
+    if candidate_policy is not None:
+        proposal = {
+            "owner": "newdarwindev",
+            "repositories": list(REPOSITORIES + ("runspindle-demo-suite",)),
+            "activation_allowed": False,
+        }
+        if (
+            candidate_policy != proposal
+            or candidate_policy.get("activation_allowed") is not False
+        ):
+            raise ValueError("Fleet candidate policy changed")
+        expected = REPOSITORIES + ("runspindle-demo-suite",)
+    if value["owner"] != "newdarwindev" or tuple(value["repositories"]) != expected:
         raise ValueError("Fleet repository allowlist changed")
     return value
+
+
+def config() -> dict[str, Any]:
+    return validate_config(json.loads((ROOT / "fleet/config.json").read_text()))
 
 
 def choose_jobs(cfg, host, queued, active, cursor=0, drained=False):
@@ -127,7 +147,7 @@ def empty_report(cfg, revisions):
         "status": "blocked",
         "coverage": [
             {
-                "repository": f'{cfg["owner"]}/{repo}',
+                "repository": f"{cfg['owner']}/{repo}",
                 "lane": lane,
                 "requested_sha": revisions.get(repo),
                 "status": "blocked",
