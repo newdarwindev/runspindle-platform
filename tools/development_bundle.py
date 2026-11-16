@@ -52,6 +52,7 @@ def path_name(name):
     check(
         type(name) is str
         and 1 <= len(name) <= 256
+        and bool(path.parts)
         and str(path) == name
         and not path.is_absolute()
         and ".." not in path.parts
@@ -92,6 +93,8 @@ def build(
     )
     for name, content in files.items():
         path_name(name)
+        if any(str(parent) in files for parent in PurePosixPath(name).parents):
+            raise ValueError("file/directory path conflict")
         check(
             type(content) is bytes and len(content) <= 1_048_576,
             "bounded immutable bundle bytes required",
