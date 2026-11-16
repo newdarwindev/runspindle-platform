@@ -147,34 +147,62 @@ def canary_paths(value, prefix=""):
     return [prefix] if isinstance(value, str) and CANARY in value else []
 
 
+def identity_attributes(attributes):
+    """Read unambiguous OTLP string identities, never last-value-wins evidence."""
+    if not isinstance(attributes, list):
+        return None
+    values = {}
+    for attribute in attributes:
+        if not isinstance(attribute, dict) or set(attribute) != {"key", "value"}:
+            return None
+        key, value = attribute["key"], attribute["value"]
+        if not isinstance(key, str) or not key or key in values:
+            return None
+        if not isinstance(value, dict):
+            return None
+        values[key] = (
+            value["stringValue"]
+            if set(value) == {"stringValue"} and isinstance(value["stringValue"], str)
+            else None
+        )
+    return values
+
+
+def object_list(value):
+    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+
+
 def outcome(http_accepted, records):
-    # HTTP acceptance never substitutes for correlated backend readback.
+    # Exact synthetic context is required independently of transport acceptance.
+    # This is file-readback evidence only, not native source authentication.
+    expected_resource = {
+        "task_id": "task-17",
+        "session_id": "session-17",
+        "producer": "synthetic-otlp",
+        "config_sha256": "a" * 64,
+        "policy_sha256": "b" * 64,
+    }
     matching = []
-    for record in records:
-        for resource in record.get("resourceSpans", []):
-            attrs = {
-                a["key"]: a["value"].get("stringValue")
-                for a in resource.get("resource", {}).get("attributes", [])
-            }
-            if (
-                attrs.get("task_id") != "task-17"
-                or attrs.get("session_id") != "session-17"
-            ):
+    for record in object_list(records):
+        for resource in object_list(record.get("resourceSpans")):
+            context = resource.get("resource")
+            if not isinstance(context, dict):
                 continue
-            for scope in resource.get("scopeSpans", []):
-                for span in scope.get("spans", []):
-                    events = {
-                        a["key"]: a["value"].get("stringValue")
-                        for a in span.get("attributes", [])
-                    }
+            attrs = identity_attributes(context.get("attributes"))
+            if attrs is None or any(attrs.get(key) != value for key, value in expected_resource.items()):
+                continue
+            for scope in object_list(resource.get("scopeSpans")):
+                for span in object_list(scope.get("spans")):
+                    events = identity_attributes(span.get("attributes"))
                     if (
-                        span.get("traceId") == "1" * 32
+                        events is not None
+                        and span.get("traceId") == "1" * 32
                         and span.get("spanId") == "2" * 16
                         and events.get("event_id") == "event-17"
                     ):
                         matching.append(span)
     return {
-        "transport": "accepted" if http_accepted else "unknown",
+        "transport": "accepted" if http_accepted is True else "unknown",
         "backend": "persisted_file_only" if matching else "unknown",
         "matching_records": len(matching),
         "duplicates": max(len(matching) - 1, 0),

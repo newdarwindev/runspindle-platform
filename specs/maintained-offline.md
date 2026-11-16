@@ -28,7 +28,8 @@ values are synthetic trusted inputs in this lane; this is not a claim of
 sanitizing arbitrary identity fields or native producers.
 
 The receiver's HTTP response is transport acceptance only. Independent standard
-file-exporter readback of matching task/session/event/trace/span IDs establishes
+file-exporter readback of matching task/session/event/trace/span IDs and exact
+synthetic producer/config/policy context establishes
 `persisted_file_only`; it does not establish Langfuse persistence. Explicit
 duplicate submissions produce two observed records and one duplicate; no token
 or cost usage is inferred from telemetry count. A malformed envelope receives
@@ -177,3 +178,10 @@ test_bundle_path_admission.py` and repeat with `-O`. Full aggregate, native ARM6
 Temporal, guest/service operation and product installation qualification were not
 run. This source-only correction does not change target admission or establish
 full product release acceptance.
+
+Offline correlation hardening rejects ambiguous duplicate identity attributes,
+wrong or missing producer/config/policy bindings, and malformed matching shapes.
+HTTP acceptance remains separate from exact file readback, and whole-envelope
+canary scanning still includes unmatched records. This is diagnostic-oracle
+coverage, not a new Collector or Langfuse execution receipt. See
+[correlation evidence](../docs/telemetry-correlation-evidence.md).
