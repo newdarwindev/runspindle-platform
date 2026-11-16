@@ -188,3 +188,12 @@ python3 tools/validate.py
 
 These local/synthetic checks do not certify live qualification or product
 acceptance. Both Mac lanes and product release gates remain separate.
+
+## Source-only isolated campaign guard
+
+The [isolated campaign guard](ISOLATED_CAMPAIGN.md) implements durable capped
+admission, retention accounting and exact observation checks in a separate
+offline ledger. Its live entry point remains disabled: server assignment
+enforcement and complete external-writer fencing are unavailable. Synthetic
+checks do not qualify GitHub assignment or enable campaign execution. Ordinary
+repository-queue behavior, workflows and operational state are unchanged.
