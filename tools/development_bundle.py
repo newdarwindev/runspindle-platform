@@ -419,9 +419,11 @@ class DisposableTarget:
         )
         return value["manifest_sha256"]
 
-    def verify_installed(self, component_commits):
+    def verify_installed(self: Any, component_commits: Any) -> dict[str, Any]:
+        state = self.state()
         digest = self._observed()
-        check(digest is not None, "no installed development bundle")
+        if digest is None or digest not in (state["active"], state["pending"]):
+            raise ValueError("conflicting installation readback")
         row = self.db.execute(
             "SELECT bundle FROM installs WHERE digest=?", (digest,)
         ).fetchone()

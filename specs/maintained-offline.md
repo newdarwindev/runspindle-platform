@@ -130,3 +130,24 @@ through an already-open incompatible installer; tests now reject both directions
 before intent and preserve the active pointer/generation. Existing metadata
 encoding, validation limits and valid journal behavior are unchanged. A fifth
 behavioral mutation disables this fence and must be caught by that regression.
+
+Metadata installation readback must match the journal's active or pending digest,
+not merely any retained historical bundle. This preserves readback on either
+side of a recorded installation/rollback pointer switch while rejecting an
+unrelated retained version. `tests/test_metadata_pointer.py` exercises actual
+scratch SQLite/files with synthetic architecture admission; it does not qualify
+ARM64 installation, product binaries or installed services.
+
+Pointer-fence verification against base `9d9c09a531205829ad2ca9dc831575b45b5d4692`:
+CPython 3.12.16; exact `requirements-quality.txt` tools; six focused tests passed
+in normal and optimized modes. Direct discovery ran 208 tests: 195 passed and
+13 native/Temporal installation tests explicitly skipped. Pinned static checks
+reported zero new diagnostics and 863 existing diagnostics; scaffold passed.
+The existing portable attribution fixture now binds its journal active digest
+to its inserted bundle, preserving its unsupported-architecture assertion and
+five portable mutation checks. Removing the new pointer guard made the historical
+pointer regression fail because the expected `ValueError` was not raised.
+Reproduce focused evidence with `python3.12 -m unittest discover -s tests -p
+test_metadata_pointer.py` and repeat with `-O`. Full aggregate, actual ARM64
+installation, power-loss recovery, services and product qualification were not
+run. The source change does not expand the supported installation targets.
