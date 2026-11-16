@@ -106,6 +106,7 @@ class PortableInstallInvariants(unittest.TestCase):
         (folder / "notice.txt").write_bytes(files["notice.txt"])
         (self.root / "active.json").write_text(json.dumps({"manifest_sha256": digest}))
         self.db.execute("INSERT INTO installs VALUES(?,?,'verified')", (digest, bundle))
+        self.db.execute("UPDATE state SET active=? WHERE id=1", (digest,))
         # A negative admission test must still stop before the portable helper.
         # Never emulate a supported host to reach the native readback method.
         with (
