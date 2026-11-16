@@ -154,6 +154,21 @@ def container_observation(
     return container
 
 
+def require_retained_logging(container: dict[str, Any]) -> None:
+    config = container.get("HostConfig", {}).get("LogConfig", {})
+    options = config.get("Config")
+    # Omitted max-size selects json-file's unlimited default. An explicit -1
+    # is rejected by the pinned Docker daemon. Inspect merged daemon defaults
+    # before start: inherited rotation or nonblocking delivery must fail closed.
+    if (
+        config.get("Type") != "json-file"
+        or not isinstance(options, dict)
+        or "max-size" in options
+        or options.get("mode") != "blocking"
+    ):
+        raise RuntimeError("retained logs require nonrotating blocking json-file")
+
+
 def require_stopped(container: dict[str, Any]) -> None:
     state = container.get("State", {})
     if (
@@ -163,17 +178,11 @@ def require_stopped(container: dict[str, Any]) -> None:
         or state.get("Pid") != 0
         or state.get("Status") not in ("created", "exited", "dead")
         or container.get("HostConfig", {}).get("RestartPolicy", {}).get("Name") != "no"
-        or container.get("HostConfig", {}).get("LogConfig", {}).get("Type")
-        != "json-file"
-        or container.get("HostConfig", {})
-        .get("LogConfig", {})
-        .get("Config", {})
-        .get("max-size")
-        != "-1"
     ):
         raise RuntimeError(
             "retained container still has execution or restart authority"
         )
+    require_retained_logging(container)
 
 
 def archive_container(name: str, directory: pathlib.Path) -> dict[str, Any]:
@@ -310,7 +319,7 @@ def retained_probe(
             "--log-driver",
             "json-file",
             "--log-opt",
-            "max-size=-1",
+            "mode=blocking",
             "--restart",
             "no",
             "--pids-limit",
@@ -324,6 +333,12 @@ def retained_probe(
         )
         if created.returncode:
             raise RuntimeError("retained probe creation failed")
+        observed = container_observation(
+            recorded_docker(evidence, "container", "inspect", name), name
+        )
+        if observed is None:
+            raise RuntimeError("retained probe disappeared before start")
+        require_stopped(observed)
         if recorded_docker(evidence, "start", name).returncode:
             raise RuntimeError("retained probe start failed")
         waited = recorded_docker(evidence, "wait", name, timeout=60)
@@ -701,13 +716,14 @@ class Lane:
             "USER=synthetic",
         ]
         if getattr(self, "retain_diagnostics", False):
+            args[:2] = ["create"]
             args += [
                 "--restart",
                 "no",
                 "--log-driver",
                 "json-file",
                 "--log-opt",
-                "max-size=-1",
+                "mode=blocking",
             ]
         for mount in mounts:
             source = pathlib.Path(mount["source"]).resolve(strict=True)
@@ -720,6 +736,17 @@ class Lane:
                 + (",readonly" if mount.get("read_only", True) else ""),
             ]
         return args
+
+    def _launch(self, args: list[str], name: str) -> None:
+        self._call(*args)
+        if getattr(self, "retain_diagnostics", False):
+            observed = container_observation(
+                self._call("container", "inspect", name), name
+            )
+            if observed is None:
+                raise RuntimeError("retained container disappeared before start")
+            require_stopped(observed)
+            self._call("start", name)
 
     def _start_server(self):
         args = self._limits(self.server, self.image)
@@ -739,7 +766,7 @@ class Lane:
             "--log-level",
             "error",
         ]
-        self._call(*args)
+        self._launch(args, self.server)
         deadline = time.monotonic() + self.readiness_deadline
         while time.monotonic() < deadline:
             result = self._call(
@@ -816,7 +843,7 @@ class Lane:
         self.clients.add(name)
         if getattr(self, "retain_diagnostics", False):
             self.owned_containers.add(name)
-        self._call(*self._limits(name, image_id, mounts), image_id, *args)
+        self._launch([*self._limits(name, image_id, mounts), image_id, *args], name)
         return name
 
     def exec_client(self, name, args, deadline=60, check=True):

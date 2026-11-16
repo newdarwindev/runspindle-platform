@@ -7,12 +7,13 @@ supplied paths, shell fragments, QEMU flags or service names cross this boundary
 
 import fcntl
 import json
-import re
 import os
-from pathlib import Path
 import pwd
+import re
+import stat
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 ROOT = Path("/var/lib/runspindle-fleet")
@@ -236,6 +237,52 @@ def start(slot: int, identity: str) -> None:
     )
 
 
+def sync_directory(path: Path) -> None:
+    descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def prepare_original_archive(identity: str, uid: int, gid: int) -> Path:
+    if not re.fullmatch("[0-9a-f]{32}", identity):
+        raise RuntimeError("Invalid retention identity")
+    parent = ROOT / "retained"
+    if not parent.exists() and not parent.is_symlink():
+        parent.mkdir(mode=0o711)
+        # State initialization deliberately sets umask 077; normalize only the
+        # directory just created here, never repair an existing foreign parent.
+        os.chmod(parent, 0o711)
+        sync_directory(parent)
+        sync_directory(ROOT)
+    info = parent.lstat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or info.st_uid != 0
+        or stat.S_IMODE(info.st_mode) != 0o711
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(parent))
+    ):
+        raise RuntimeError("Unsafe fleet retention parent; originals retained")
+    archive = parent / identity
+    if not archive.exists() and not archive.is_symlink():
+        archive.mkdir(mode=0o700)
+        os.chown(archive, uid, gid)
+        sync_directory(archive)
+        sync_directory(parent)
+    info = archive.lstat()
+    if (
+        not stat.S_ISDIR(info.st_mode)
+        or (info.st_uid, info.st_gid) != (uid, gid)
+        or stat.S_IMODE(info.st_mode) != 0o700
+        or {"system.posix_acl_access", "system.posix_acl_default"}
+        & set(os.listxattr(archive))
+    ):
+        raise RuntimeError("Unsafe private original archive; originals retained")
+    return archive
+
+
 def stop(slot: int, identity: str) -> None:
     owner = observe(slot).get("resource_id")
     if owner != identity:
@@ -251,6 +298,9 @@ def stop(slot: int, identity: str) -> None:
     # Ownership returns only after the entire service cgroup has stopped.
     directory = ROOT / "slots" / str(slot)
     operator = pwd.getpwnam("standard")
+    prepare_original_archive(
+        identity, operator.pw_uid, pwd.getpwnam(f"runspindle-vm{slot}").pw_gid
+    )
     for name in ("disk.qcow2", "seed.iso", "serial.log"):
         path = directory / name
         if path.is_symlink():
