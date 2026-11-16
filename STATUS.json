@@ -37,7 +37,14 @@
     "mac_lanes": "qualification_routing_and_fail_closed_single_slot_ledger_locally_tested;operational_backend_and_original_resource_and_isolation_gates_pending",
     "qualification": "blocked",
     "required_checks": "unchanged",
-    "status": "strix_implementation_under_qualification"
+    "status": "strix_implementation_under_qualification",
+    "isolated_campaign_guard": {
+      "status": "source_only_synthetic_tests",
+      "documentation": "docs/ISOLATED_CAMPAIGN.md",
+      "live_execution": "disabled_assignment_and_writer_enforcement_unavailable",
+      "workflows_and_operational_state": "unchanged",
+      "evidence": "docs/isolated-campaign-checks.json"
+    }
   },
   "runtime_adapter_tests": "passed_bounded_temporal_development_lane",
   "selected_source_migration": "partial",

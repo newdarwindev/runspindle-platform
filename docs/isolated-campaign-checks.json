@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "evidence_class": "local_synthetic_policy_tests",
+  "base_revision": "14e620c9a5a35d2584544831cfe1fa260a2b86b7",
+  "checks": {
+    "campaign_unit_tests": {
+      "command": "python3 -m unittest discover -s tests -p test_*campaign.py -v",
+      "passed": 53,
+      "new_guard_tests": 27,
+      "existing_candidate_tests": 26
+    },
+    "ruff": {
+      "version": "0.14.5",
+      "status": "passed",
+      "scope": "two new Python files; isolated E4,E7,E9,F,I and format"
+    },
+    "mypy": {
+      "version": "1.18.2",
+      "status": "passed",
+      "scope": "two new Python files; strict, follow-imports=skip, no-incremental"
+    },
+    "scaffold": {
+      "command": "python3 tools/check_scaffold.py",
+      "status": "passed"
+    }
+  },
+  "files_sha256": {
+    "tools/runner_fleet/isolated_campaign.py": "2d83b5c4337e4ba3ce1048cffec9ee4987b8b8ee9db108f1c4c313bfe3986bc6",
+    "tests/test_isolated_campaign.py": "b5ff74bdd464cfb24b5a3b321835ab1a07831215f137fd4920abf61ad6cc3c47"
+  },
+  "negative_cases": [
+    "multiprocess admission cap and two-slot races",
+    "cap and plan binding across restart",
+    "persistent deadlines and backwards clock",
+    "requested and actual identity mismatch",
+    "disk and log exhaustion",
+    "exclusive capture collision and write failure",
+    "abrupt child-process exit with uncertain capture",
+    "uncertain cleanup and incomplete repository coverage",
+    "live gate and fleet ledger access refused"
+  ],
+  "live_execution": "disabled",
+  "github_assignment_enforcement": "not_implemented",
+  "external_writer_fencing": "not_implemented",
+  "operational_changes": "none",
+  "workflow_changes": "none",
+  "product_acceptance": "not_run"
+}
