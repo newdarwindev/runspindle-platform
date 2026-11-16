@@ -344,10 +344,12 @@ def uninstall(cfg, directory):
     }
 
 
-def qualify(cfg, revisions, directory, ref):
+def qualify(
+    cfg: dict[str, Any], revisions: dict[str, str], directory: str | Path, ref: str
+) -> dict[str, Any]:
     """Dispatch and follow real jobs; never infer live scenario qualification."""
-    report = empty_report(cfg, revisions)
-    dispatched = {}
+    report: dict[str, Any] = empty_report(cfg, revisions)
+    dispatched: dict[str, dict[str, Any]] = {}
     start = time.monotonic()
     for repo, sha in revisions.items():
         full = cfg["owner"] + "/" + repo
