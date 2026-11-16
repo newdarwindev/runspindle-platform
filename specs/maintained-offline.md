@@ -130,3 +130,29 @@ through an already-open incompatible installer; tests now reject both directions
 before intent and preserve the active pointer/generation. Existing metadata
 encoding, validation limits and valid journal behavior are unchanged. A fifth
 behavioral mutation disables this fence and must be caught by that regression.
+
+## Regular-file inventory admission
+
+Both bundle formats reject `.` as a file: it denotes the destination directory,
+not a regular-file payload. Metadata bundles also reject a file whose ancestor
+is another file record, matching the streaming format's existing collision
+rule. These checks apply during construction and incoming manifest verification,
+before installation intent, generation changes, staging or pointer effects.
+Valid nested siblings and streaming dependency filename punctuation are unchanged.
+
+`tests/test_bundle_path_admission.py` uses externally constructed, correctly
+rehashed malformed bundles, actual scratch SQLite/files, synthetic architecture
+admission and no native constructor. It independently observes zero SQL statements,
+checkpoint/recovery calls and filesystem changes on rejected installation.
+Against base `9d9c09a531205829ad2ca9dc831575b45b5d4692`, CPython 3.12.16 ran
+six focused tests in normal and optimized modes. Direct discovery ran 208 tests:
+195 passed and 13 native/Temporal cases explicitly skipped. Exact pinned static
+checks reported zero new diagnostics and 869 existing diagnostics. Three
+independent guard-removal mutations (metadata root-dot, metadata ancestor conflict,
+streaming root-dot) triggered assertion failures. Scaffold passed.
+
+Reproduce the focused checks with `python3.12 -m unittest discover -s tests -p
+test_bundle_path_admission.py` and repeat with `-O`. Full aggregate, native ARM64,
+Temporal, guest/service operation and product installation qualification were not
+run. This source-only correction does not change target admission or establish
+full product release acceptance.

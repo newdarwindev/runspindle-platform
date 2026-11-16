@@ -47,7 +47,8 @@ def stream_path(name):
     check(type(name) is str and 1 <= len(name) <= 512, "unsafe bundle path")
     path = PurePosixPath(name)
     check(
-        str(path) == name
+        bool(path.parts)
+        and str(path) == name
         and not path.is_absolute()
         and ".." not in path.parts
         and all(32 <= ord(c) <= 126 and c not in "\\:" for c in name),
