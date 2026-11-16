@@ -99,6 +99,10 @@ startup remains disabled. `resume` requires a recent successful preflight.
 
 ## Operation and reconciliation
 
+[Build retention and stopped-slot recovery](RUNNER_BUILD_RECOVERY.md) describes
+source fixes, preserved original/capture locations, and the separate approval
+needed to reconcile an already uncertain build reservation.
+
 The manager polls every 30 seconds, selecting explicitly labelled trusted
 `main`/`ci/*` push/manual jobs round-robin across the eight repositories. Labels
 cannot bind a runner to one queued job: the actual claimed job, SHA and runner

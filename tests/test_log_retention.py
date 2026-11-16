@@ -74,13 +74,14 @@ class RetentionTests(unittest.TestCase):
         expected_base: str,
         run: Any,
         maximum_size: int = 24 * 1024**3,
+        original_directory: Path | None = None,
     ) -> dict[str, Any]:
         """Orchestration seam only; real qcow2 behavior is tested separately."""
         retained = directory / "guest-retention-synthetic"
         retained.mkdir()
         snapshot = retained / "standalone.qcow2"
         snapshot.write_bytes(disk.read_bytes())
-        original = retained / "original-overlay.qcow2"
+        original = (original_directory or retained) / "original-overlay.qcow2"
         disk.rename(original)
         result = {
             "standalone": str(snapshot),
@@ -127,12 +128,13 @@ class RetentionTests(unittest.TestCase):
         base = root / "synthetic-base.qcow2"
         base.write_bytes(b"synthetic backing bytes")
         machine.image = base
-        resource = {
+        resource: dict[str, Any] = {
             "id": "a" * 32,
             "slot": 0,
             "details": {"image_sha256": hashlib.sha256(base.read_bytes()).hexdigest()},
         }
         directory = machine.directory(resource)
+        (root / "retained" / resource["id"]).mkdir(parents=True)
         for name in ("disk.qcow2", "seed.iso", "serial.log"):
             (slot / name).write_bytes(b"complete " + name.encode())
         (directory / "key").write_bytes(b"synthetic-key")
@@ -148,10 +150,20 @@ class RetentionTests(unittest.TestCase):
             with patch.object(backend, "ROOT", root), patch.object(backend, "helper"):
                 machine.destroy(resource)
             self.assertEqual((directory / "serial.log").read_bytes(), b"earlier prefix")
-            originals = list(directory.glob("serial-original-*.log"))
+            originals = list(
+                (root / "retained" / resource["id"]).glob("serial-original-*.log")
+            )
             self.assertEqual(len(originals), 1)
             self.assertEqual(originals[0].stat().st_ino, original_inode)
             self.assertEqual(originals[0].read_bytes(), b"complete serial.log")
+            archived = root / "retained" / resource["id"]
+            self.assertEqual(
+                next(archived.glob("seed-original-*.iso")).read_bytes(),
+                b"complete seed.iso",
+            )
+            self.assertEqual(
+                next(directory.glob("key-original-*")).read_bytes(), b"synthetic-key"
+            )
             captures = list(directory.glob("serial.log.capture-*"))
             self.assertEqual(len(captures), 1)
             self.assertEqual(captures[0].read_bytes(), originals[0].read_bytes())
@@ -187,7 +199,7 @@ class RetentionTests(unittest.TestCase):
                 self.assertTrue((slot / name).exists())
             self.assertEqual(
                 next(
-                    directory.glob("guest-retention-*/original-overlay.qcow2")
+                    (root / "retained" / resource["id"]).glob("original-overlay*.qcow2")
                 ).read_bytes(),
                 b"complete disk.qcow2",
             )
@@ -260,7 +272,9 @@ class RetentionTests(unittest.TestCase):
             ):
                 machine.diagnostics(resource)
                 machine.destroy(resource)
-            retained = next(directory.glob("guest-retention-*/original-overlay.qcow2"))
+            retained = next(
+                (root / "retained" / resource["id"]).glob("original-overlay*.qcow2")
+            )
             self.assertEqual(retained.stat().st_ino, inode)
             self.assertEqual(retained.read_bytes(), b"complete disk.qcow2")
 
@@ -359,6 +373,106 @@ class QcowRetentionTests(unittest.TestCase):
             self.assertEqual(raw.read_bytes(), b"5" * 512 + b"a" * (1024 * 1024 - 512))
             self.assertEqual(result["logical_compare"], "equal")
             self.assertFalse(disk.exists())
+
+    def test_bind_mount_boundary_keeps_originals_on_fleet_side(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            fleet, state = root / "fleet", root / "state"
+            slot = fleet / "slots/0"
+            slot.mkdir(parents=True)
+            disk, base = self.create_disk(slot)
+            disk.rename(slot / "disk.qcow2")
+            disk = slot / "disk.qcow2"
+            resource: dict[str, Any] = {
+                "id": "a" * 32,
+                "slot": 0,
+                "details": {
+                    "image_sha256": hashlib.sha256(base.read_bytes()).hexdigest()
+                },
+            }
+            # Keep the slot free of unrelated fixture inputs.
+            base_destination = fleet / "base.qcow2"
+            base.rename(base_destination)
+            # Recreate the overlay with a stable, fleet-root backing reference.
+            disk.unlink()
+            self.assertEqual(
+                self.run_command(
+                    [
+                        "qemu-img",
+                        "create",
+                        "-f",
+                        "qcow2",
+                        "-F",
+                        "qcow2",
+                        "-b",
+                        str(base_destination),
+                        str(disk),
+                        "1M",
+                    ]
+                ).returncode,
+                0,
+            )
+            (slot / "synthetic.raw").unlink()
+            serial = slot / "serial.log"
+            serial.write_bytes(b"complete synthetic serial log")
+            inode = serial.stat().st_ino
+            (slot / "seed.iso").write_bytes(b"synthetic seed")
+            originals = fleet / "retained" / resource["id"]
+            originals.mkdir(parents=True, mode=0o700)
+            machine = Backend(Mock(directory=state), base_destination)
+            original_rename = Path.rename
+
+            def bind_boundary(source: Path, destination: Path) -> Path:
+                if source.is_relative_to(fleet) and Path(destination).is_relative_to(
+                    state
+                ):
+                    raise OSError(
+                        errno.EXDEV, "synthetic distinct bind mounts, same st_dev"
+                    )
+                return original_rename(source, destination)
+
+            with (
+                patch.object(backend, "ROOT", fleet),
+                patch.object(backend, "helper"),
+                patch.object(Path, "rename", bind_boundary),
+            ):
+                machine.destroy(resource)
+            self.assertEqual(list(slot.iterdir()), [])
+            retained_serial = next(originals.glob("serial-original-*.log"))
+            self.assertEqual(retained_serial.stat().st_ino, inode)
+            self.assertEqual(
+                retained_serial.read_bytes(), b"complete synthetic serial log"
+            )
+            retained_disk = next(originals.glob("original-overlay-*.qcow2"))
+            self.assertTrue(retained_disk.exists())
+            self.assertTrue(
+                list(state.glob("resources/*/guest-retention-*/retained-original.json"))
+            )
+            self.assertTrue(list(state.glob("resources/*/retained-serial.json")))
+
+    def test_linked_original_archive_is_rejected_before_disk_capture(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            disk, base = self.create_disk(root)
+            before = disk.read_bytes()
+            evidence = root / "evidence"
+            evidence.mkdir()
+            foreign = root / "foreign"
+            foreign.mkdir(mode=0o700)
+            linked = root / "linked-originals"
+            linked.symlink_to(foreign, target_is_directory=True)
+            with self.assertRaisesRegex(RuntimeError, "Private original archive"):
+                snapshot_guest_disk(
+                    disk,
+                    base,
+                    evidence,
+                    hashlib.sha256(base.read_bytes()).hexdigest(),
+                    self.run_command,
+                    original_directory=linked,
+                )
+            self.assertEqual(disk.read_bytes(), before)
+            self.assertEqual(list(foreign.iterdir()), [])
+            self.assertEqual(list(evidence.iterdir()), [])
 
     def test_enlarged_overlay_retains_nonzero_extended_region(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:

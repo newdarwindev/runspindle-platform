@@ -16,7 +16,13 @@ from contextlib import ExitStack
 from pathlib import Path
 from typing import Any, cast
 
-from .retention import capture_bytes, capture_file, file_digest, snapshot_guest_disk
+from .retention import (
+    capture_bytes,
+    capture_file,
+    file_digest,
+    snapshot_guest_disk,
+    sync_directory,
+)
 
 ROOT = Path("/var/lib/runspindle-fleet")
 HELPER = "/opt/runspindle-fleet/tools/runner_fleet/host_helper.py"
@@ -620,6 +626,7 @@ echo $! > /home/runner/runner.pid
                 expected_base,
                 lambda argv: execute(argv, timeout=600, check=False),
                 maximum_size=GUEST_DISK_GIB * 1024**3,
+                original_directory=ROOT / "retained" / resource["id"],
             )
         serial = self.slot(resource) / "serial.log"
         if serial.is_symlink():
@@ -629,19 +636,57 @@ echo $! > /home/runner/runner.pid
             expected = digest(serial)
             if digest(captured) != expected:
                 raise RuntimeError("Stopped serial log changed; cleanup blocked")
-            original = directory / f"serial-original-{uuid.uuid4().hex}.log"
+            originals = ROOT / "retained" / resource["id"]
+            original = originals / f"serial-original-{uuid.uuid4().hex}.log"
             if original.exists() or original.is_symlink():
                 raise RuntimeError("Retained serial destination occupied")
-            # Keep the original inode, as well as the verified capture. Rename
-            # fails closed across filesystems; never copy/delete as a fallback.
+            # Keep the original inode on the slot's mount, plus the verified
+            # state capture. Never copy/delete as a cross-mount fallback.
             serial.rename(original)
             if digest(original) != expected:
                 raise RuntimeError("Retained serial log changed; cleanup blocked")
-        for name in ("seed.iso",):
-            path = self.slot(resource) / name
-            path.unlink(missing_ok=True)
+            sync_directory(originals)
+            sync_directory(serial.parent)
+            capture_bytes(
+                directory,
+                "retained-serial.json",
+                json.dumps({"original": str(original), "sha256": expected}).encode(),
+            )
+        seed = self.slot(resource) / "seed.iso"
+        if seed.is_symlink():
+            raise RuntimeError("Linked seed retained; cleanup blocked")
+        if seed.exists():
+            expected = file_digest(seed)
+            originals = ROOT / "retained" / resource["id"]
+            original = originals / f"seed-original-{uuid.uuid4().hex}.iso"
+            seed.rename(original)
+            if file_digest(original) != expected:
+                raise RuntimeError("Retained seed changed; cleanup blocked")
+            sync_directory(originals)
+            sync_directory(seed.parent)
+            capture_bytes(
+                directory,
+                "retained-seed.json",
+                json.dumps({"original": str(original), "sha256": expected}).encode(),
+            )
         if any(self.slot(resource).iterdir()):
             raise RuntimeError("Unknown slot files retained; capacity remains occupied")
         directory = self.directory(resource)
-        (directory / "key").unlink(missing_ok=True)
+        key = directory / "key"
+        if key.is_symlink():
+            raise RuntimeError("Linked ephemeral key retained; cleanup blocked")
+        if key.exists():
+            expected = file_digest(key)
+            original_key = directory / f"key-original-{uuid.uuid4().hex}"
+            key.rename(original_key)
+            if file_digest(original_key) != expected:
+                raise RuntimeError("Retained ephemeral key changed; cleanup blocked")
+            sync_directory(directory)
+            capture_bytes(
+                directory,
+                "retained-key.json",
+                json.dumps(
+                    {"original": str(original_key), "sha256": expected}
+                ).encode(),
+            )
         # No claim of cleanup until service, files and registrations are gone.

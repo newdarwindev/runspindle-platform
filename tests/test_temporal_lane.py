@@ -9,7 +9,6 @@ import signal
 import subprocess
 import sys
 import tempfile
-import time
 import unittest
 import uuid
 from typing import Any, Callable
@@ -178,7 +177,7 @@ class RetentionBoundaryTests(unittest.TestCase):
                                 "RestartPolicy": {"Name": "no"},
                                 "LogConfig": {
                                     "Type": "json-file",
-                                    "Config": {"max-size": "-1"},
+                                    "Config": {"mode": "blocking"},
                                 },
                             },
                         }
@@ -493,7 +492,8 @@ class RetentionBoundaryTests(unittest.TestCase):
             self.assertFalse(any("--rm" in call or "rm" in call for call in calls))
             create = next(call for call in calls if call[0] == "create")
             self.assertIn("json-file", create)
-            self.assertIn("max-size=-1", create)
+            self.assertIn("mode=blocking", create)
+            self.assertFalse(any(str(arg).startswith("max-size=") for arg in create))
             self.assertTrue(
                 list(
                     pathlib.Path(directory).glob(
@@ -501,6 +501,82 @@ class RetentionBoundaryTests(unittest.TestCase):
                     )
                 )
             )
+
+    def test_inherited_rotation_blocks_probe_before_execution(self) -> None:
+        calls: list[tuple[object, ...]] = []
+        ordinary = self.fake_docker(calls)
+
+        def rotating(*args: object, **kwargs: Any) -> subprocess.CompletedProcess[str]:
+            result = ordinary(*args, **kwargs)
+            if args[:2] == ("container", "inspect"):
+                value = json.loads(result.stdout)
+                value[0]["HostConfig"]["LogConfig"]["Config"]["max-size"] = "10m"
+                result.stdout = json.dumps(value)
+            return result
+
+        with (
+            tempfile.TemporaryDirectory() as directory,
+            patch.object(lane_module, "docker", rotating),
+        ):
+            with self.assertRaisesRegex(RuntimeError, "nonrotating"):
+                lane_module.retained_probe(
+                    "sha256:" + "a" * 64, ["--version"], pathlib.Path(directory)
+                )
+            self.assertFalse(any(call[0] == "start" for call in calls))
+            self.assertFalse(any("rm" in call for call in calls))
+            self.assertTrue(
+                list(pathlib.Path(directory).glob("diagnostics/*/command-*.json"))
+            )
+
+    def test_retained_launch_checks_policy_before_start_for_clients(self) -> None:
+        for mode in ("blocking", "non-blocking"):
+            calls: list[tuple[object, ...]] = []
+            ordinary = self.fake_docker(calls)
+
+            def configured(
+                *args: object, **kwargs: Any
+            ) -> subprocess.CompletedProcess[str]:
+                result = ordinary(*args, **kwargs)
+                if args[:2] == ("container", "inspect"):
+                    value = json.loads(result.stdout)
+                    value[0]["HostConfig"]["LogConfig"]["Config"]["mode"] = mode
+                    result.stdout = json.dumps(value)
+                return result
+
+            with self.subTest(mode=mode), tempfile.TemporaryDirectory() as directory:
+                lane = self.retained_lane(pathlib.Path(directory))
+                lane.image = "sha256:" + "a" * 64
+                with patch.object(lane_module, "docker", configured):
+                    if mode == "blocking":
+                        lane.spawn_client(lane.image, ["--version"])
+                    else:
+                        with self.assertRaisesRegex(RuntimeError, "nonrotating"):
+                            lane.spawn_client(lane.image, ["--version"])
+                self.assertEqual(
+                    any(call[0] == "start" for call in calls), mode == "blocking"
+                )
+                created = next(call for call in calls if call[0] == "create")
+                self.assertNotIn("--detach", created)
+                self.assertIn("mode=blocking", created)
+                self.assertFalse(
+                    any(str(arg).startswith("max-size=") for arg in created)
+                )
+                self.assertFalse(any("rm" in call for call in calls))
+
+    def test_explicit_invalid_or_rotating_log_sizes_are_never_accepted(self) -> None:
+        for size in ("-1", "0", "1m"):
+            with self.subTest(size=size):
+                with self.assertRaisesRegex(RuntimeError, "nonrotating"):
+                    lane_module.require_retained_logging(
+                        {
+                            "HostConfig": {
+                                "LogConfig": {
+                                    "Type": "json-file",
+                                    "Config": {"mode": "blocking", "max-size": size},
+                                }
+                            }
+                        }
+                    )
 
 
 PREPARED = os.environ.get("RUNSPINDLE_TEMPORAL_PREPARED")

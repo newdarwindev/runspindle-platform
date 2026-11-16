@@ -95,12 +95,25 @@ def snapshot_guest_disk(
     expected_base: str,
     run: Callable[[list[str]], subprocess.CompletedProcess[str]],
     maximum_size: int = 24 * 1024**3,
+    original_directory: Path | None = None,
 ) -> dict[str, str | int]:
     """Create and compare a self-contained copy before moving the original.
 
     The callback must not raise for nonzero exit: every command's complete result
     is retained here before failure is propagated. No source or base is rewritten.
     """
+    if original_directory is not None:
+        archive_info = original_directory.lstat()
+        if (
+            not stat.S_ISDIR(archive_info.st_mode)
+            or archive_info.st_uid != os.getuid()
+            or stat.S_IMODE(archive_info.st_mode) != 0o700
+            or {"system.posix_acl_access", "system.posix_acl_default"}
+            & set(os.listxattr(original_directory))
+        ):
+            raise RuntimeError(
+                "Private original archive unavailable; originals retained"
+            )
     generation = directory / f"guest-retention-{uuid.uuid4().hex}"
     generation.mkdir(mode=0o700)
     sync_directory(directory)
@@ -246,10 +259,25 @@ def snapshot_guest_disk(
         "verified-snapshot.json",
         json.dumps(receipt, sort_keys=True).encode(),
     )
-    original = generation / "original-overlay.qcow2"
+    # The state and fleet paths can be distinct bind mounts of one filesystem:
+    # equal st_dev does not make rename across those mount points valid.
+    # The host helper prepares a private archive within the fleet mount. No
+    # copy/delete fallback is allowed if that archive is itself unreachable.
+    originals = original_directory or generation
+    original = originals / (
+        f"original-overlay-{uuid.uuid4().hex}.qcow2"
+        if original_directory
+        else "original-overlay.qcow2"
+    )
     disk.rename(original)
-    sync_directory(generation)
+    sync_directory(originals)
     sync_directory(disk.parent)
     if file_digest(original) != original_sha:
         raise RuntimeError("Relocated original guest bytes changed; evidence retained")
+    receipt["original_overlay"] = str(original)
+    capture_bytes(
+        generation,
+        "retained-original.json",
+        json.dumps(receipt, sort_keys=True).encode(),
+    )
     return receipt
