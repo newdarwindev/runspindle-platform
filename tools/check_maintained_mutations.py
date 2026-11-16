@@ -9,6 +9,7 @@ replace the mandatory installed gate or qualify any installation target.
 import argparse
 import json
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -122,6 +123,20 @@ def main(argv: list[str] | None = None) -> int:
         "--suite", choices=("installed", "portable"), default="installed"
     )
     args = parser.parse_args(argv)
+    if args.suite == "installed" and (
+        platform.system() != "Linux" or platform.machine() != "aarch64"
+    ):
+        print(
+            json.dumps(
+                {
+                    "status": "blocked",
+                    "reason": "unsupported_installed_platform",
+                    "required_platform": "linux/arm64",
+                    "native_acceptance": "not_run",
+                }
+            )
+        )
+        return 2
     results = [
         {"mutation": name, "detected": run_case(name, case, args.suite)}
         for name, case in CASES.items()

@@ -22,8 +22,11 @@ CANARY = "PRIVATE_CANARY_URL_TOKEN"
 
 class PartitionDiagnosticsTests(unittest.TestCase):
     def setUp(self) -> None:
+        platform = patch.object(gate, "observed_platform", return_value="linux/amd64")
+        platform.start()
+        self.addCleanup(platform.stop)
         self.manifests = gate.manifests()
-        self.image = self.manifests[0]["image"]
+        self.image = self.manifests[0]["images"]["linux-x64"]["pins"]
         self.instance = {
             "image_sha256": self.image["sha256"],
             "image_source_sha": self.image["source_sha"],
@@ -131,12 +134,43 @@ class PartitionDiagnosticsTests(unittest.TestCase):
                 _, check = self.invoke(failure=stage)
                 check.assert_not_called()
 
+    def test_platform_contract_blocks_before_guest_reads_and_execution(self) -> None:
+        for action, observed in (
+            ("mutation_2", "linux/amd64"),
+            ("mutation_2", "linux/arm64"),
+            ("quality", "linux/arm64"),
+        ):
+            with (
+                self.subTest(action=action, observed=observed),
+                patch.object(sys, "argv", ["partition_validation.py", action]),
+                patch.object(gate, "observed_platform", return_value=observed),
+                patch.object(gate, "guest_identity") as guest,
+                patch.object(gate, "receipt") as receipt,
+                redirect_stdout(io.StringIO()) as output,
+            ):
+                self.assertEqual(gate.cli(), 2)
+            self.assertEqual(
+                json.loads(output.getvalue()),
+                {
+                    "status": "failed",
+                    "reason": "validation_error",
+                    "stage": "platform_contract",
+                    "category": "unqualified_platform"
+                    if action == "mutation_2"
+                    else "unsupported_platform",
+                },
+            )
+            guest.assert_not_called()
+            receipt.assert_not_called()
+
     def test_execution_failure_is_not_mislabeled_image_failure(self) -> None:
         _, check = self.invoke(failure="check_execution")
         check.assert_called_once()
 
     def test_closed_categories_never_include_exception_content(self) -> None:
         errors = [
+            (gate.UnqualifiedPlatform(CANARY), "unqualified_platform"),
+            (gate.UnsupportedPlatform(CANARY), "unsupported_platform"),
             (json.JSONDecodeError(CANARY, CANARY, 0), "invalid_json"),
             (UnicodeError(CANARY), "invalid_encoding"),
             (FileNotFoundError(CANARY), "missing_file"),
