@@ -126,3 +126,17 @@ regression asserts no writable connection is opened.
 The installed maintained-mutation gate separately requires native Linux ARM64.
 This x86_64 guest correctly returns `unsupported_installed_platform`. No package
 upgrade or portable-suite substitution can establish native ARM64 acceptance.
+
+Candidate verification at `93bccbb18969c653d0c2ce1b63f848f9c0382135` used bundle
+`a84b4b36ad707f10f5de1385d4d6c4c77fc253d2947a3f66fb4a73a74fd2721b` and the same
+sealed image. The required Python command returned0:483tests ran,16skipped,
+and all five real Temporal cases passed with coverage status`passed`. The16skips
+are eight native ARM64 installation cases and eight host-only qcow retention
+cases, not implicit Temporal skips. All three diagnosed portability regressions
+passed in the guest. Poweroff completed at190.7seconds; the overlay was
+883,294,208bytes, below its2GiB cap; the base image digest remained unchanged.
+
+The second diagnostic still returned2 with `unsupported_installed_platform`
+because native Linux ARM64 remains unavailable in this x86_64 guest. The overall
+diagnostic receipt therefore remains failed. No GitHub check, live-network,
+production qualification or image promotion is inferred from the passing subset.
