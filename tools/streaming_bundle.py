@@ -10,21 +10,28 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-from pathlib import Path, PurePosixPath
 import re
 import shutil
+import stat
 import struct
+from contextlib import contextmanager
+from pathlib import Path, PurePosixPath
+from typing import Any, BinaryIO, Callable, Iterator
 
 from tools.development_bundle import (
-    VERSION as METADATA_VERSION,
-    DisposableTarget,
     UNSUPPORTED,
+    DisposableTarget,
     actual_target,
-    build as metadata_build,
     canonical,
     check,
     path_name,
     sha,
+)
+from tools.development_bundle import (
+    VERSION as METADATA_VERSION,
+)
+from tools.development_bundle import (
+    build as metadata_build,
 )
 
 VERSION = "runspindle.streaming-development-bundle.v1"
@@ -34,12 +41,46 @@ MAX_BYTES = 4 * 1024**3
 MAX_FILES = 60000
 CHUNK = 1024 * 1024
 
+# Typed seams for existing dynamically validated metadata helpers.
+_check: Callable[[Any, str], None] = check
+_canonical: Callable[[Any], bytes] = canonical
+
+
+@contextmanager
+def _regular_source(path: Path | str, limit: int) -> Iterator[tuple[BinaryIO, int]]:
+    # No blocking FIFO opens or followed final-component symlinks. Parent
+    # directories remain trusted configuration, not a hostile-FS sandbox.
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    try:
+        info = os.fstat(fd)
+        _check(stat.S_ISREG(info.st_mode), "regular source file required")
+        _check(0 <= info.st_size <= limit, "source size limit")
+        with os.fdopen(fd, "rb", closefd=False) as source:
+            yield source, info.st_size
+    finally:
+        os.close(fd)
+
+
+def _copy_exact(source: BinaryIO, output: BinaryIO, expected: int) -> None:
+    remaining = expected
+    while remaining:
+        block = source.read(min(CHUNK, remaining))
+        _check(bool(block), "source shrank during acquisition")
+        output.write(block)
+        remaining -= len(block)
+    _check(not source.read(1), "source grew during acquisition")
+
 
 def file_sha(path):
     h = hashlib.sha256()
-    with Path(path).open("rb") as stream:
-        while block := stream.read(CHUNK):
+    with _regular_source(path, MAX_BYTES) as (source, size):
+        remaining = size
+        while remaining:
+            block = source.read(min(CHUNK, remaining))
+            _check(bool(block), "source shrank during hashing")
             h.update(block)
+            remaining -= len(block)
+        _check(not source.read(1), "source grew during hashing")
     return h.hexdigest()
 
 
@@ -186,7 +227,10 @@ def inspect(bundle, *, component_commits, target="linux/arm64", destination=None
             root.is_dir() and not root.is_symlink() and not any(root.iterdir()),
             "extraction target must be empty",
         )
-    with Path(bundle).open("rb") as stream:
+    with _regular_source(bundle, MAX_BYTES + MAX_MANIFEST + len(MAGIC) + 8) as (
+        stream,
+        _size,
+    ):
         manifest, digest = _header(
             stream, component_commits=component_commits, target=target
         )
@@ -231,7 +275,9 @@ def build(
     executable=(),
 ):
     """Build from regular files; source mutations invalidate the candidate output."""
+    _check(type(files) is dict and 1 <= len(files) <= MAX_FILES, "bundle file limit")
     records = {}
+    total = 0
     executable = set(executable)
     check(executable <= set(files), "unknown executable file")
     for name, source in sorted(files.items()):
@@ -240,8 +286,13 @@ def build(
         check(
             source.is_file() and not source.is_symlink(), "regular source file required"
         )
+        size = source.stat().st_size
+        total += size
+        _check(
+            0 <= size <= MAX_BYTES and total <= MAX_BYTES, "bundle payload size limit"
+        )
         records[name] = {
-            "size": source.stat().st_size,
+            "size": size,
             "sha256": file_sha(source),
             "mode": 0o755 if name in executable else 0o644,
         }
@@ -267,8 +318,9 @@ def build(
         with destination.open("xb") as output:
             output.write(MAGIC + struct.pack(">Q", len(data)) + data)
             for name in sorted(files):
-                with Path(files[name]).open("rb") as source:
-                    shutil.copyfileobj(source, output, CHUNK)
+                with _regular_source(files[name], MAX_BYTES) as (source, size):
+                    _check(size == records[name]["size"], "source size changed")
+                    _copy_exact(source, output, size)
             output.flush()
             os.fsync(output.fileno())
         inspect(destination, component_commits=component_commits)
@@ -282,6 +334,13 @@ def verify_tree(folder, manifest):
     folder = Path(folder)
     check(folder.is_dir() and not folder.is_symlink(), "installed version unavailable")
     check(not any(p.is_symlink() for p in folder.rglob("*")), "unsafe installed link")
+    _check(
+        all(
+            stat.S_ISREG(p.lstat().st_mode) or stat.S_ISDIR(p.lstat().st_mode)
+            for p in folder.rglob("*")
+        ),
+        "unsafe installed special file",
+    )
     actual = {
         str(p.relative_to(folder)): {
             "sha256": file_sha(p),
@@ -380,8 +439,18 @@ class StreamingTarget(DisposableTarget):
             saved = archives / digest
             # A crash during acquisition leaves an unreferenced file, safe to replace.
             temporary = archives / (digest + ".next")
-            with Path(bundle).open("rb") as source, temporary.open("wb") as output:
-                shutil.copyfileobj(source, output, CHUNK)
+            expected_size = (
+                len(MAGIC)
+                + 8
+                + len(_canonical(manifest))
+                + sum(item["size"] for item in manifest["files"].values())
+            )
+            with (
+                _regular_source(bundle, expected_size) as (source, size),
+                temporary.open("wb") as output,
+            ):
+                _check(size == expected_size, "bundle size changed")
+                _copy_exact(source, output, expected_size)
                 output.flush()
                 os.fsync(output.fileno())
             observed, found = inspect(
