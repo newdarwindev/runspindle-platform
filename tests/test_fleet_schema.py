@@ -10,7 +10,7 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
@@ -154,6 +154,34 @@ else: raise AssertionError('damaged capacity accepted')
         self.assertEqual(child.stdout.strip(), "blocked-no-allocation")
         self.assertEqual(path.read_bytes(), before)
 
+    def test_damaged_wal_is_rejected_without_writable_connection(self) -> None:
+        self.seed()
+        path = self.root / "fleet.sqlite"
+        writer = sqlite3.connect(path)
+        try:
+            writer.execute("DROP TABLE resources")
+            writer.commit()
+            before = path.read_bytes()
+            original = sqlite3.connect
+            opened: list[str] = []
+
+            def connect(database: Any, *args: Any, **kwargs: Any) -> sqlite3.Connection:
+                opened.append(str(database))
+                return cast(sqlite3.Connection, original(database, *args, **kwargs))
+
+            with (
+                patch.object(module.sqlite3, "connect", side_effect=connect),
+                self.assertRaises(SchemaRejected),
+            ):
+                State(self.root)
+            self.assertEqual(path.read_bytes(), before)
+            self.assertTrue(any(item.endswith("?mode=ro") for item in opened))
+            self.assertTrue(
+                all(item == ":memory:" or item.endswith("?mode=ro") for item in opened)
+            )
+        finally:
+            writer.close()
+
     def test_removed_schema_guard_admits_missing_slot_exclusion(self) -> None:
         self.seed()
         with sqlite3.connect(self.root / "fleet.sqlite") as db:
@@ -165,7 +193,13 @@ else: raise AssertionError('damaged capacity accepted')
         self.assertEqual(source.count(anchor), 2)
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "mutant.py"
-            path.write_text(source.replace(anchor, "            self.db.commit()", 1))
+            self.assertEqual(
+                source.count("                _validate_schema(observed)"), 1
+            )
+            mutant = source.replace(
+                "                _validate_schema(observed)", "                pass", 1
+            )
+            path.write_text(mutant.replace(anchor, "            self.db.commit()", 1))
             spec = importlib.util.spec_from_file_location("mutant_state", path)
             if spec is None or spec.loader is None:
                 self.fail("missing mutation loader")

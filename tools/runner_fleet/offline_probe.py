@@ -19,6 +19,18 @@ from pathlib import Path
 from typing import Any
 
 FILE_LIMIT = 512 * 1024**2
+REPLAY_FILE_LIMIT = 2 * 1024**3
+REPLAY_WRITERS = {
+    "disk.qcow2": REPLAY_FILE_LIMIT,
+    "guest.log": REPLAY_FILE_LIMIT,
+    "replay.log": REPLAY_FILE_LIMIT,
+    "image-info.log": FILE_LIMIT,
+    "create.log": FILE_LIMIT,
+    "seed.log": FILE_LIMIT,
+    "seed.iso": FILE_LIMIT,
+    "metadata_and_seed_inputs": 16 * 1024**2,
+}
+REPLAY_MIN_FREE = 39 * 1024**3  # 30 GiB reserve + ceil(8 GiB + 16 MiB).
 MIN_FREE = 34 * 1024**3  # 30 GiB reserve + four logs, disk, seed (3 GiB) + metadata.
 MAX_IMAGE = 32 * 1024**3
 COMMANDS = {
@@ -83,11 +95,19 @@ def write(path: Path, data: bytes) -> None:
         os.fsync(output.fileno())
 
 
-def limits() -> None:
-    resource.setrlimit(resource.RLIMIT_FSIZE, (FILE_LIMIT, FILE_LIMIT))
+def apply_limits(file_limit: int) -> None:
+    resource.setrlimit(resource.RLIMIT_FSIZE, (file_limit, file_limit))
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_AS, (4 * 1024**3, 4 * 1024**3))
     resource.setrlimit(resource.RLIMIT_CPU, (240, 240))
+
+
+def limits() -> None:
+    apply_limits(FILE_LIMIT)
+
+
+def replay_limits() -> None:
+    apply_limits(REPLAY_FILE_LIMIT)
 
 
 def command(
@@ -97,6 +117,8 @@ def command(
     deadline: float,
     seconds: int = 60,
     pass_fds: tuple[int, ...] = (),
+    *,
+    replay_writer: bool = False,
 ) -> Path:
     """Keep complete bounded output; never truncate or delete on any outcome."""
     remaining = min(seconds, deadline - time.monotonic())
@@ -120,7 +142,7 @@ def command(
             stdout=output,
             stderr=output,
             start_new_session=True,
-            preexec_fn=limits,
+            preexec_fn=replay_limits if replay_writer else limits,
             pass_fds=pass_fds,
             env={
                 "PATH": "/usr/bin:/bin",
@@ -195,8 +217,8 @@ subprocess.run(['/sbin/poweroff'], check=False)
     return b"#cloud-config\n" + json.dumps(config).encode() + b"\n"
 
 
-def qemu_args(directory: Path) -> list[str]:
-    return [
+def qemu_args(directory: Path, *, replay_output: bool = False) -> list[str]:
+    args = [
         "/usr/bin/qemu-system-x86_64",
         "-enable-kvm",
         "-machine",
@@ -225,6 +247,18 @@ def qemu_args(directory: Path) -> list[str]:
         "-sandbox",
         "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny",
     ]
+    if replay_output:
+        args.extend(
+            [
+                "-chardev",
+                f"file,id=replay,path={directory}/replay.log,append=on",
+                "-device",
+                "virtio-serial-pci",
+                "-device",
+                "virtserialport,chardev=replay,name=org.runspindle.replay",
+            ]
+        )
+    return args
 
 
 def parse_result(
@@ -259,7 +293,33 @@ def parse_result(
     return found
 
 
-def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
+def available_memory() -> int:
+    return next(
+        int(line.split()[1]) * 1024
+        for line in Path("/proc/meminfo").read_text().splitlines()
+        if line.startswith("MemAvailable:")
+    )
+
+
+def probe(
+    image: Path,
+    expected: str,
+    parent: Path,
+    *,
+    bundle: Path | None = None,
+    bundle_sha256: str | None = None,
+    source_sha: str | None = None,
+    diagnostics: bool = False,
+) -> dict[str, Any]:
+    replay_bytes = None
+    if diagnostics and bundle is None:
+        raise ValueError("Diagnostics require pinned replay bundle")
+    if any(value is not None for value in (bundle, bundle_sha256, source_sha)):
+        if bundle is None or bundle_sha256 is None or source_sha is None:
+            raise ValueError("All replay pins required")
+        from . import offline_replay
+
+        replay_bytes = offline_replay.load_bundle(bundle, bundle_sha256, source_sha)
     if not re.fullmatch("[0-9a-f]{64}", expected):
         raise ValueError("Exact image SHA256 required")
     image, parent = image_path(image), parent_path(parent)
@@ -283,13 +343,12 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
             raise ValueError("Unsafe probe lock")
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         space = os.statvfs(parent)
-        if space.f_bavail * space.f_frsize < MIN_FREE:
-            raise RuntimeError("Need 34 GiB free including 30 GiB reserve")
-        available = next(
-            int(line.split()[1]) * 1024
-            for line in Path("/proc/meminfo").read_text().splitlines()
-            if line.startswith("MemAvailable:")
-        )
+        minimum = REPLAY_MIN_FREE if replay_bytes is not None else MIN_FREE
+        if space.f_bavail * space.f_frsize < minimum:
+            raise RuntimeError(
+                f"Need {minimum // 1024**3} GiB free including 30 GiB reserve"
+            )
+        available = available_memory()
         if available < 11 * 1024**3:
             raise RuntimeError("Need 11 GiB memory available including host reserve")
         nonce = uuid.uuid4().hex
@@ -305,6 +364,16 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
             "status": "failed",
             "evidence_directory": str(directory),
         }
+        if replay_bytes is not None:
+            result["evidence_class"] = (
+                "offline_platform_validation_diagnostics"
+                if diagnostics
+                else "offline_platform_validation_replay"
+            )
+            result["source_sha"] = source_sha
+            result["bundle_sha256"] = bundle_sha256
+            result["writer_budget_bytes"] = REPLAY_WRITERS
+            result["storage_admission_bytes"] = REPLAY_MIN_FREE
         try:
             image_info(
                 command(
@@ -339,7 +408,12 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
                 deadline,
                 pass_fds=(lock.fileno(),),
             )
-            write(directory / "user-data", guest_config(nonce))
+            config = guest_config(nonce)
+            if replay_bytes is not None and source_sha is not None:
+                config = offline_replay.guest_config(
+                    nonce, replay_bytes, source_sha, diagnostics=diagnostics
+                )
+            write(directory / "user-data", config)
             write(
                 directory / "meta-data",
                 json.dumps({"instance-id": nonce, "dsmode": "local"}).encode(),
@@ -363,15 +437,27 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
                 deadline,
                 pass_fds=(lock.fileno(),),
             )
+            if replay_bytes is not None:
+                write(directory / "replay.log", b"")
             output = command(
-                qemu_args(directory),
+                qemu_args(directory, replay_output=replay_bytes is not None),
                 directory,
                 "guest",
                 deadline,
                 240,
                 (lock.fileno(),),
+                replay_writer=replay_bytes is not None,
             )
-            result["versions"] = parse_result(output, nonce, deadline)
+            if replay_bytes is not None and source_sha is not None:
+                result["validation"] = offline_replay.parse_result(
+                    directory / "replay.log",
+                    nonce,
+                    source_sha,
+                    deadline,
+                    diagnostics=diagnostics,
+                )
+            else:
+                result["versions"] = parse_result(output, nonce, deadline)
             if digest(image, deadline) != expected:
                 raise ValueError("Base image changed during probe")
             result["status"] = "passed"
@@ -390,13 +476,25 @@ def main() -> int:
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--sha256", required=True)
     parser.add_argument("--evidence-parent", type=Path, required=True)
+    parser.add_argument("--bundle", type=Path)
+    parser.add_argument("--bundle-sha256")
+    parser.add_argument("--source-sha")
+    parser.add_argument("--diagnostics", action="store_true")
     args = parser.parse_args()
 
     def terminated(signum: int, frame: object) -> None:
         raise InterruptedError("Probe terminated")
 
     signal.signal(signal.SIGTERM, terminated)
-    result = probe(args.image, args.sha256, args.evidence_parent)
+    result = probe(
+        args.image,
+        args.sha256,
+        args.evidence_parent,
+        bundle=args.bundle,
+        bundle_sha256=args.bundle_sha256,
+        source_sha=args.source_sha,
+        diagnostics=args.diagnostics,
+    )
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] == "passed" else 2
 
