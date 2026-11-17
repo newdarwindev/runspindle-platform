@@ -49,21 +49,20 @@ class LifecycleTests(unittest.TestCase):
         self.selector.__enter__.return_value = self.selector
         self.selector.select.side_effect = self.select
         patches = [
-            patch.object(hygiene.subprocess, "Popen", return_value=self.process),
-            patch.object(hygiene.shutil, "which", return_value="synthetic-python"),
-            patch.object(
-                hygiene.signal, "getsignal", side_effect=lambda _: self.handler
+            patch("tools.hygiene.subprocess.Popen", return_value=self.process),
+            patch("tools.hygiene.shutil.which", return_value="synthetic-python"),
+            patch("tools.hygiene.signal.getsignal", side_effect=lambda _: self.handler),
+            patch(
+                "tools.hygiene.selectors.DefaultSelector", return_value=self.selector
             ),
-            patch.object(
-                hygiene.selectors, "DefaultSelector", return_value=self.selector
-            ),
-            patch.object(hygiene.os, "set_blocking"),
-            patch.object(hygiene.os, "read", side_effect=self.read),
-            patch.object(hygiene.os, "killpg", side_effect=self.kill),
-            patch.object(hygiene.time, "monotonic", side_effect=lambda: self.now),
-            patch.object(hygiene.time, "sleep", side_effect=self.advance),
-            patch.object(
-                hygiene.uuid, "uuid4", return_value=types.SimpleNamespace(hex="fresh")
+            patch("tools.hygiene.os.set_blocking"),
+            patch("tools.hygiene.os.read", side_effect=self.read),
+            patch("tools.hygiene.os.killpg", side_effect=self.kill),
+            patch("tools.hygiene.time.monotonic", side_effect=lambda: self.now),
+            patch("tools.hygiene.time.sleep", side_effect=self.advance),
+            patch(
+                "tools.hygiene.uuid.uuid4",
+                return_value=types.SimpleNamespace(hex="fresh"),
             ),
         ]
         self.mocks = [p.start() for p in patches]
@@ -511,7 +510,7 @@ class CaptureAndPipeTests(unittest.TestCase):
                 os.write(write_fd, b"synthetic output\n")
                 with (
                     patch.object(hygiene, "PROCESS_CLEANUP_SECONDS", 0.03),
-                    patch.object(hygiene.os, "killpg") as kill,
+                    patch("tools.hygiene.os.killpg") as kill,
                 ):
                     outcome, _ = hygiene.collect_process(process, 0.1)
                 self.assertLess(time.monotonic() - started, 1.0)
