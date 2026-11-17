@@ -19,9 +19,10 @@ The guest verifies workflow bytes before running these commands. It runs as the
 cloud-init root user, not the normal runner account; quality tools and Rust are
 prepended to PATH. No GitHub identity, check result or runner metadata is invented.
 
-All prior probe bounds remain: 1 GiB guest RAM, 4 GiB host address-space cap,
-512 MiB per writer file cap, 240-second guest supervisor with five-second kill
-grace, no core dumps, 34 GiB storage admission and 11 GiB available host memory.
+Replay retains 1 GiB guest RAM, a 4 GiB host address-space cap, a 240-second
+guest supervisor with five-second kill grace, no core dumps and an 11 GiB
+available-host-memory requirement. The revised per-writer disk limits and
+37 GiB storage admission are specified below; tooling-only mode is unchanged.
 Validation may exceed these bounds or fail because a required environment is
 missing. Such outcomes stay failed; Temporal, architecture and mutation gates
 are not downgraded. Complete guest output, seed and overlay remain retained.
@@ -44,3 +45,24 @@ current tool-probe disk allowance is insufficient for this validation workload;
 it does not identify which validation phase generated the writes. Do not claim
 that the complete validation passed, relax gates, or promote the image from this
 experiment. A differently budgeted replay requires separate engineering review.
+
+## Conservative replay writer budget
+
+The tooling-only mode keeps its original 512 MiB file cap and 34 GiB admission.
+Replay mode now uses an explicit, separately tested allocation:
+
+| Host writer file | Hard maximum |
+| --- | ---: |
+| QEMU overlay | 2 GiB |
+| QEMU combined serial/stderr log | 2 GiB |
+| Image-info, creation and seed logs | 512 MiB each |
+| Seed ISO | 512 MiB |
+| Frozen inputs and result metadata | 16 MiB budget (bounded inputs) |
+
+The maximum accounted allocation is 6 GiB + 16 MiB. Admission requires 37 GiB
+free, preserving a 30 GiB reserve plus filesystem/accounting headroom. QEMU's
+kernel RLIMIT_FSIZE applies independently to both its writable files; it cannot
+write to the sealed base or read-only seed. The other three child commands retain
+the original cap. The seed builder has both its output ISO and output log counted.
+The guest remains at 1 GiB RAM, 4 GiB host address-space limit and 240-second
+lifetime. This is a budget correction, not a successful validation result.

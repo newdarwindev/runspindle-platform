@@ -106,9 +106,9 @@ subprocess.run(['/sbin/poweroff'], check=False)
 def parse_result(
     path: Path, nonce: str, source: str, deadline: float | None = None
 ) -> dict[str, Any]:
-    from .offline_probe import FILE_LIMIT
+    from .offline_probe import REPLAY_FILE_LIMIT
 
-    if path.stat().st_size > FILE_LIMIT:
+    if path.stat().st_size > REPLAY_FILE_LIMIT:
         raise ValueError("Replay output exceeds bound")
     marker = ("RUNSPINDLE-REPLAY-" + nonce + ":").encode()
     found = None

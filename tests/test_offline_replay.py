@@ -82,3 +82,44 @@ class ReplayTests(unittest.TestCase):
             offline_probe.probe(
                 Path("/none"), "a" * 64, Path("/none"), source_sha="a" * 40
             )
+
+    def test_writer_budget_preserves_reserve(self) -> None:
+        self.assertGreaterEqual(
+            offline_probe.REPLAY_MIN_FREE,
+            30 * 1024**3 + sum(offline_probe.REPLAY_WRITERS.values()),
+        )
+        self.assertEqual(offline_probe.REPLAY_WRITERS["disk.qcow2"], 2 * 1024**3)
+        self.assertEqual(offline_probe.REPLAY_WRITERS["guest.log"], 2 * 1024**3)
+        self.assertEqual(offline_probe.FILE_LIMIT, 512 * 1024**2)
+
+    def test_replay_kernel_caps_and_sparse_overflow(self) -> None:
+        import sys
+        import time
+
+        with tempfile.TemporaryDirectory() as d:
+            root = Path(d)
+            path = offline_probe.command(
+                [
+                    sys.executable,
+                    "-c",
+                    "import json,resource; print(json.dumps([resource.getrlimit(resource.RLIMIT_FSIZE),resource.getrlimit(resource.RLIMIT_AS),resource.getrlimit(resource.RLIMIT_CPU),resource.getrlimit(resource.RLIMIT_CORE)]))",
+                ],
+                root,
+                "caps",
+                time.monotonic() + 10,
+                replay_writer=True,
+            )
+            self.assertEqual(
+                json.loads(path.read_text()),
+                [[2 * 1024**3] * 2, [4 * 1024**3] * 2, [240] * 2, [0] * 2],
+            )
+            code = 'import os,sys; f=open(sys.argv[1],"wb"); f.seek(2*1024**3-1); f.write(b"x"); f.flush(); f.write(b"y"); f.flush()'
+            with self.assertRaises(RuntimeError):
+                offline_probe.command(
+                    [sys.executable, "-c", code, str(root / "sparse")],
+                    root,
+                    "overflow",
+                    time.monotonic() + 10,
+                    replay_writer=True,
+                )
+            self.assertEqual((root / "sparse").stat().st_size, 2 * 1024**3)
