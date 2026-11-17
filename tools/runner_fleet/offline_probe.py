@@ -259,7 +259,22 @@ def parse_result(
     return found
 
 
-def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
+def probe(
+    image: Path,
+    expected: str,
+    parent: Path,
+    *,
+    bundle: Path | None = None,
+    bundle_sha256: str | None = None,
+    source_sha: str | None = None,
+) -> dict[str, Any]:
+    replay_bytes = None
+    if any(value is not None for value in (bundle, bundle_sha256, source_sha)):
+        if bundle is None or bundle_sha256 is None or source_sha is None:
+            raise ValueError("All replay pins required")
+        from . import offline_replay
+
+        replay_bytes = offline_replay.load_bundle(bundle, bundle_sha256, source_sha)
     if not re.fullmatch("[0-9a-f]{64}", expected):
         raise ValueError("Exact image SHA256 required")
     image, parent = image_path(image), parent_path(parent)
@@ -339,7 +354,13 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
                 deadline,
                 pass_fds=(lock.fileno(),),
             )
-            write(directory / "user-data", guest_config(nonce))
+            config = guest_config(nonce)
+            if replay_bytes is not None and source_sha is not None:
+                config = offline_replay.guest_config(nonce, replay_bytes, source_sha)
+                result["evidence_class"] = "offline_platform_validation_replay"
+                result["source_sha"] = source_sha
+                result["bundle_sha256"] = bundle_sha256
+            write(directory / "user-data", config)
             write(
                 directory / "meta-data",
                 json.dumps({"instance-id": nonce, "dsmode": "local"}).encode(),
@@ -371,7 +392,12 @@ def probe(image: Path, expected: str, parent: Path) -> dict[str, Any]:
                 240,
                 (lock.fileno(),),
             )
-            result["versions"] = parse_result(output, nonce, deadline)
+            if replay_bytes is not None and source_sha is not None:
+                result["validation"] = offline_replay.parse_result(
+                    output, nonce, source_sha, deadline
+                )
+            else:
+                result["versions"] = parse_result(output, nonce, deadline)
             if digest(image, deadline) != expected:
                 raise ValueError("Base image changed during probe")
             result["status"] = "passed"
@@ -390,13 +416,23 @@ def main() -> int:
     parser.add_argument("--image", type=Path, required=True)
     parser.add_argument("--sha256", required=True)
     parser.add_argument("--evidence-parent", type=Path, required=True)
+    parser.add_argument("--bundle", type=Path)
+    parser.add_argument("--bundle-sha256")
+    parser.add_argument("--source-sha")
     args = parser.parse_args()
 
     def terminated(signum: int, frame: object) -> None:
         raise InterruptedError("Probe terminated")
 
     signal.signal(signal.SIGTERM, terminated)
-    result = probe(args.image, args.sha256, args.evidence_parent)
+    result = probe(
+        args.image,
+        args.sha256,
+        args.evidence_parent,
+        bundle=args.bundle,
+        bundle_sha256=args.bundle_sha256,
+        source_sha=args.source_sha,
+    )
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] == "passed" else 2
 
