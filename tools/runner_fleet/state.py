@@ -11,37 +11,75 @@ from pathlib import Path
 from typing import Any, Iterator
 
 
+class SchemaRejected(ValueError):
+    """Durable capacity is unknown; do not repair or allocate from this store."""
+
+
+SCHEMA_STATEMENTS = (
+    "CREATE TABLE IF NOT EXISTS control(key TEXT PRIMARY KEY, value TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS resources(\n                id TEXT PRIMARY KEY, slot INTEGER NOT NULL, repository TEXT NOT NULL,\n                requested_job INTEGER NOT NULL, runner_name TEXT NOT NULL UNIQUE,\n                phase TEXT NOT NULL, created REAL NOT NULL, updated REAL NOT NULL,\n                details TEXT NOT NULL DEFAULT '{}')",
+    "CREATE UNIQUE INDEX IF NOT EXISTS occupied_slot ON resources(slot)\n                WHERE phase != 'destroyed'",
+    "CREATE UNIQUE INDEX IF NOT EXISTS occupied_job ON resources(repository, requested_job)\n                WHERE phase != 'destroyed'",
+    "CREATE TABLE IF NOT EXISTS events(\n                id INTEGER PRIMARY KEY, at REAL NOT NULL, resource TEXT,\n                kind TEXT NOT NULL, details TEXT NOT NULL)",
+    "CREATE TABLE IF NOT EXISTS mac_job_observations(\n                repository TEXT NOT NULL, job_id INTEGER NOT NULL,\n                run_id INTEGER NOT NULL, head_sha TEXT NOT NULL,\n                outcome TEXT NOT NULL, observed REAL NOT NULL,\n                PRIMARY KEY(repository, job_id))",
+)
+
+
+def _shape(db: sqlite3.Connection) -> list[tuple[Any, ...]]:
+    return [
+        tuple(row)
+        for row in db.execute(
+            "SELECT type,name,tbl_name,sql FROM sqlite_master ORDER BY type,name"
+        )
+    ]
+
+
+def _validate_schema(db: sqlite3.Connection) -> None:
+    if (
+        db.execute("PRAGMA user_version").fetchone()[0] != 0
+        or db.execute("SELECT count(*) FROM sqlite_temp_master").fetchone()[0] != 0
+    ):
+        raise SchemaRejected("incompatible fleet state schema")
+    expected = sqlite3.connect(":memory:")
+    try:
+        for statement in SCHEMA_STATEMENTS:
+            expected.execute(statement)
+        if _shape(db) != _shape(expected):
+            raise SchemaRejected("incompatible fleet state schema")
+    finally:
+        expected.close()
+
+
 class State:
     def __init__(self, directory: Any) -> None:
         os.umask(0o077)
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True, mode=0o700)
         self.directory.chmod(0o700)
-        self.db = sqlite3.connect(self.directory / "fleet.sqlite", timeout=30)
+        path = self.directory / "fleet.sqlite"
+        try:
+            descriptor = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
+        except FileExistsError:
+            created = False
+        else:
+            os.close(descriptor)
+            created = True
+        self.db = sqlite3.connect(path, timeout=30)
         os.chmod(self.directory / "fleet.sqlite", 0o600)
         self.db.row_factory = sqlite3.Row
-        self.db.executescript("""
-            PRAGMA journal_mode=WAL;
-            PRAGMA synchronous=FULL;
-            CREATE TABLE IF NOT EXISTS control(key TEXT PRIMARY KEY, value TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS resources(
-                id TEXT PRIMARY KEY, slot INTEGER NOT NULL, repository TEXT NOT NULL,
-                requested_job INTEGER NOT NULL, runner_name TEXT NOT NULL UNIQUE,
-                phase TEXT NOT NULL, created REAL NOT NULL, updated REAL NOT NULL,
-                details TEXT NOT NULL DEFAULT '{}');
-            CREATE UNIQUE INDEX IF NOT EXISTS occupied_slot ON resources(slot)
-                WHERE phase != 'destroyed';
-            CREATE UNIQUE INDEX IF NOT EXISTS occupied_job ON resources(repository, requested_job)
-                WHERE phase != 'destroyed';
-            CREATE TABLE IF NOT EXISTS events(
-                id INTEGER PRIMARY KEY, at REAL NOT NULL, resource TEXT,
-                kind TEXT NOT NULL, details TEXT NOT NULL);
-            CREATE TABLE IF NOT EXISTS mac_job_observations(
-                repository TEXT NOT NULL, job_id INTEGER NOT NULL,
-                run_id INTEGER NOT NULL, head_sha TEXT NOT NULL,
-                outcome TEXT NOT NULL, observed REAL NOT NULL,
-                PRIMARY KEY(repository, job_id));
-        """)
+        try:
+            self.db.execute("BEGIN IMMEDIATE")
+            if created and not _shape(self.db):
+                for statement in SCHEMA_STATEMENTS:
+                    self.db.execute(statement)
+            _validate_schema(self.db)
+            self.db.commit()
+            self.db.execute("PRAGMA journal_mode=WAL")
+            self.db.execute("PRAGMA synchronous=FULL")
+        except BaseException:
+            self.db.rollback()
+            self.db.close()
+            raise
 
     @contextmanager
     def lock(self) -> Iterator[None]:
@@ -56,25 +94,29 @@ class State:
     def transaction(self) -> Iterator[None]:
         self.db.execute("BEGIN IMMEDIATE")
         try:
+            _validate_schema(self.db)
             yield
+            _validate_schema(self.db)
             self.db.commit()
         except BaseException:
             self.db.rollback()
             raise
 
     def get(self, key: Any, default: Any = None) -> Any:
+        _validate_schema(self.db)
         row = self.db.execute(
             "SELECT value FROM control WHERE key=?", (key,)
         ).fetchone()
         return json.loads(row[0]) if row else default
 
     def set(self, key: Any, value: Any) -> None:
-        with self.db:
+        with self.transaction():
             self.db.execute(
                 "INSERT OR REPLACE INTO control VALUES(?,?)", (key, json.dumps(value))
             )
 
     def active(self) -> list[dict[str, Any]]:
+        _validate_schema(self.db)
         return [
             dict(row) | {"details": json.loads(row["details"])}
             for row in self.db.execute(
@@ -170,6 +212,7 @@ class State:
     def mac_job_observation(
         self, repository: str, job_id: int
     ) -> dict[str, Any] | None:
+        _validate_schema(self.db)
         row = self.db.execute(
             "SELECT * FROM mac_job_observations WHERE repository=? AND job_id=?",
             (repository, job_id),
