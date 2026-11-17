@@ -26,6 +26,20 @@ implements the preparation and transactional manager around them. Its
 rather than recreating missing occupancy tables and advertising false free capacity.
 *Live rollout, all architecture lanes and native Mac qualification remain gated.*
 
+### A developer restarts verification after a crash
+
+“Run the checks again” should not accidentally overcommit the same machine.
+**PLATFORM** reads the persistent runner-capacity record before advertising a slot.
+If required tables or schema metadata are damaged, admission fails visibly rather
+than silently constructing an empty database and forgetting occupied resources.
+
+This is an [implemented, bounded recovery scenario](https://github.com/newdarwindev/runspindle-platform/pull/42),
+with actual SQLite corruption/restart and old-schema compatibility checks. It
+provides a concrete foundation for the user's continuous coding workflow without
+claiming that every runner is deployed or that every architecture passes.
+*Live fleet rollout, native operating-system coverage and remaining qualified
+runtime lanes are separate acceptance gates.*
+
 **DURABLE DEVELOPMENT LANES.** [Temporal](https://temporal.io/) supplies workflow
 persistence. PLATFORM's [disposable Temporal lane](docs/TEMPORAL_LANE.md) records
 pinned preparation, real restart behavior and owned-resource cleanup. This is
