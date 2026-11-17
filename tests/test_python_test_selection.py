@@ -14,8 +14,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
-from tools import temporal_lane
 from tools import python_tests as launcher
+from tools import temporal_lane
 
 
 class SelectionTests(unittest.TestCase):
