@@ -4,15 +4,17 @@
 File exporter readback is an explicitly separate backend from Langfuse. A schema
 URL leak blocks the proposed path and prevents backend/full H08 qualification.
 """
+
 import argparse
 import hashlib
 import json
-from pathlib import Path
+import signal
 import subprocess
 import tempfile
 import time
 import uuid
-import signal
+from pathlib import Path
+from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 PYTHON_IMAGE = (
@@ -147,11 +149,11 @@ def canary_paths(value, prefix=""):
     return [prefix] if isinstance(value, str) and CANARY in value else []
 
 
-def identity_attributes(attributes):
+def identity_attributes(attributes: object) -> dict[str, str | None] | None:
     """Read unambiguous OTLP string identities, never last-value-wins evidence."""
     if not isinstance(attributes, list):
         return None
-    values = {}
+    values: dict[str, str | None] = {}
     for attribute in attributes:
         if not isinstance(attribute, dict) or set(attribute) != {"key", "value"}:
             return None
@@ -168,8 +170,12 @@ def identity_attributes(attributes):
     return values
 
 
-def object_list(value):
-    return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+def object_list(value: object) -> list[dict[str, Any]]:
+    return (
+        [item for item in value if isinstance(item, dict)]
+        if isinstance(value, list)
+        else []
+    )
 
 
 def outcome(http_accepted, records):
@@ -189,7 +195,9 @@ def outcome(http_accepted, records):
             if not isinstance(context, dict):
                 continue
             attrs = identity_attributes(context.get("attributes"))
-            if attrs is None or any(attrs.get(key) != value for key, value in expected_resource.items()):
+            if attrs is None or any(
+                attrs.get(key) != value for key, value in expected_resource.items()
+            ):
                 continue
             for scope in object_list(resource.get("scopeSpans")):
                 for span in object_list(scope.get("spans")):

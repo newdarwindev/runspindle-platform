@@ -192,7 +192,7 @@ class NativeMonitoringDocumentTests(unittest.TestCase):
         self.edit(
             "docs/maintained-offline-tests.json",
             ["source_hashes", "tools/collector_privacy_check.py"],
-            "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+            "4ccd22cb3bd80727cafd7256963480a6aaa806f3d8dfddeca57e2e76c999efa5",
         )
         self.assert_invalid("prior source evidence drift")
 

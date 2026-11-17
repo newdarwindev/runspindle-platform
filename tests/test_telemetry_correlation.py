@@ -153,9 +153,7 @@ class CorrelationTests(unittest.TestCase):
         if privacy.__file__ is None:
             self.fail("privacy module source missing")
         source = Path(privacy.__file__).read_text()
-        anchor = (
-            "any(attrs.get(key) != value for key, value in expected_resource.items())"
-        )
+        anchor = "any(\n                attrs.get(key) != value for key, value in expected_resource.items()\n            )"
         self.assertEqual(source.count(anchor), 1)
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "mutant.py"

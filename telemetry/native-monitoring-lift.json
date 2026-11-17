@@ -118,10 +118,10 @@
     "telemetry/dependencies.json": "e6f028e3047b4a2914444b73a38f12cdc93be4d504c460123c863d2291e27f80",
     "telemetry/langfuse-qualification.json": "c8d2f905079abcc8c6ef4f121ab254f5369f2256eefcd8919cb3c65688536427",
     "telemetry/native-monitoring-compatibility.json": "30ff00c82af8fa5c0ca8f2b3465f8ecf0b10395be9d47dec35743c2e4dd483a6",
-    "tests/test_native_monitoring.py": "8aa2d4fee6acff6f8a66ea3512d51b29e4c1dd9b1fefc5030035108f60266a6e",
+    "tests/test_native_monitoring.py": "886757435b20cd08bdd87674f33541bedb32127301d4c649f51ef0e92295ed91",
     "tests/test_telemetry_evidence.py": "87100b51d7ece38bcc9216dbd07e3064ceb50d911a37ea37dc220547aedd16e0",
-    "tools/check_native_monitoring.py": "162c06c44cd87cf32dd956b8db36b4416d2ec5c95a32702a87005fda8fd8193d",
-    "tools/collector_privacy_check.py": "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+    "tools/check_native_monitoring.py": "5bc9f5b2201cce80111d710fe9c606acd7d59f682d5af5480f032631ee5990de",
+    "tools/collector_privacy_check.py": "4ccd22cb3bd80727cafd7256963480a6aaa806f3d8dfddeca57e2e76c999efa5",
     "tools/collector_recovery_check.py": "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
     "tools/validate.py": "f402a2ae6bf16fb4112035c066ca9851db17a73e496c54a16a50849ff033ad05"
   },
