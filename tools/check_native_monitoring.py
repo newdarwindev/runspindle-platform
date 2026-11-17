@@ -390,7 +390,7 @@ def validate(root: Path = ROOT) -> JsonObject:
                 source_hashes[name]
                 == "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4"
                 and hashes[name]
-                == "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+                == "4ccd22cb3bd80727cafd7256963480a6aaa806f3d8dfddeca57e2e76c999efa5",
                 "prior source evidence drift",
             )
         else:
