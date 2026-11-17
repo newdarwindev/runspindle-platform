@@ -122,7 +122,12 @@ def command(
             start_new_session=True,
             preexec_fn=limits,
             pass_fds=pass_fds,
-            env={"PATH": "/usr/bin:/bin", "LC_ALL": "C", "HOME": str(directory)},
+            env={
+                "PATH": "/usr/bin:/bin",
+                "LC_ALL": "C",
+                "HOME": str(directory),
+                "MALLOC_ARENA_MAX": "2",
+            },
         )
         try:
             code = process.wait(timeout=remaining + 10)

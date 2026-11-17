@@ -4,6 +4,7 @@ import base64
 import fcntl
 import hashlib
 import json
+import os
 import resource
 import subprocess
 import sys
@@ -135,6 +136,22 @@ class OfflineProbeTests(unittest.TestCase):
         with self.assertRaises(FileExistsError):
             probe.write(path, b"new")
         self.assertEqual(path.read_bytes(), b"original")
+
+    def test_allocator_bound_preserves_hard_memory_limit_and_private_env(self) -> None:
+        with patch.dict(os.environ, {"SYNTHETIC_PRIVATE_VALUE": "must-not-pass"}):
+            result = probe.command(
+                [
+                    sys.executable,
+                    "-c",
+                    "import json,os,resource; print(json.dumps([os.environ.get('MALLOC_ARENA_MAX'),resource.getrlimit(resource.RLIMIT_AS),os.environ.get('SYNTHETIC_PRIVATE_VALUE')]))",
+                ],
+                self.root,
+                "allocator",
+                time.monotonic() + 10,
+            )
+        self.assertEqual(
+            json.loads(result.read_text()), ["2", [4 * 1024**3, 4 * 1024**3], None]
+        )
 
     def test_command_failure_preserves_output(self) -> None:
         with self.assertRaises(RuntimeError):

@@ -29,7 +29,9 @@ the overlay, seed and complete command/serial captures, each have a kernel-enfor
 512 MiB size ceiling. Metadata is small and fixed. A full file stops the command;
 it is never truncated, rotated or removed. Child processes have a 4 GiB virtual
 address-space cap, 240 CPU-second cap, and disabled core dumps. The VM uses two
-vCPUs and 1 GiB guest RAM. These limits may prevent an image from booting; failure
+vCPUs and 1 GiB guest RAM. Children also receive `MALLOC_ARENA_MAX=2` to bound
+glibc arena proliferation without raising the address-space limit or changing
+host settings. These limits may prevent an image from booting; failure
 is evidence, not permission to silently enlarge the limits.
 
 A separate GNU `timeout` supervisor bounds each command (60 seconds; guest boot
@@ -60,7 +62,7 @@ The synthetic test module covers mismatch/malformed input, command failure,
 parent death, inherited locks, kernel file-size bounds, output retention and
 no-network QEMU arguments. Actual target execution must be recorded separately.
 
-## Target observation: 2026-11-17
+## Initial target observations: 2026-11-17
 
 On Strix, the independently hashed candidate
 `a5db32338fd6721c53e5b5078d82220c4186181a25da28b6aee726787f632cd0`
@@ -77,13 +79,45 @@ failure. The second, with a 1 GiB guest and unchanged hard host limits, returned
 All three version commands returned zero. QEMU then exited with signal 6 during
 shutdown and reported `qemu_thread_create: Resource temporarily unavailable`.
 Both complete attempts remain retained privately. Both probe receipts correctly
-report **failed**. Address-space pressure is a hypothesis, not a proven diagnosis.
-No clean lifecycle, CI qualification, image promotion or network acceptance is
-claimed. The base digest remained unchanged after both attempts. Neither guest
+report **failed**. At this initial stage, address-space pressure was a hypothesis. Neither initial
+attempt establishes clean lifecycle, CI qualification, image promotion or network
+acceptance. The base digest remained unchanged after both attempts. Neither guest
 remained running. Existing fleet drain/selection and registrations were untouched.
 
-Sixteen focused synthetic tests, including independent parent-death and lock
-checks, passed. The full repository suite passed 463 tests in normal and optimized
-modes, with 13 explicit optional/target skips. Pinned strict checks found no new
-adapter diagnostics; the aggregate still reports the existing formatting finding
-in unchanged `tools/check_shared_fixtures.py`. Tests do not erase target failures.
+## Follow-up diagnosis and fix
+
+A third, bounded diagnostic attempt retained a single memory/thread syscall trace.
+It recorded repeated 64/128 MiB virtual arena reservation failures (`ENOMEM`),
+then an 8 MiB thread-stack mapping failure immediately before QEMU aborted.
+The actual QEMU process had a 4 GiB address-space limit; its process-count limit
+was 126155 and its cgroup was well below its PID ceiling. A sample showed about
+3.26 GiB virtual size but only 426 MiB resident memory. This identifies virtual
+address exhaustion, rather than missing tools or exhausted physical host RAM.
+
+The fix sets `MALLOC_ARENA_MAX=2` only in the already sanitized child environment.
+GNU libc documents this setting as a limit on the allocator's arena count
+([GNU libc manual](https://sourceware.org/glibc/manual/latest/pdf/libc.pdf)).
+The 4 GiB hard address limit, 512 MiB file caps, CPU/wall deadlines and absence of
+a NIC remain unchanged. No host-global environment or security settings changed.
+All three failed attempts remain retained, not rewritten as successes.
+
+Seventeen focused synthetic tests, including independent parent-death and lock
+checks and the child allocator/environment boundary, pass. After rebasing on the
+latest independent streaming fix, the full repository suite passes 472 tests in
+both normal and optimized modes, with 13 explicit optional/target skips.
+The aggregate pinned static check passes with zero new diagnostics; the existing
+fixture checker's Ruff formatting and pure digest helper annotation were corrected
+without changing the baseline or fixture pins. Tests do not erase target failures.
+
+## Final bounded target result
+
+The fourth attempt, with the child allocator limit and all hard limits unchanged,
+passed. The same exact image returned the three expected tool versions, completed
+normal guest poweroff at 129.86 seconds, and QEMU exited zero. The post-run image
+digest matched the initial pin. No guest remained, and all earlier failed evidence
+was preserved. A sample during this run showed about 1.47 GiB virtual size and
+417 MiB resident memory, consistent with substantially lower virtual reservation.
+
+This is a clean **offline guest tool probe**, not GitHub Actions qualification,
+network/egress acceptance, a full image dependency-closure validation, fleet
+activation or image promotion. Those fields remain explicitly false in its receipt.
