@@ -35,6 +35,8 @@ class ReplayTests(unittest.TestCase):
         )
         script = base64.b64decode(config["write_files"][1]["content"]).decode()
         compile(script, "<guest>", "exec")
+        self.assertIn("/dev/virtio-ports/org.runspindle.replay", script)
+        self.assertNotIn("/dev/ttyS0", script)
         self.assertIn("core.hooksPath", script)
         self.assertIn("workflow mismatch", script)
         self.assertIn("tools/validate.py", script)
@@ -123,3 +125,13 @@ class ReplayTests(unittest.TestCase):
                     replay_writer=True,
                 )
             self.assertEqual((root / "sparse").stat().st_size, 2 * 1024**3)
+
+    def test_dedicated_transport_is_non_network_and_budgeted(self) -> None:
+        args = offline_probe.qemu_args(Path("/fixture"), replay_output=True)
+        self.assertEqual(args[args.index("-nic") + 1], "none")
+        self.assertIn("file,id=replay,path=/fixture/replay.log,append=on", args)
+        self.assertIn("virtserialport,chardev=replay,name=org.runspindle.replay", args)
+        self.assertEqual(offline_probe.REPLAY_WRITERS["replay.log"], 2 * 1024**3)
+        self.assertEqual(offline_probe.REPLAY_MIN_FREE, 39 * 1024**3)
+        for forbidden in ("-netdev", "-virtfs", "-fsdev", "-qmp", "-daemonize"):
+            self.assertNotIn(forbidden, args)

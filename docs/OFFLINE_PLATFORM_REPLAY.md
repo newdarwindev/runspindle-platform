@@ -22,7 +22,7 @@ prepended to PATH. No GitHub identity, check result or runner metadata is invent
 Replay retains 1 GiB guest RAM, a 4 GiB host address-space cap, a 240-second
 guest supervisor with five-second kill grace, no core dumps and an 11 GiB
 available-host-memory requirement. The revised per-writer disk limits and
-37 GiB storage admission are specified below; tooling-only mode is unchanged.
+39 GiB storage admission are specified below; tooling-only mode is unchanged.
 Validation may exceed these bounds or fail because a required environment is
 missing. Such outcomes stay failed; Temporal, architecture and mutation gates
 are not downgraded. Complete guest output, seed and overlay remain retained.
@@ -54,14 +54,15 @@ Replay mode now uses an explicit, separately tested allocation:
 | Host writer file | Hard maximum |
 | --- | ---: |
 | QEMU overlay | 2 GiB |
-| QEMU combined serial/stderr log | 2 GiB |
+| QEMU combined console/stderr log | 2 GiB |
+| Dedicated replay output log | 2 GiB |
 | Image-info, creation and seed logs | 512 MiB each |
 | Seed ISO | 512 MiB |
 | Frozen inputs and result metadata | 16 MiB budget (bounded inputs) |
 
-The maximum accounted allocation is 6 GiB + 16 MiB. Admission requires 37 GiB
+The maximum accounted allocation is 8 GiB + 16 MiB. Admission requires 39 GiB
 free, preserving a 30 GiB reserve plus filesystem/accounting headroom. QEMU's
-kernel RLIMIT_FSIZE applies independently to both its writable files; it cannot
+kernel RLIMIT_FSIZE applies independently to all three of its writable files; it cannot
 write to the sealed base or read-only seed. The other three child commands retain
 the original cap. The seed builder has both its output ISO and output log counted.
 The guest remains at 1 GiB RAM, 4 GiB host address-space limit and 240-second
@@ -77,3 +78,15 @@ unchanged and no guest remained. This is an output-transport failure with unknow
 full-validation outcome, not a passing run or evidence of disk-budget exhaustion.
 Console-login hangup is a hypothesis requiring verification; a dedicated,
 separately budgeted non-network output channel would avoid sharing login output.
+
+
+## Dedicated non-network result transport
+
+Replay mode now adds a virtio-serial port named `org.runspindle.replay`. Guest
+commands and the final receipt write to that port, not the login console. The
+host appends to a newly, exclusively created private `replay.log`; no host file
+sharing, socket, NIC or listener is added. Console diagnostics remain separately
+retained in `guest.log`. Both output files and the overlay have explicit 2 GiB
+kernel caps; the revised admission covers all three plus helper outputs. Parsing
+uses only the dedicated output and still rejects missing, duplicate, stale or
+failed receipts. This change does not retroactively validate either failed run.

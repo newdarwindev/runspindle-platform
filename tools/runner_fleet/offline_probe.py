@@ -23,13 +23,14 @@ REPLAY_FILE_LIMIT = 2 * 1024**3
 REPLAY_WRITERS = {
     "disk.qcow2": REPLAY_FILE_LIMIT,
     "guest.log": REPLAY_FILE_LIMIT,
+    "replay.log": REPLAY_FILE_LIMIT,
     "image-info.log": FILE_LIMIT,
     "create.log": FILE_LIMIT,
     "seed.log": FILE_LIMIT,
     "seed.iso": FILE_LIMIT,
     "metadata_and_seed_inputs": 16 * 1024**2,
 }
-REPLAY_MIN_FREE = 37 * 1024**3  # 30 GiB reserve + ceil(6 GiB + 16 MiB).
+REPLAY_MIN_FREE = 39 * 1024**3  # 30 GiB reserve + ceil(8 GiB + 16 MiB).
 MIN_FREE = 34 * 1024**3  # 30 GiB reserve + four logs, disk, seed (3 GiB) + metadata.
 MAX_IMAGE = 32 * 1024**3
 COMMANDS = {
@@ -216,8 +217,8 @@ subprocess.run(['/sbin/poweroff'], check=False)
     return b"#cloud-config\n" + json.dumps(config).encode() + b"\n"
 
 
-def qemu_args(directory: Path) -> list[str]:
-    return [
+def qemu_args(directory: Path, *, replay_output: bool = False) -> list[str]:
+    args = [
         "/usr/bin/qemu-system-x86_64",
         "-enable-kvm",
         "-machine",
@@ -246,6 +247,18 @@ def qemu_args(directory: Path) -> list[str]:
         "-sandbox",
         "on,obsolete=deny,elevateprivileges=deny,spawn=deny,resourcecontrol=deny",
     ]
+    if replay_output:
+        args.extend(
+            [
+                "-chardev",
+                f"file,id=replay,path={directory}/replay.log,append=on",
+                "-device",
+                "virtio-serial-pci",
+                "-device",
+                "virtserialport,chardev=replay,name=org.runspindle.replay",
+            ]
+        )
+    return args
 
 
 def parse_result(
@@ -411,8 +424,10 @@ def probe(
                 deadline,
                 pass_fds=(lock.fileno(),),
             )
+            if replay_bytes is not None:
+                write(directory / "replay.log", b"")
             output = command(
-                qemu_args(directory),
+                qemu_args(directory, replay_output=replay_bytes is not None),
                 directory,
                 "guest",
                 deadline,
@@ -422,7 +437,7 @@ def probe(
             )
             if replay_bytes is not None and source_sha is not None:
                 result["validation"] = offline_replay.parse_result(
-                    output, nonce, source_sha, deadline
+                    directory / "replay.log", nonce, source_sha, deadline
                 )
             else:
                 result["versions"] = parse_result(output, nonce, deadline)

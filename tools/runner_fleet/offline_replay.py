@@ -49,7 +49,7 @@ source = SOURCE
 bundle_digest = DIGEST
 result = {"source_sha": source, "commands": [], "setup_ok": False}
 env = dict(os.environ, PATH="/opt/runspindle-quality/bin:/opt/rust/bin:/usr/bin:/bin", PYTHONDONTWRITEBYTECODE="1", GIT_TERMINAL_PROMPT="0", GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL="/dev/null", GIT_CONFIG_COUNT="1", GIT_CONFIG_KEY_0="core.hooksPath", GIT_CONFIG_VALUE_0="/dev/null")
-with open('/dev/ttyS0', 'w') as serial:
+with open('/dev/virtio-ports/org.runspindle.replay', 'w') as serial:
     try:
         with open('/run/source.bundle', 'rb') as stream:
             if hashlib.sha256(stream.read()).hexdigest() != bundle_digest:
