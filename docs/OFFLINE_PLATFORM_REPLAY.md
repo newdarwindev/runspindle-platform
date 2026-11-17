@@ -90,3 +90,18 @@ retained in `guest.log`. Both output files and the overlay have explicit 2 GiB
 kernel caps; the revised admission covers all three plus helper outputs. Parsing
 uses only the dedicated output and still rejects missing, duplicate, stale or
 failed receipts. This change does not retroactively validate either failed run.
+
+The dedicated-transport experiment shut down normally at approximately208seconds.
+Both source and workflow pins were verified; scaffold returned0, but validate.py
+returned1. Its sanitized failures were required Temporal coverage missing
+(python-tests exit1, reported assertion failure) and maintained-mutations exit2.
+No successful validation or image qualification follows. The dedicated output
+channel worked; the guest overlay remained below its2GiB allowance.
+
+`--diagnostics` is a separate, fixed diagnostic mode requiring the same sealed
+bundle and pins. It runs the canonical required-Temporal Python test command and
+the default maintained-mutations command directly so their failure details reach
+the retained dedicated log. It does not substitute portable/optional checks and
+is not a workflow replay. After a nonzero test return it still runs the second
+diagnostic, within the same overall VM deadline. No arbitrary command input,
+network, credentials or new permissions are added.

@@ -15,6 +15,17 @@ from typing import Any
 WORKFLOW_SHA256 = "c41f2e2057821d6d3b76067ef3e76ed5eaa7f64029c1ecf72ed9ab2ddedc7b64"
 MAX_BUNDLE = 8 * 1024**2
 COMMANDS = [["python3", "tools/check_scaffold.py"], ["python3", "tools/validate.py"]]
+DIAGNOSTIC_COMMANDS = [
+    [
+        "python3",
+        "tools/python_tests.py",
+        "--temporal",
+        "required",
+        "--prepared",
+        "/opt/runspindle-temporal",
+    ],
+    ["python3", "tools/check_maintained_mutations.py"],
+]
 
 
 def load_bundle(path: Path, expected: str, source: str) -> bytes:
@@ -42,7 +53,9 @@ def load_bundle(path: Path, expected: str, source: str) -> bytes:
     return data
 
 
-def guest_config(nonce: str, bundle: bytes, source: str) -> bytes:
+def guest_config(
+    nonce: str, bundle: bytes, source: str, *, diagnostics: bool = False
+) -> bytes:
     script = (
         """import hashlib, json, os, subprocess
 source = SOURCE
@@ -70,7 +83,7 @@ with open('/dev/virtio-ports/org.runspindle.replay', 'w') as serial:
             try:
                 p = subprocess.run(command, cwd='/run/platform', stdout=serial, stderr=serial, env=env, timeout=120)
                 result['commands'].append({'argv': command, 'returncode': p.returncode})
-                if p.returncode != 0:
+                if p.returncode != 0 and not DIAGNOSTICS:
                     break
             except subprocess.TimeoutExpired:
                 result['commands'].append({'argv': command, 'returncode': -1})
@@ -80,9 +93,10 @@ with open('/dev/virtio-ports/org.runspindle.replay', 'w') as serial:
     serial.write('MARKER' + json.dumps(result, sort_keys=True) + '\\n')
     serial.flush()
 subprocess.run(['/sbin/poweroff'], check=False)
-""".replace("SOURCE", repr(source))
+""".replace("DIAGNOSTICS", repr(diagnostics))
+        .replace("SOURCE", repr(source))
         .replace("DIGEST", repr(hashlib.sha256(bundle).hexdigest()))
-        .replace("COMMANDS", repr(COMMANDS))
+        .replace("COMMANDS", repr(DIAGNOSTIC_COMMANDS if diagnostics else COMMANDS))
         .replace("MARKER", "RUNSPINDLE-REPLAY-" + nonce + ":")
     )
     config = {
@@ -104,7 +118,12 @@ subprocess.run(['/sbin/poweroff'], check=False)
 
 
 def parse_result(
-    path: Path, nonce: str, source: str, deadline: float | None = None
+    path: Path,
+    nonce: str,
+    source: str,
+    deadline: float | None = None,
+    *,
+    diagnostics: bool = False,
 ) -> dict[str, Any]:
     from .offline_probe import REPLAY_FILE_LIMIT
 
@@ -130,7 +149,10 @@ def parse_result(
         or found.get("setup_ok") is not True
     ):
         raise ValueError("Missing or invalid replay setup")
-    expected = [{"argv": argv, "returncode": 0} for argv in COMMANDS]
+    expected = [
+        {"argv": argv, "returncode": 0}
+        for argv in (DIAGNOSTIC_COMMANDS if diagnostics else COMMANDS)
+    ]
     commands = found.get("commands")
     if commands != expected or any(
         type(item.get("returncode")) is not int for item in commands

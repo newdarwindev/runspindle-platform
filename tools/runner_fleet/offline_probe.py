@@ -301,8 +301,11 @@ def probe(
     bundle: Path | None = None,
     bundle_sha256: str | None = None,
     source_sha: str | None = None,
+    diagnostics: bool = False,
 ) -> dict[str, Any]:
     replay_bytes = None
+    if diagnostics and bundle is None:
+        raise ValueError("Diagnostics require pinned replay bundle")
     if any(value is not None for value in (bundle, bundle_sha256, source_sha)):
         if bundle is None or bundle_sha256 is None or source_sha is None:
             raise ValueError("All replay pins required")
@@ -358,7 +361,11 @@ def probe(
             "evidence_directory": str(directory),
         }
         if replay_bytes is not None:
-            result["evidence_class"] = "offline_platform_validation_replay"
+            result["evidence_class"] = (
+                "offline_platform_validation_diagnostics"
+                if diagnostics
+                else "offline_platform_validation_replay"
+            )
             result["source_sha"] = source_sha
             result["bundle_sha256"] = bundle_sha256
             result["writer_budget_bytes"] = REPLAY_WRITERS
@@ -399,7 +406,9 @@ def probe(
             )
             config = guest_config(nonce)
             if replay_bytes is not None and source_sha is not None:
-                config = offline_replay.guest_config(nonce, replay_bytes, source_sha)
+                config = offline_replay.guest_config(
+                    nonce, replay_bytes, source_sha, diagnostics=diagnostics
+                )
             write(directory / "user-data", config)
             write(
                 directory / "meta-data",
@@ -437,7 +446,11 @@ def probe(
             )
             if replay_bytes is not None and source_sha is not None:
                 result["validation"] = offline_replay.parse_result(
-                    directory / "replay.log", nonce, source_sha, deadline
+                    directory / "replay.log",
+                    nonce,
+                    source_sha,
+                    deadline,
+                    diagnostics=diagnostics,
                 )
             else:
                 result["versions"] = parse_result(output, nonce, deadline)
@@ -462,6 +475,7 @@ def main() -> int:
     parser.add_argument("--bundle", type=Path)
     parser.add_argument("--bundle-sha256")
     parser.add_argument("--source-sha")
+    parser.add_argument("--diagnostics", action="store_true")
     args = parser.parse_args()
 
     def terminated(signum: int, frame: object) -> None:
@@ -475,6 +489,7 @@ def main() -> int:
         bundle=args.bundle,
         bundle_sha256=args.bundle_sha256,
         source_sha=args.source_sha,
+        diagnostics=args.diagnostics,
     )
     print(json.dumps(result, sort_keys=True))
     return 0 if result["status"] == "passed" else 2

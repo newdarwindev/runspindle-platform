@@ -135,3 +135,22 @@ class ReplayTests(unittest.TestCase):
         self.assertEqual(offline_probe.REPLAY_MIN_FREE, 39 * 1024**3)
         for forbidden in ("-netdev", "-virtfs", "-fsdev", "-qmp", "-daemonize"):
             self.assertNotIn(forbidden, args)
+
+    def test_diagnostics_are_fixed_and_separate(self) -> None:
+        import base64
+
+        config = json.loads(
+            offline_replay.guest_config(
+                "n", b"bundle", "a" * 40, diagnostics=True
+            ).split(b"\n", 1)[1]
+        )
+        script = base64.b64decode(config["write_files"][1]["content"]).decode()
+        compile(script, "<diagnostic-guest>", "exec")
+        self.assertIn("tools/python_tests.py", script)
+        self.assertIn("tools/check_maintained_mutations.py", script)
+        self.assertNotIn("tools/validate.py", script)
+        self.assertIn("if p.returncode != 0 and not True:", script)
+        with self.assertRaises(ValueError):
+            offline_probe.probe(
+                Path("/none"), "a" * 64, Path("/none"), diagnostics=True
+            )
