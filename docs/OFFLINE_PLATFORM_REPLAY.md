@@ -66,3 +66,14 @@ write to the sealed base or read-only seed. The other three child commands retai
 the original cap. The seed builder has both its output ISO and output log counted.
 The guest remains at 1 GiB RAM, 4 GiB host address-space limit and 240-second
 lifetime. This is a budget correction, not a successful validation result.
+
+The reviewed-budget retry also failed, but did not exhaust disk allowance:
+its overlay ended at 862,846,976 bytes and the host console log at 97,533 bytes.
+Source import and scaffold again succeeded. At guest uptime approximately
+207 seconds the replay script could not write its final marker to its existing
+`/dev/ttyS0` descriptor (EIO); no valid validation receipt reached the host.
+The supervisor stopped the guest at 240 seconds. The base image SHA256 remained
+unchanged and no guest remained. This is an output-transport failure with unknown
+full-validation outcome, not a passing run or evidence of disk-budget exhaustion.
+Console-login hangup is a hypothesis requiring verification; a dedicated,
+separately budgeted non-network output channel would avoid sharing login output.
