@@ -35,7 +35,7 @@ binary, downstream package or hosted service.
 | Codex app-server | Same source pin; separate initialization and shutdown paths | Source support only; not transferable from CLI evidence |
 | IDE / desktop packaging | No package/build pin | Unknown; bundled app-server and policy must be verified separately |
 | Hosted sessions | No accessible supported deployment contract/pin | Unknown and unavailable in this lane; local settings do not establish hosted coverage |
-| Standard Collector trace projection | contrib 0.163.2; existing source/image/SBOM pins | Prior synthetic file-export and durable-queue observations only; unchanged scripts, not rerun here |
+| Standard Collector trace projection | contrib 0.163.2; existing source/image/SBOM pins | Historical synthetic file-export and durable-queue observations only; current classifier changed, runtime not rerun here |
 | Native logs to traces | No reviewed converter configuration | Unqualified; raw OTLP logs are not traces; no log pipeline added |
 | Bounded message capture | No qualified producer/projection pair | Unavailable; requires separate content consent and complete envelope qualification |
 | Langfuse backend | Existing 3.63.0 candidate, revision `a136ac8184b876a90afafe8cd2ebfef8a7b05858` | Blocked dependency/notice closure and API readback; current v4 guidance is not a 3.63 compatibility result |
@@ -179,11 +179,16 @@ claims, privacy canaries, unpinned support claims and artifact drift.
 Previously recorded Collector observations live in
 [maintained offline evidence](../docs/maintained-offline-tests.json): envelope
 projection, malformed-input rejection, normal shutdown, abrupt volatile-buffer
-loss and standard durable-queue recovery. The lift hashes and checks their evidence
-and unchanged relevant source files, but does not re-execute those services.
-The reused classifier matches five fixture IDs; it does not validate native schema
-or producer/configuration/policy identity. Those extra checks remain acceptance
-requirements, not implementation claims.
+loss and standard durable-queue recovery. The lift hashes and checks that historical evidence, but does not re-execute those
+services or qualify the current harness from an old receipt. The historical
+`docs/native-monitoring-validation.json` is preserved unchanged and describes its
+recorded revision only, including its then-unchanged harness and aggregate results.
+Current aggregate checks can fail independently of that historical receipt.
+The current synthetic classifier additionally requires exact producer, configuration
+and policy identities and rejects ambiguous attributes; this is offline correlation,
+not native source authentication or full OTLP schema validation. See
+[the artifact audit](../docs/native-monitoring-artifact-audit.md) and
+[correlation evidence](../docs/telemetry-correlation-evidence.md).
 `tools/collector_privacy_check.py` and `tools/collector_recovery_check.py` remain the
 single isolated integration harness; do not duplicate them with a custom receiver.
 Their full execution requires separately authorized prepared immutable images and

@@ -382,7 +382,19 @@ def validate(root: Path = ROOT) -> JsonObject:
         "tests/test_telemetry_evidence.py",
         "telemetry/collector.yaml",
     ):
-        require(source_hashes[name] == hashes[name], "prior source evidence drift")
+        if name == "tools/collector_privacy_check.py":
+            # Audited historical-to-current classifier transition, not a runtime
+            # requalification. Never rewrite the historical receipt or admit an
+            # arbitrary new harness merely because the manifest was rehashed.
+            require(
+                source_hashes[name]
+                == "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4"
+                and hashes[name]
+                == "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+                "prior source evidence drift",
+            )
+        else:
+            require(source_hashes[name] == hashes[name], "prior source evidence drift")
     for key in ("Collector_privacy", "Collector_queue_recovery"):
         observed = object_value(object_value(prior[key])["observed"])
         require(
@@ -403,6 +415,8 @@ def validate(root: Path = ROOT) -> JsonObject:
         "source_units": len(units),
         "surfaces": len(rows),
         "runtime_execution": "not_run",
+        "current_harness_runtime_qualification": "not_run",
+        "prior_runtime_evidence": "historical_only_classifier_changed",
         "live_acceptance": "not_run",
     }
 

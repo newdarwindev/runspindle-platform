@@ -22,7 +22,7 @@ from tools.check_native_monitoring import (
     validate,
 )
 
-# Precise callable boundary for the unchanged, hash-pinned legacy fixture helpers.
+# Precise callable boundary for the current, hash-pinned synthetic fixture helpers.
 # These signatures add no runtime behavior, protocol widening or type suppression.
 fixture: Callable[[], JsonObject] = legacy.fixture
 canary_paths: Callable[[JsonValue], list[str]] = legacy.canary_paths
@@ -165,6 +165,43 @@ class NativeMonitoringDocumentTests(unittest.TestCase):
         with (self.root / "specs/native-monitoring.md").open("a") as out:
             out.write("changed")
         self.assert_invalid("artifact drift")
+
+    def test_current_harness_and_status_drift_rejected(self) -> None:
+        for name in ("STATUS.json", "tools/collector_privacy_check.py"):
+            with self.subTest(artifact=name):
+                path = self.root / name
+                original = path.read_bytes()
+                try:
+                    path.write_bytes(original + b"\n")
+                    self.assert_invalid("artifact drift: " + name)
+                finally:
+                    path.write_bytes(original)
+
+    def test_rehashed_unknown_harness_rejected(self) -> None:
+        name = "tools/collector_privacy_check.py"
+        path = self.root / name
+        path.write_bytes(path.read_bytes() + b"\n")
+        self.edit(
+            "telemetry/native-monitoring-lift.json",
+            ["artifact_sha256", name],
+            hashlib.sha256(path.read_bytes()).hexdigest(),
+        )
+        self.assert_invalid("prior source evidence drift")
+
+    def test_historical_source_identity_cannot_be_rewritten(self) -> None:
+        self.edit(
+            "docs/maintained-offline-tests.json",
+            ["source_hashes", "tools/collector_privacy_check.py"],
+            "83a478f438bd4e45a005ea308114dee37dfd35ef7c8225fda44e5bc2f7e4a07e",
+        )
+        self.assert_invalid("prior source evidence drift")
+
+    def test_current_runtime_remains_unqualified(self) -> None:
+        result = validate(self.root)
+        self.assertEqual(result["current_harness_runtime_qualification"], "not_run")
+        self.assertEqual(
+            result["prior_runtime_evidence"], "historical_only_classifier_changed"
+        )
 
     def test_incomplete_source_accounting_rejected(self) -> None:
         self.edit(
