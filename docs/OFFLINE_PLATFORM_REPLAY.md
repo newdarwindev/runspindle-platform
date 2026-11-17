@@ -27,3 +27,20 @@ missing. Such outcomes stay failed; Temporal, architecture and mutation gates
 are not downgraded. Complete guest output, seed and overlay remain retained.
 A passing replay is isolated validation, not live CI/network/production
 qualification and never promotes the image.
+
+## First bounded experiment
+
+A real no-NIC guest used source `9b20cd6a1e826e8e0e7df743423458f75229c8ba`,
+bundle SHA256 `6ea07c119f47e5fcefa16478f3b146d43ca408546ef2fcb53752d1a1b7869b3b`,
+and image SHA256 `a5db32338fd6721c53e5b5078d82220c4186181a25da28b6aee726787f632cd0`.
+Local source import and checkout succeeded, and the scaffold command printed a
+passing receipt. Full validation did not complete: the overlay reached exactly
+512 MiB, guest disk writes produced I/O errors, and the independent supervisor
+terminated the guest at 240 seconds (exit 124). No successful replay marker was
+produced. The base image digest remained unchanged afterward; no guest remained.
+
+All experiment evidence was retained privately. This failure demonstrates the
+current tool-probe disk allowance is insufficient for this validation workload;
+it does not identify which validation phase generated the writes. Do not claim
+that the complete validation passed, relax gates, or promote the image from this
+experiment. A differently budgeted replay requires separate engineering review.
