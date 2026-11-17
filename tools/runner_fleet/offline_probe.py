@@ -293,6 +293,14 @@ def parse_result(
     return found
 
 
+def available_memory() -> int:
+    return next(
+        int(line.split()[1]) * 1024
+        for line in Path("/proc/meminfo").read_text().splitlines()
+        if line.startswith("MemAvailable:")
+    )
+
+
 def probe(
     image: Path,
     expected: str,
@@ -340,11 +348,7 @@ def probe(
             raise RuntimeError(
                 f"Need {minimum // 1024**3} GiB free including 30 GiB reserve"
             )
-        available = next(
-            int(line.split()[1]) * 1024
-            for line in Path("/proc/meminfo").read_text().splitlines()
-            if line.startswith("MemAvailable:")
-        )
+        available = available_memory()
         if available < 11 * 1024**3:
             raise RuntimeError("Need 11 GiB memory available including host reserve")
         nonce = uuid.uuid4().hex

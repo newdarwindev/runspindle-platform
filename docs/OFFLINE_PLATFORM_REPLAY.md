@@ -105,3 +105,24 @@ the retained dedicated log. It does not substitute portable/optional checks and
 is not a workflow replay. After a nonzero test return it still runs the second
 diagnostic, within the same overall VM deadline. No arbitrary command input,
 network, credentials or new permissions are added.
+
+## Diagnosed prerequisites and portability corrections
+
+Direct diagnostics on the pinned original source ran472tests and showed all five
+real Temporal integration tests passing. The overall suite nevertheless failed
+because one synthetic probe test accidentally used the guest's real memory
+admission, one publication test exposed different `mv --no-clobber` nonzero-exit
+behavior, and a damaged SQLite/WAL reopen changed main-file bytes before rejecting
+the missing reservations table. Temporal coverage remains failed for the aggregate;
+its five individual passing tests do not authorize overriding that result.
+
+Corrections keep the actual gates intact: mock capacity only in the synthetic
+failure-receipt fixture and test low-memory rejection separately; normalize a
+nonzero publication command as uncertain while retaining both artifacts; read-only
+schema preflight before opening an existing state database for writing, with a
+second validation inside the writer transaction to cover races. A damaged-WAL
+regression asserts no writable connection is opened.
+
+The installed maintained-mutation gate separately requires native Linux ARM64.
+This x86_64 guest correctly returns `unsupported_installed_platform`. No package
+upgrade or portable-suite substitution can establish native ARM64 acceptance.

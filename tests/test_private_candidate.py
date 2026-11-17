@@ -121,6 +121,23 @@ class PrivateCandidateTests(unittest.TestCase):
             self.assertEqual(source.read_bytes(), b"new synthetic image")
             self.assertEqual(target.read_bytes(), b"existing synthetic image")
 
+    def test_nonzero_no_clobber_is_normalized_and_retained(self) -> None:
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary)
+            source, target = root / "source", root / "target"
+            source.write_bytes(b"new")
+            target.write_bytes(b"old")
+            with (
+                patch.object(build, "verify_private_candidate"),
+                patch.object(
+                    build, "execute", side_effect=subprocess.CalledProcessError(1, "mv")
+                ),
+                self.assertRaisesRegex(RuntimeError, "install uncertain"),
+            ):
+                build.publish_private_candidate(source, target, 975)
+            self.assertEqual(source.read_bytes(), b"new")
+            self.assertEqual(target.read_bytes(), b"old")
+
     def test_real_publication_preserves_original_inode(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary)

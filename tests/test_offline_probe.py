@@ -278,6 +278,20 @@ class OfflineProbeTests(unittest.TestCase):
             command.assert_not_called()
         self.assertEqual(sorted(p.name for p in self.root.iterdir()), ["image"])
 
+    def test_low_memory_still_blocks_real_admission(self) -> None:
+        image = self.root / "image"
+        image.write_bytes(b"content")
+        with (
+            patch.object(probe, "image_path", return_value=image),
+            patch("os.access", return_value=True),
+            patch.object(probe, "MIN_FREE", 0),
+            patch.object(probe, "available_memory", return_value=1024**3),
+            patch.object(probe, "command") as command,
+            self.assertRaisesRegex(RuntimeError, "11 GiB"),
+        ):
+            probe.probe(image, hashlib.sha256(b"content").hexdigest(), self.root)
+        command.assert_not_called()
+
     def test_failure_receipt_preserves_artifacts_and_no_qualification(self) -> None:
         image = self.root / "image"
         image.write_bytes(b"content")
@@ -285,6 +299,7 @@ class OfflineProbeTests(unittest.TestCase):
             patch.object(probe, "image_path", return_value=image),
             patch("os.access", return_value=True),
             patch.object(probe, "MIN_FREE", 0),
+            patch.object(probe, "available_memory", return_value=12 * 1024**3),
             patch.object(probe, "command", side_effect=RuntimeError("synthetic stop")),
         ):
             result = probe.probe(

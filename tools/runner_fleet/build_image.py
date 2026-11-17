@@ -94,18 +94,23 @@ def publish_private_candidate(temporary: Path, candidate: Path, group: int) -> N
     original = temporary.stat()
     if original.st_dev != candidate.parent.stat().st_dev:
         raise RuntimeError("Candidate publication must stay on one filesystem")
-    execute(
-        [
-            "sudo",
-            "-n",
-            "mv",
-            "--no-copy",
-            "--no-clobber",
-            "--no-target-directory",
-            str(temporary),
-            str(candidate),
-        ]
-    )
+    try:
+        execute(
+            [
+                "sudo",
+                "-n",
+                "mv",
+                "--no-copy",
+                "--no-clobber",
+                "--no-target-directory",
+                str(temporary),
+                str(candidate),
+            ]
+        )
+    except subprocess.CalledProcessError as error:
+        raise RuntimeError(
+            "Private candidate install uncertain; artifacts retained"
+        ) from error
     verify_private_candidate(candidate, group)
     installed = candidate.stat()
     if temporary.exists() or (installed.st_dev, installed.st_ino) != (

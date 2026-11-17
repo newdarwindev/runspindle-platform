@@ -64,6 +64,16 @@ class State:
         else:
             os.close(descriptor)
             created = True
+        if not created:
+            # Reject damaged stores before a writable connection can checkpoint
+            # their WAL. Recheck under the writer transaction below against races.
+            observed = sqlite3.connect(
+                path.resolve().as_uri() + "?mode=ro", uri=True, timeout=30
+            )
+            try:
+                _validate_schema(observed)
+            finally:
+                observed.close()
         self.db = sqlite3.connect(path, timeout=30)
         os.chmod(self.directory / "fleet.sqlite", 0o600)
         self.db.row_factory = sqlite3.Row
