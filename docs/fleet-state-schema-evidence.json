@@ -1,0 +1,61 @@
+{
+  "issue": 15,
+  "classification": "synthetic_SQLite_schema_admission_not_runner_qualification",
+  "base_commit": "398c74766b9ec9f7203256e17dea34f1b15cac4c",
+  "source_sha256": {
+    "tools/runner_fleet/state.py": "017ac0cfe53e02ca81fce02eb76036d2de4db8ffc817d428af714f50da28a170",
+    "tests/test_fleet_schema.py": "53ef84f2a55abaf7d555c2b1a8339edbd24e91ca2ca8c5d03ff6ee2cacaa0e52"
+  },
+  "python": "3.12.14",
+  "fleet_tests": {
+    "normal": 33,
+    "optimized": 33,
+    "status": "passed",
+    "new_schema_tests": 8
+  },
+  "independent_review": "passed; actual base-created database reopened with occupancy/control preserved",
+  "scaffold": "passed",
+  "fleet_lifecycle_mutations": "passed",
+  "boundary_suite": {
+    "tests": 441,
+    "failures": 16,
+    "errors": 1,
+    "skipped": 21,
+    "status": "failed",
+    "failure_scope": "native monitoring STATUS.json artifact checksum drift; identical 16 failures/1 error reproduced in unchanged base native-monitoring suite"
+  },
+  "static": {
+    "status": "failed",
+    "preexisting_baseline_debt": 776,
+    "diagnostics_above_baseline": 70,
+    "unchanged_base_same_diagnostics": true,
+    "new_diagnostics_from_this_patch": 0
+  },
+  "required_aggregate": {
+    "status": "failed",
+    "remaining": [
+      "preexisting static diagnostics",
+      "preexisting native monitoring checksum drift",
+      "required prepared Temporal unavailable",
+      "maintained mutation lane requires Linux ARM64; current host x86_64"
+    ]
+  },
+  "observations": [
+    "complete current schema reopens without changing uncertain occupancy",
+    "missing tables/indices, extra schema and unexpected versions rejected without repair",
+    "existing empty file is not silently initialized",
+    "late DDL damage blocks reads and allocations",
+    "DDL changes inside transaction roll back",
+    "fresh process cannot recreate lost reservations",
+    "removing constructor validation admits missing slot-exclusion index"
+  ],
+  "source_boundary": "checks ran on stable dirty worktree at base; code hashes identify tested bytes; evidence document added afterward",
+  "limitations": [
+    "exact current v0 schema only; no legacy migration",
+    "simultaneous opener may fail closed before creator commits schema",
+    "crash-created empty file remains rejected; no automatic deletion/recreation",
+    "no hostile SQLite/row-content or coherent rollback authentication",
+    "no live runner, guest lifecycle, services or target capacity qualification",
+    "no parent issue closure or deployment"
+  ]
+}
