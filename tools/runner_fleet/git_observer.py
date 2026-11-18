@@ -88,10 +88,13 @@ def _git(root: Path, args: list[str], limit: int, deadline: float) -> bytes:
     return bytes(data)
 
 
-def _checkout(root: Path, deadline: float) -> tuple[Blob, ...]:
+def _checkout(
+    root: Path, deadline: float, expected_directories: set[str]
+) -> tuple[Blob, ...]:
     result: list[Blob] = []
     pending = [root]
     entries = total = 0
+    observed_directories: set[str] = set()
     while pending:
         directory = pending.pop()
         with os.scandir(directory) as children:
@@ -105,6 +108,9 @@ def _checkout(root: Path, deadline: float) -> tuple[Blob, ...]:
                 relative = _path(path.relative_to(root).as_posix())
                 metadata = child.stat(follow_symlinks=False)
                 if stat.S_ISDIR(metadata.st_mode):
+                    if relative not in expected_directories:
+                        raise ValueError("Extra checkout directory")
+                    observed_directories.add(relative)
                     pending.append(path)
                     continue
                 if not stat.S_ISREG(metadata.st_mode):
@@ -145,6 +151,8 @@ def _checkout(root: Path, deadline: float) -> tuple[Blob, ...]:
                         hashlib.sha256(content).hexdigest(),
                     )
                 )
+    if observed_directories != expected_directories:
+        raise ValueError("Missing checkout directory")
     return tuple(sorted(result, key=lambda blob: blob.path))
 
 
@@ -208,6 +216,7 @@ def observe_checkout(
         raise ValueError("Tree inventory exceeds bound")
     blobs: list[Blob] = []
     expected_index = []
+    expected_directories: set[str] = set()
     total = 0
     for row in rows[:-1]:
         header, name = row.split(b"\t", 1)
@@ -215,6 +224,7 @@ def observe_checkout(
         path = _path(name.decode("ascii"))
         _hex(oid, 40)
         if mode == "040000" and kind == "tree":
+            expected_directories.add(path)
             object_bytes("tree", oid, MAX_OUTPUT)
             continue
         if len(blobs) >= MAX_FILES:
@@ -234,7 +244,10 @@ def observe_checkout(
     index = git(["ls-files", "--stage", "-z"])
     if sorted(index.split(b"\0")[:-1]) != sorted(expected_index):
         raise ValueError("Index differs from commit")
-    if _checkout(root, deadline) != expected or _checkout(root, deadline) != expected:
+    if (
+        _checkout(root, deadline, expected_directories) != expected
+        or _checkout(root, deadline, expected_directories) != expected
+    ):
         raise ValueError("Dirty, extra or missing checkout input")
     if (
         git(["rev-parse", "HEAD"]).decode().strip() != source_sha
