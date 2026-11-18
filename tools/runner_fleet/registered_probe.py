@@ -10,6 +10,9 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import os
+import stat
+import re
 import argparse
 import signal
 import shutil
@@ -19,7 +22,7 @@ import uuid
 from pathlib import Path
 from typing import Any
 
-from .backend import Backend, execute, helper
+from .backend import ROOT, Backend, execute, helper
 from .candidate import time_budget
 from .manager import gh, pages
 from .single_probe import (
@@ -79,6 +82,67 @@ def guarded_installation() -> None:
 LABELS = ["self-hosted", "linux", "x64", "runspindle-isolated", "strix"]
 
 
+FLEET_LV = Path("/dev/pve/runspindle-fleet-capacity-20261115")
+
+
+def storage_identity(directory: Path) -> dict[str, int]:
+    if directory != STATE_DIRECTORY:
+        raise ValueError("Unexpected snapshot destination")
+    device = FLEET_LV.stat()
+    if not stat.S_ISBLK(device.st_mode):
+        raise ValueError("Expected fleet block device missing")
+    expected = f"{os.major(device.st_rdev)}:{os.minor(device.st_rdev)}"
+    result = {}
+    for name, path in [
+        ("state", directory),
+        ("fleet", ROOT),
+        ("slots", ROOT / "slots"),
+        ("retained", ROOT / "retained"),
+    ]:
+        if path.resolve(strict=True) != path or path.stat().st_dev != device.st_rdev:
+            raise ValueError("Unexpected fleet storage device")
+        mounts = json.loads(
+            execute(
+                ["findmnt", "-J", "-T", str(path), "-o", "SOURCE,FSTYPE,MAJ:MIN"],
+                timeout=20,
+            ).stdout
+        )["filesystems"]
+        if (
+            len(mounts) != 1
+            or mounts[0]["fstype"] != "ext4"
+            or mounts[0]["maj:min"] != expected
+        ):
+            raise ValueError("Unexpected fleet mount identity")
+        source = mounts[0]["source"].split("[", 1)[0]
+        if Path(source).resolve(strict=True) != FLEET_LV.resolve(strict=True):
+            raise ValueError("Mount source is not approved fleet LV")
+        result[name] = shutil.disk_usage(path).free
+    rows = json.loads(
+        execute(
+            [
+                "sudo",
+                "-n",
+                "lvs",
+                "--reportformat",
+                "json",
+                "-o",
+                "vg_name,lv_name,pool_lv",
+                str(FLEET_LV),
+            ],
+            timeout=20,
+        ).stdout
+    )["report"][0]["lv"]
+    if rows != [
+        {
+            "vg_name": "pve",
+            "lv_name": "runspindle-fleet-capacity-20261115",
+            "pool_lv": "data",
+        }
+    ]:
+        raise ValueError("Unexpected fleet backing pool")
+    return result
+
+
 def capacity(directory: Path) -> dict[str, Any]:
     """Conservative allowances, not hard quotas; pool and filesystem both checked."""
     available = (
@@ -91,7 +155,8 @@ def capacity(directory: Path) -> dict[str, Any]:
         )
         * 1024
     )
-    disk = shutil.disk_usage(directory).free
+    disks = storage_identity(directory)
+    disk = min(disks.values())
     raw = execute(
         [
             "sudo",
@@ -128,6 +193,7 @@ def capacity(directory: Path) -> dict[str, Any]:
     return {
         "available_memory": available,
         "filesystem_free": disk,
+        "filesystem_paths_free": disks,
         "pool_free": int(physical),
         "pool_metadata_percent": metadata,
     }
@@ -333,14 +399,96 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
         return report
 
 
+def recover(state: State, identity: str) -> dict[str, Any]:
+    """Stop/remove only. Never create another snapshot or release uncertain files.
+
+    This is explicit crash recovery for the durable registered resource, not a
+    new campaign attempt. Original disks/seed/key/logs remain wherever stopped.
+    A subsequent reviewed storage reconciliation is required to release the slot.
+    """
+    guarded_installation()
+    validate_state_directory(state.directory)
+    manager_stopped()
+    if not re.fullmatch("[0-9a-f]{32}", identity):
+        raise ValueError("Exact resource identity required")
+    with state.lock():
+        manager_stopped()
+        rows = [r for r in state.active() if r["id"] == identity]
+        if len(rows) != 1:
+            raise ValueError("Exact occupied resource required")
+        resource = rows[0]
+        details = resource["details"]
+        if (
+            details.get("manual_registered_probe") is not True
+            or details.get("image_sha256") != IMAGE_SHA
+            or resource["repository"] not in REPOS
+            or resource["runner_name"] != "runspindle-fleet-" + identity
+        ):
+            raise ValueError("Recovery binding differs")
+        errors = []
+        try:
+            with time_budget(30):
+                helper("stop", resource["slot"], identity)
+                if helper("observe", resource["slot"]).get("ActiveState") not in (
+                    "inactive",
+                    "failed",
+                ):
+                    raise ValueError("Stop not verified")
+        except BaseException as error:
+            errors.append("stop:" + type(error).__name__)
+        try:
+            with time_budget(120):
+                remove_owned(resource["repository"], resource)
+        except BaseException as error:
+            errors.append("registration:" + type(error).__name__)
+        # Intentionally occupied even after verified stop: no silent data cleanup.
+        state.update(
+            resource,
+            "uncertain",
+            recovery_stopped=not errors,
+            recovery_error_types=errors,
+            recovery_note="original files preserved; explicit storage reconciliation required",
+        )
+        return {
+            "resource": identity,
+            "recovery_stopped": not errors,
+            "errors": errors,
+            "capacity_released": False,
+            "snapshot_created": False,
+        }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--repository", choices=REPOS, required=True)
-    parser.add_argument("--image", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path, required=True)
-    parser.add_argument("--expected", type=Path, required=True)
+    parser.add_argument("--repository", choices=REPOS)
+    parser.add_argument("--image", type=Path)
+    parser.add_argument("--manifest", type=Path)
+    parser.add_argument("--expected", type=Path)
     parser.add_argument("--execute", action="store_true")
+    parser.add_argument(
+        "--recover", help="Exact occupied resource; stop/remove only, preserve files"
+    )
     args = parser.parse_args()
+    if args.recover:
+        if any(
+            (args.repository, args.image, args.manifest, args.expected, args.execute)
+        ):
+            parser.error("Recovery cannot be combined with execution arguments")
+        guarded_installation()
+        validate_state_directory(STATE_DIRECTORY)
+        previous = signal.signal(signal.SIGTERM, terminated)
+        state = None
+        try:
+            state = State(STATE_DIRECTORY)
+            result = recover(state, args.recover)
+            print(json.dumps(result))
+            return 0 if result["recovery_stopped"] else 1
+        finally:
+            if state is not None:
+                state.db.close()
+            signal.signal(signal.SIGTERM, previous)
+    if not all((args.repository, args.image, args.manifest, args.expected)):
+        parser.error("Execution/plan requires repository,image,manifest,expected")
     intended = plan(args.image, args.manifest, args.expected)
     if intended["bindings"]["image_sha256"] != IMAGE_SHA:
         raise ValueError("Outside approved exact image")
