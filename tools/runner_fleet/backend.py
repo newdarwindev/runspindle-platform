@@ -306,7 +306,9 @@ class Backend:
         if result.returncode:
             raise RuntimeError("verified preparation transfer failed")
 
-    def create(self, resource, prepare=False):
+    def create(self, resource, prepare=False, *, network_mode="provision"):
+        if network_mode not in ("provision", "verify"):
+            raise ValueError("Unsupported network lifecycle")
         if prepare and (
             not isinstance(self.preparation_source_sha, str)
             or not re.fullmatch(r"[0-9a-f]{40}", self.preparation_source_sha)
@@ -348,7 +350,9 @@ class Backend:
             image_sha256=image_sha,
             boot_deadline=time.time() + 240,
         )
-        helper("network")  # Firewall applied before any guest process exists.
+        # Automatic callers must opt into read-only verification; legacy explicit
+        # provisioning remains separate until independently reviewed deployment.
+        helper("verify-network" if network_mode == "verify" else "network")
         observed = helper("observe", resource["slot"])
         if observed.get("ActiveState") in ("active", "activating", "deactivating"):
             raise RuntimeError("Unreconciled occupied slot")

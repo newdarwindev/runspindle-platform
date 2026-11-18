@@ -1,0 +1,83 @@
+# Qualified automatic fleet: staged implementation
+
+Status: source-only. No installed helper, manager, network, image, registration or
+service has changed. The completed three-repository diagnostic campaign does not
+authorize more attempts or automatic activation.
+
+## First implemented slice: verify-only networking
+
+`Backend.create(..., network_mode="verify")` uses the new fixed-scope helper
+`verify-network`, rather than reapplying host settings. Legacy explicitly approved
+provisioning remains the default for existing callers until their lifecycle is
+migrated and independently reviewed. No automatic caller is enabled here.
+
+The verifier reads the exact fleet nft table in stateless numeric rendering;
+missing/additional/changed rules fail closed. It checks both TAPs' ownership,
+addresses and up flags, no bridge master, the canary veth pair's reciprocal indices,
+exact routes and four already-active proxy/canary services. It never starts a
+service or changes a rule, address, interface, route or namespace. Formatting or
+version drift rejects rather than falling back to provisioning.
+
+This is not a complete host security attestation or an atomic promise against a
+concurrent privileged administrator. Installed helper/proxy code, service units,
+proxy allowlist and image receipts still require exact reviewed bindings. Existing
+per-guest isolation probes remain mandatory before any registration. The read-only
+preflight does not independently authorize a job's credentials or effects.
+
+## Remaining implementation before activation
+
+1. One shared Strix reservation at a time, not configured capacity two. Recheck
+   available RAM (guest7GiBhost cap plus6GiB reserve), actual fleet/state filesystems,
+   backing thin pool physical/metadata space and disk allowance inside the existing
+   canonical manager lock. Unknown resources remain occupied.
+2. Explicit per-repository qualified image/closure records. Reject stale or missing
+   recipes, licenses, runtime artifacts and suite evidence, not silently select the
+   old qualified pointer. Scope qualification to actual suites: scaffold success
+   does not qualify mutation, Browser E2E or OTel dependencies.
+3. Register with `--no-default-labels` and reviewed image/suite-specific labels;
+   update only corresponding workflows. This prevents accidental generic backlog
+   routing but is NOT a security boundary or exact-job guarantee. Audit every
+   eligible workflow's token, secrets, environment and OIDC authority. No pre-job
+   hook can make untrusted action preparation safe.
+4. Preserve stopped original overlays without creating flattened copies. Use the
+   existing canonical resource record to bind retained paths, identities, hashes
+   and exact immutable backing image; no second database. Any missing/changed base
+   blocks restore. Release slot only after confirmed termination, deregistration,
+   recoverable atomic original-file relocation and durable receipt. Uncertain
+   relocation leaves occupied capacity; no automatic deletion or base GC.
+5. Read-only audit actual assigned run/job/head and outcome; preserve sanitized
+   verification diagnostics before cleanup. Treat wrong/unknown assignment or
+   missing evidence as unqualified. Bound job, watchdog, observation and cleanup.
+6. Complete failure, cancellation, restart, low-pool, wrong-image and clean-up
+   tests, independent review, then separately authorized bounded native checks.
+
+## Actual diagnostic findings informing the plan
+
+Browser's assigned acceptance placeholder failed closed; Core's actual mutation
+partition failed after344seconds with precise cause still unavailable; Host's
+scaffold passed. All three guests/registrations were removed and approved snapshots
+retained. None establishes complete repository validation or the50%runtime target.
+Rounded allocated sizes: Browser original overlay<1GiB plus14GiBflat snapshot;
+Core original10GiB plus23GiBflat snapshot; Host flat snapshot14GiB. Future no-copy
+retention could avoid approximately51GiB of duplicated flattened copies for this
+workload; existing retained data remains untouched. This is disk savings, not a
+claim of faster complete CI.
+
+## Concrete deployment approvals, after exact candidate review
+
+- Replace the fixed installed helper and manager with reviewed hashes, preserving
+  owner/mode; install exact per-repo image/catalog and routing configuration.
+- Explicitly approve any initial network provisioning or drift repair. Normal
+  automatic launch must use verification only, with no repair fallback.
+- Enable/start the bounded manager only for the named non-demo repositories and
+  audited eligible-job authority, under a specified retention/disk budget and
+  stop condition. No new egress, shared host Docker socket or sandbox bypass.
+- No backup creation or deletion is part of no-copy retention. Existing snapshots
+  remain until separately authorized handling. A retention budget stops admissions
+  when exhausted rather than deleting or inventing free space.
+- Demo-specific persistent jobs/services must be enabled by the owner personally;
+  they cannot be included in assistant-enabled automatic service configuration.
+- Guest package scripts that alter security settings need separate approval.
+  In particular Ubuntu bubblewrap postinstall invokes a user-namespace sysctl:
+  stage only reviewed binary/notices, omit scripts/config, and fail closed if
+  existing namespace policy does not permit the qualified sandbox.
