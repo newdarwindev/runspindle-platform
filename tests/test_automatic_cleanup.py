@@ -1,24 +1,22 @@
 """Real tiny qcow/SQLite fixtures; host stop and GitHub are always mocked."""
 
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.automatic_cleanup import (
+from tools.runner_fleet.automatic_cleanup import (
     AutomaticCleanup,
     assert_unreferenced_image,
     base_references,
 )
-from runner_fleet.retention import file_digest
-from runner_fleet.state import State
+from tools.runner_fleet.retention import file_digest
+from tools.runner_fleet.state import State
 
 
 class CleanupTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -77,7 +75,7 @@ class CleanupTests(unittest.TestCase):
             self.state, root=self.root, stop=self.stop, remove=self.remove
         )
 
-    def test_success_preserves_original_and_protects_base_after_restart(self):
+    def test_success_preserves_original_and_protects_base_after_restart(self) -> None:
         inode = (self.slot / "disk.qcow2").stat().st_ino
         result = self.cleanup.finish(self.resource["id"])
         self.assertEqual(result["status"], "retained")
@@ -94,7 +92,7 @@ class CleanupTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             assert_unreferenced_image(reopened, self.base)
 
-    def test_stop_failure_still_removes_registration_and_preserves_files(self):
+    def test_stop_failure_still_removes_registration_and_preserves_files(self) -> None:
         self.stop.side_effect = RuntimeError("uncertain stop")
         result = self.cleanup.finish(self.resource["id"])
         self.assertEqual(result["status"], "uncertain")
@@ -103,7 +101,7 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(list(self.archive.iterdir()), [])
         self.assertEqual(self.state.active()[0]["phase"], "uncertain")
 
-    def test_registration_failure_does_not_release_or_move(self):
+    def test_registration_failure_does_not_release_or_move(self) -> None:
         self.remove.side_effect = RuntimeError("API unavailable")
         self.assertEqual(
             self.cleanup.finish(self.resource["id"])["status"], "uncertain"
@@ -111,7 +109,7 @@ class CleanupTests(unittest.TestCase):
         self.stop.assert_called_once()
         self.assertTrue((self.slot / "disk.qcow2").exists())
 
-    def test_state_failure_does_not_skip_stop_or_removal(self):
+    def test_state_failure_does_not_skip_stop_or_removal(self) -> None:
         with patch.object(
             self.state, "update", side_effect=RuntimeError("database unavailable")
         ):
@@ -122,7 +120,7 @@ class CleanupTests(unittest.TestCase):
         self.assertEqual(list(self.archive.iterdir()), [])
         self.assertTrue(self.state.active())
 
-    def test_existing_intent_is_not_blindly_retried(self):
+    def test_existing_intent_is_not_blindly_retried(self) -> None:
         self.state.update(
             self.resource, "uncertain", original_retention={"partial": "fixture"}
         )
@@ -132,7 +130,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue((self.slot / "disk.qcow2").exists())
         self.assertEqual(list(self.archive.iterdir()), [])
 
-    def test_noncanonical_stored_or_queried_base_blocks_gc(self):
+    def test_noncanonical_stored_or_queried_base_blocks_gc(self) -> None:
         alias = self.root / "alias.qcow2"
         alias.symlink_to(self.base)
         with self.assertRaises(ValueError):
@@ -144,11 +142,11 @@ class CleanupTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 assert_unreferenced_image(self.state, self.base)
 
-    def interrupt_after_first_move(self):
+    def interrupt_after_first_move(self) -> None:
         original = Path.rename
         calls = 0
 
-        def interrupted(path, destination):
+        def interrupted(path: Path, destination: Path) -> Path:
             nonlocal calls
             calls += 1
             if calls == 2:
@@ -162,7 +160,7 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue((self.archive / "disk-original").exists())
         self.assertTrue((self.slot / "seed.iso").exists())
 
-    def test_explicit_partial_recovery_after_database_reopen(self):
+    def test_explicit_partial_recovery_after_database_reopen(self) -> None:
         self.interrupt_after_first_move()
         reopened = State(self.state.directory)
         self.addCleanup(reopened.db.close)
@@ -178,7 +176,7 @@ class CleanupTests(unittest.TestCase):
             base_references(reopened), {str(self.base): file_digest(self.base)}
         )
 
-    def test_recovery_tamper_blocks_before_any_remaining_move(self):
+    def test_recovery_tamper_blocks_before_any_remaining_move(self) -> None:
         self.interrupt_after_first_move()
         key = self.state.directory / "resources" / self.resource["id"] / "key"
         key.write_bytes(b"changed synthetic")
@@ -189,7 +187,7 @@ class CleanupTests(unittest.TestCase):
         self.assertFalse((self.archive / "seed-original").exists())
         self.assertTrue(self.state.active())
 
-    def test_recovery_cannot_substitute_target_or_run_without_intent(self):
+    def test_recovery_cannot_substitute_target_or_run_without_intent(self) -> None:
         self.assertEqual(
             self.cleanup.recover(self.resource["id"])["status"], "uncertain"
         )
@@ -204,14 +202,14 @@ class CleanupTests(unittest.TestCase):
         )
         self.assertTrue((self.slot / "seed.iso").exists())
 
-    def test_unresolved_legacy_records_block_all_gc(self):
+    def test_unresolved_legacy_records_block_all_gc(self) -> None:
         self.assertEqual(self.cleanup.finish(self.resource["id"])["status"], "retained")
         old = self.state.reserve({"repository": "runspindle-host", "id": 99})
         self.state.update(old, "destroyed")
         with self.assertRaisesRegex(ValueError, "Legacy"):
             assert_unreferenced_image(self.state, self.root / "unreferenced.qcow2")
 
-    def test_foreign_resource_rejected_before_effects(self):
+    def test_foreign_resource_rejected_before_effects(self) -> None:
         with self.assertRaises(ValueError):
             self.cleanup.finish("f" * 32)
         self.stop.assert_not_called()

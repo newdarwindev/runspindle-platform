@@ -181,7 +181,7 @@ def retain_originals(
         "serial": 64 * 1024**2,
         "key": 16384,
     }
-    rows = {}
+    rows: dict[str, dict[str, Any]] = {}
     for name, path in files.items():
         _private(path.parent)
         stamp = _stamp(path, limits[name])

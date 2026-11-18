@@ -2,22 +2,21 @@
 
 import os
 import subprocess
-import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.original_retention import (
+from tools.runner_fleet.original_retention import (
     inspect_linked_disk,
     retain_originals,
     verify_backing_binding,
 )
-from runner_fleet.retention import file_digest
+from tools.runner_fleet.retention import file_digest
 
 
 class OriginalRetentionTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
@@ -53,12 +52,12 @@ class OriginalRetentionTests(unittest.TestCase):
         )
 
     @staticmethod
-    def command(argv):
+    def command(argv: list[str]) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             argv, check=True, text=True, capture_output=True, timeout=10
         )
 
-    def test_original_inodes_preserved_no_copy(self):
+    def test_original_inodes_preserved_no_copy(self) -> None:
         before = {k: p.stat().st_ino for k, p in self.files.items()}
         phases = []
         receipt = retain_originals(
@@ -74,8 +73,8 @@ class OriginalRetentionTests(unittest.TestCase):
         self.assertEqual(len(list(self.archive.iterdir())), 4)
         verify_backing_binding(self.binding)
 
-    def test_failed_intent_never_moves(self):
-        def fail(phase, data):
+    def test_failed_intent_never_moves(self) -> None:
+        def fail(phase: str, data: dict[str, Any]) -> None:
             raise RuntimeError("database unavailable")
 
         with self.assertRaises(RuntimeError):
@@ -83,10 +82,10 @@ class OriginalRetentionTests(unittest.TestCase):
         self.assertTrue(all(p.exists() for p in self.files.values()))
         self.assertEqual(list(self.archive.iterdir()), [])
 
-    def test_interrupted_partial_move_preserves_every_original(self):
+    def test_interrupted_partial_move_preserves_every_original(self) -> None:
         phases = []
 
-        def change(phase, data):
+        def change(phase: str, data: dict[str, Any]) -> None:
             phases.append(phase)
             if phase == "intent":
                 self.files["key"].write_bytes(b"changed synthetic")
@@ -101,7 +100,7 @@ class OriginalRetentionTests(unittest.TestCase):
                 1,
             )
 
-    def test_occupied_destination_and_hardlink_refused(self):
+    def test_occupied_destination_and_hardlink_refused(self) -> None:
         (self.archive / "disk-original").write_bytes(b"preserve")
         with self.assertRaises(ValueError):
             retain_originals(self.files, self.archive, self.binding, lambda *_: None)
@@ -112,10 +111,10 @@ class OriginalRetentionTests(unittest.TestCase):
                 self.disk, self.base, file_digest(self.base), self.command
             )
 
-    def test_changed_base_never_reports_complete(self):
+    def test_changed_base_never_reports_complete(self) -> None:
         phases = []
 
-        def change(phase, data):
+        def change(phase: str, data: dict[str, Any]) -> None:
             phases.append(phase)
             if phase == "intent":
                 self.base.chmod(0o600)
@@ -126,7 +125,7 @@ class OriginalRetentionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_backing_binding(self.binding)
 
-    def test_relative_backing_rejected_before_retention(self):
+    def test_relative_backing_rejected_before_retention(self) -> None:
         relative = self.root / "relative.qcow2"
         subprocess.run(
             [
@@ -155,7 +154,7 @@ class OriginalRetentionTests(unittest.TestCase):
         self.assertEqual(relative.stat().st_ino, inode)
         self.assertEqual(list(self.archive.iterdir()), [])
 
-    def test_wrong_base_or_symlink_rejected(self):
+    def test_wrong_base_or_symlink_rejected(self) -> None:
         with self.assertRaises(ValueError):
             inspect_linked_disk(self.disk, self.base, "a" * 64, self.command)
         link = self.root / "linked.qcow2"

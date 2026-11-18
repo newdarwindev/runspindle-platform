@@ -1,12 +1,16 @@
 """Offline tests only: no registration, guest, backup or host changes."""
 
 import unittest
+from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, patch
+
 from tools.runner_fleet import registered_probe as p
+from tools.runner_fleet.single_probe import STATE_DIRECTORY
 
 
 class RegisteredProbeTests(unittest.TestCase):
-    def test_cleanup_state_failure_still_stops_removes_retains(self):
+    def test_cleanup_state_failure_still_stops_removes_retains(self) -> None:
         state, backend = Mock(), Mock()
         state.update.side_effect = RuntimeError("db")
         resource = {"slot": 0, "id": "owned"}
@@ -22,7 +26,7 @@ class RegisteredProbeTests(unittest.TestCase):
         backend.destroy.assert_called_once_with(resource)
         self.assertEqual(result["cleanup"], "blocked")
 
-    def test_registration_failure_does_not_skip_stop_or_retention(self):
+    def test_registration_failure_does_not_skip_stop_or_retention(self) -> None:
         state, backend = Mock(), Mock()
         resource = {"slot": 1, "id": "owned"}
         with (
@@ -37,7 +41,7 @@ class RegisteredProbeTests(unittest.TestCase):
         self.assertEqual(result["cleanup"], "blocked")
         self.assertEqual(state.update.call_args.args[1], "uncertain")
 
-    def test_guard_failure_precedes_any_reservation(self):
+    def test_guard_failure_precedes_any_reservation(self) -> None:
         state = Mock()
         with (
             patch.object(p, "guarded_installation", side_effect=ValueError("guard")),
@@ -48,13 +52,13 @@ class RegisteredProbeTests(unittest.TestCase):
         state.reserve.assert_not_called()
         backend.assert_not_called()
 
-    def test_outside_repository_rejected_before_guard(self):
+    def test_outside_repository_rejected_before_guard(self) -> None:
         with patch.object(p, "guarded_installation") as guard:
             with self.assertRaises(ValueError):
                 p.run({}, Mock(), "runspindle-tether")
         guard.assert_not_called()
 
-    def test_remove_only_owned_and_recheck(self):
+    def test_remove_only_owned_and_recheck(self) -> None:
         resource = {"runner_name": "owned"}
         with (
             patch.object(
@@ -74,7 +78,7 @@ class RegisteredProbeTests(unittest.TestCase):
 
 
 class CapacityRecoveryTests(unittest.TestCase):
-    def test_spacious_state_does_not_hide_full_fleet(self):
+    def test_spacious_state_does_not_hide_full_fleet(self) -> None:
         import json
 
         pool = {
@@ -101,15 +105,13 @@ class CapacityRecoveryTests(unittest.TestCase):
                     "retained": 2 * p.GIB,
                 },
             ),
-            patch.object(
-                p.Path, "read_text", return_value="MemAvailable: 20000000 kB\n"
-            ),
+            patch.object(Path, "read_text", return_value="MemAvailable: 20000000 kB\n"),
             patch.object(p, "execute", return_value=Mock(stdout=json.dumps(pool))),
         ):
             with self.assertRaisesRegex(ValueError, "reserve"):
-                p.capacity(p.STATE_DIRECTORY)
+                p.capacity(STATE_DIRECTORY)
 
-    def test_wrong_actual_mount_rejected(self):
+    def test_wrong_actual_mount_rejected(self) -> None:
         import json
         import os
         import stat
@@ -122,14 +124,14 @@ class CapacityRecoveryTests(unittest.TestCase):
             ]
         }
         with (
-            patch.object(p.Path, "stat", return_value=info),
-            patch.object(p.Path, "resolve", lambda self, **kw: self),
+            patch.object(Path, "stat", return_value=info),
+            patch.object(Path, "resolve", lambda self, **kw: self),
             patch.object(p, "execute", return_value=Mock(stdout=json.dumps(mounts))),
         ):
             with self.assertRaisesRegex(ValueError, "mount identity"):
-                p.storage_identity(p.STATE_DIRECTORY)
+                p.storage_identity(STATE_DIRECTORY)
 
-    def test_recovery_stops_removes_but_does_not_release_or_copy(self):
+    def test_recovery_stops_removes_but_does_not_release_or_copy(self) -> None:
         from contextlib import nullcontext
 
         identity = "a" * 32
@@ -140,7 +142,7 @@ class CapacityRecoveryTests(unittest.TestCase):
             "repository": p.REPOS[0],
             "details": {"manual_registered_probe": True, "image_sha256": p.IMAGE_SHA},
         }
-        state = Mock(directory=p.STATE_DIRECTORY)
+        state = Mock(directory=STATE_DIRECTORY)
         state.lock.return_value = nullcontext()
         state.active.return_value = [resource]
         with (
@@ -162,10 +164,10 @@ class CapacityRecoveryTests(unittest.TestCase):
         self.assertFalse(result["capacity_released"])
         self.assertEqual(state.update.call_args.args[1], "uncertain")
 
-    def test_recovery_wrong_binding_does_not_touch_resources(self):
+    def test_recovery_wrong_binding_does_not_touch_resources(self) -> None:
         from contextlib import nullcontext
 
-        state = Mock(directory=p.STATE_DIRECTORY)
+        state = Mock(directory=STATE_DIRECTORY)
         state.lock.return_value = nullcontext()
         state.active.return_value = [
             {"id": "a" * 32, "details": {}, "repository": p.REPOS[0]}
@@ -184,7 +186,7 @@ class CapacityRecoveryTests(unittest.TestCase):
 
 
 class HistoricalAssignmentTests(unittest.TestCase):
-    def test_old_queued_run_completed_after_registration_is_observed(self):
+    def test_old_queued_run_completed_after_registration_is_observed(self) -> None:
         old_run = {"id": 10, "run_attempt": 1}
         job = {
             "id": 20,
@@ -193,7 +195,7 @@ class HistoricalAssignmentTests(unittest.TestCase):
             "conclusion": "success",
         }
 
-        def page(path, key):
+        def page(path: str, key: str) -> list[dict[str, Any]]:
             return [job] if path.endswith("/10/jobs") else []
 
         with (
@@ -209,7 +211,7 @@ class HistoricalAssignmentTests(unittest.TestCase):
 
 
 class PendingRunObservationTests(unittest.TestCase):
-    def test_existing_pending_run_is_observed_after_completion(self):
+    def test_existing_pending_run_is_observed_after_completion(self) -> None:
         run = {"id": 44305972724, "run_attempt": 1, "status": "completed"}
         job = {
             "id": 134807610979,
@@ -218,7 +220,7 @@ class PendingRunObservationTests(unittest.TestCase):
             "conclusion": "failure",
         }
 
-        def page(path, key):
+        def page(path: str, key: str) -> list[dict[str, Any]]:
             return [job] if path.endswith("/44305972724/jobs") else []
 
         with (

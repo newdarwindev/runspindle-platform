@@ -1,17 +1,16 @@
 """Verify-only network preflight never repairs its synthetic host observations."""
 
 import json
-import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Callable
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet import host_helper as h
+from tools.runner_fleet import host_helper as h
 
 
-def fixture():
+def fixture() -> dict[str, Any]:
     rows = {}
     for name, address, index, peer in [
         ("rsvm0", "10.231.0.1", 1, None),
@@ -19,7 +18,7 @@ def fixture():
         ("rscan0", "198.18.231.1", 3, 4),
         ("rscan1", "198.18.231.2", 4, 3),
     ]:
-        link = (
+        link: dict[str, Any] = (
             {"info_kind": "veth"}
             if peer
             else {
@@ -46,11 +45,17 @@ def fixture():
 
 
 class VerificationTests(unittest.TestCase):
-    def verify(self, rows=None, table=None, active="active", routes=None):
+    def verify(
+        self,
+        rows: dict[str, Any] | None = None,
+        table: str | None = None,
+        active: str = "active",
+        routes: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         rows = fixture() if rows is None else rows
         calls = []
 
-        def run(*argv):
+        def run(*argv: str) -> SimpleNamespace:
             calls.append(argv)
             if argv == (
                 "nft",
@@ -97,10 +102,10 @@ class VerificationTests(unittest.TestCase):
         self.assertEqual(len(calls), 10)
         return result
 
-    def test_valid_observation_only(self):
+    def test_valid_observation_only(self) -> None:
         self.assertEqual(self.verify()["status"], "verified")
 
-    def test_firewall_missing_or_extra_rule(self):
+    def test_firewall_missing_or_extra_rule(self) -> None:
         for table in [
             "",
             h.expected_network_table().replace("counter drop", "counter accept", 1),
@@ -109,21 +114,22 @@ class VerificationTests(unittest.TestCase):
             with self.subTest(table=table), self.assertRaises(RuntimeError):
                 self.verify(table=table)
 
-    def test_tap_owner_type_bridge_address_or_down(self):
-        for mutate in [
+    def test_tap_owner_type_bridge_address_or_down(self) -> None:
+        mutations: list[Callable[[dict[str, Any]], None]] = [
             lambda r: r["linkinfo"]["info_data"].update(user="other"),
             lambda r: r["linkinfo"]["info_data"].update(type="tun"),
             lambda r: r.update(master="bridge0"),
             lambda r: r.update(flags=[]),
             lambda r: r["addr_info"][0].update(prefixlen=24),
             lambda r: r["addr_info"].append({"family": "inet", "local": "1.2.3.4"}),
-        ]:
+        ]
+        for mutate in mutations:
             rows = fixture()
             mutate(rows["rsvm0"])
             with self.subTest(rows=rows), self.assertRaises(RuntimeError):
                 self.verify(rows=rows)
 
-    def test_peer_and_routes_drift(self):
+    def test_peer_and_routes_drift(self) -> None:
         rows = fixture()
         rows["rscan0"]["link_index"] = 999
         with self.assertRaises(RuntimeError):
@@ -131,22 +137,23 @@ class VerificationTests(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             self.verify(routes=[])
 
-    def test_inactive_service_never_started(self):
+    def test_inactive_service_never_started(self) -> None:
         with self.assertRaises(RuntimeError):
             self.verify(active="inactive")
 
 
 class BackendVerificationTests(unittest.TestCase):
-    def test_invalid_mode_rejected_before_any_effect(self):
-        from runner_fleet.backend import Backend
+    def test_invalid_mode_rejected_before_any_effect(self) -> None:
+        from tools.runner_fleet.backend import Backend
 
         instance = object.__new__(Backend)
         with self.assertRaises(ValueError):
             instance.create({}, network_mode="repair-if-needed")
 
-    def test_verifier_rejection_cannot_provision_or_start(self):
+    def test_verifier_rejection_cannot_provision_or_start(self) -> None:
         from unittest.mock import MagicMock
-        from runner_fleet import backend
+
+        from tools.runner_fleet import backend
 
         instance = object.__new__(backend.Backend)
         instance.image = MagicMock(spec=Path)

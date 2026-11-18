@@ -2,19 +2,18 @@
 
 import hashlib
 import json
-import sys
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet import automatic_catalog as c
-from runner_fleet.state import State
+from tools.runner_fleet import automatic_catalog as c
+from tools.runner_fleet.state import State
 
 
 class CatalogTests(unittest.TestCase):
-    def row(self):
+    def row(self) -> dict[str, Any]:
         return dict(
             repository="runspindle-core",
             suite="validation",
@@ -40,7 +39,7 @@ class CatalogTests(unittest.TestCase):
             ],
         )
 
-    def fixture(self):
+    def fixture(self) -> tuple[dict[str, Any], bytes, bytes]:
         row = self.row()
         manifest = json.dumps(
             dict(
@@ -73,12 +72,12 @@ class CatalogTests(unittest.TestCase):
         row["evidence_sha256"] = hashlib.sha256(payload).hexdigest()
         return row, manifest, payload
 
-    def test_complete_exact_trusted_record(self):
+    def test_complete_exact_trusted_record(self) -> None:
         row, manifest, evidence = self.fixture()
         with patch.object(c, "sealed_bytes", side_effect=[manifest, evidence]):
             c.QualifiedRecord.parse(row).verify()
 
-    def test_failed_missing_or_other_source_evidence_rejected(self):
+    def test_failed_missing_or_other_source_evidence_rejected(self) -> None:
         for change in [
             {"status": "failed"},
             {"checks": {"scaffold": "passed"}},
@@ -97,7 +96,7 @@ class CatalogTests(unittest.TestCase):
             ):
                 c.QualifiedRecord.parse(row).verify()
 
-    def test_catalog_disabled_empty_duplicate_demo_fail_closed(self):
+    def test_catalog_disabled_empty_duplicate_demo_fail_closed(self) -> None:
         row, _, _ = self.fixture()
         for value in [
             dict(
@@ -123,7 +122,7 @@ class CatalogTests(unittest.TestCase):
             ):
                 c.load_catalog()
 
-    def test_unsealed_file_and_symlink_rejected(self):
+    def test_unsealed_file_and_symlink_rejected(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             path = Path(temporary) / "catalog"
             path.write_text("{}")
@@ -134,7 +133,7 @@ class CatalogTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 c.sealed_bytes(link, 1024)
 
-    def test_atomic_single_strix_reservation_and_restart(self):
+    def test_atomic_single_strix_reservation_and_restart(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             one = State(temporary)
             two = State(temporary)
@@ -156,7 +155,7 @@ class CatalogTests(unittest.TestCase):
                     {"repository": "runspindle-host", "id": 2}, single_strix=True
                 )
 
-    def test_single_strix_cannot_relax_mac_binding(self):
+    def test_single_strix_cannot_relax_mac_binding(self) -> None:
         with tempfile.TemporaryDirectory() as temporary:
             state = State(temporary)
             self.addCleanup(state.db.close)

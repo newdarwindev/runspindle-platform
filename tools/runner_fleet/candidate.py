@@ -200,12 +200,18 @@ class CandidateBackend(Backend):
         cast(Callable[..., None], super().__init__)(state, Path(plan["image_path"]))
         self.plan, self.campaign_id = plan, campaign_id
 
-    def create(self, resource: dict[str, Any], prepare: bool = False) -> None:
+    def create(
+        self,
+        resource: dict[str, Any],
+        prepare: bool = False,
+        *,
+        network_mode: str = "provision",
+    ) -> None:
         if prepare:
             raise ValueError("Candidate backend cannot prepare an image")
         verify_executor(self.plan)
         verify_image(self.plan, self.state.directory)
-        cast(Callable[..., None], super().create)(resource)
+        cast(Callable[..., None], super().create)(resource, network_mode=network_mode)
 
 
 class QueueManager(Manager):

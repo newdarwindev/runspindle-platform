@@ -7,16 +7,16 @@ admission boundary. The existing guest isolation and host watchdog remain requir
 
 from __future__ import annotations
 
+import argparse
 import hashlib
 import json
 import math
 import os
-import stat
 import re
-import argparse
-import signal
-import shutil
 import shlex
+import shutil
+import signal
+import stat
 import time
 import uuid
 from pathlib import Path
@@ -25,20 +25,20 @@ from typing import Any
 from .backend import ROOT, Backend, execute, helper
 from .candidate import time_budget
 from .manager import gh, pages
+from .offline_probe import write
 from .single_probe import (
     GUEST_SCRIPT,
+    STATE_DIRECTORY,
     IsolatedMetadata,
     manager_stopped,
+    plan,
     read_regular,
+    terminated,
     validate_observation,
     validate_state_directory,
     verify_guest_lifetime,
     verify_host_lifetime_policy,
-    plan,
-    terminated,
-    STATE_DIRECTORY,
 )
-from .offline_probe import write
 from .state import State
 
 REPOS = ("runspindle-browser", "runspindle-core", "runspindle-host")
@@ -355,7 +355,7 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
                 "image_sha256": intended["bindings"]["image_sha256"],
             },
         )
-        backend = Backend(IsolatedMetadata(state, directory), intended["image"])
+        backend: Any = Backend(IsolatedMetadata(state, directory), intended["image"])
         report: dict[str, Any] = {
             "status": "failed",
             "resource": resource["id"],
