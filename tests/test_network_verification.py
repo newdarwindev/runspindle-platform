@@ -136,5 +136,42 @@ class VerificationTests(unittest.TestCase):
             self.verify(active="inactive")
 
 
+class BackendVerificationTests(unittest.TestCase):
+    def test_invalid_mode_rejected_before_any_effect(self):
+        from runner_fleet.backend import Backend
+
+        instance = object.__new__(Backend)
+        with self.assertRaises(ValueError):
+            instance.create({}, network_mode="repair-if-needed")
+
+    def test_verifier_rejection_cannot_provision_or_start(self):
+        from unittest.mock import MagicMock
+        from runner_fleet import backend
+
+        instance = object.__new__(backend.Backend)
+        instance.image = MagicMock(spec=Path)
+        instance.image.is_symlink.return_value = False
+        instance.image.stat.return_value = SimpleNamespace(st_uid=0, st_mode=0o100400)
+        instance.state = MagicMock()
+        instance.state.directory = Path("/synthetic/state")
+        resource = {"id": "a" * 32, "slot": 0}
+        with (
+            patch.object(
+                instance, "directory", return_value=Path("/synthetic/resource")
+            ),
+            patch.object(instance, "slot", return_value=Path("/synthetic/slot")),
+            patch.object(backend, "digest", return_value="b" * 64),
+            patch.object(backend, "image_binding", return_value={}),
+            patch.object(
+                backend, "helper", side_effect=RuntimeError("network differs")
+            ) as helper,
+            patch.object(backend, "execute") as execute,
+        ):
+            with self.assertRaisesRegex(RuntimeError, "network differs"):
+                instance.create(resource, network_mode="verify")
+        helper.assert_called_once_with("verify-network")
+        execute.assert_not_called()
+
+
 if __name__ == "__main__":
     unittest.main()

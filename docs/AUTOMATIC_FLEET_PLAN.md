@@ -81,3 +81,14 @@ claim of faster complete CI.
   In particular Ubuntu bubblewrap postinstall invokes a user-namespace sysctl:
   stage only reviewed binary/notices, omit scripts/config, and fail closed if
   existing namespace policy does not permit the qualified sandbox.
+
+## Verifier rendering provenance
+
+The exact numeric nft rendering was read from the already-provisioned Strix host
+on2026-11-18 using only `nft -s -nn list table inet runspindle_fleet`. Its IPv6
+nfproto is10 and established/related states render as0x2,0x4 in that installed
+nft version. The namespace routes were read using
+`ip -j -n runspindle-canary route show`: default via198.18.231.1 precedes the
+connected198.18.231.0/30 route. No network mutation was used to collect them.
+Version/ordering differences intentionally fail closed; these textual bindings
+are conservative compatibility pins, not generic nft semantic normalization.
