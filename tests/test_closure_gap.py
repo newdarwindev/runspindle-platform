@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import hashlib
+import io
 import json
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
 from unittest.mock import patch
 
@@ -87,3 +89,33 @@ class ClosureGapTests(unittest.TestCase):
         os.mkfifo(self.lock)
         with self.assertRaises(ValueError):
             gap.audit(self.lock, self.manifest, self.cache)
+
+    def test_cli_structural_errors_are_sanitized(self) -> None:
+        for lock, manifest in (
+            ("package=[1]", '{"crate_archives":{}}'),
+            (self.lock.read_text(), "[" * 1500 + "0" + "]" * 1500),
+        ):
+            self.lock.write_text(lock)
+            self.manifest.write_text(manifest)
+            output = io.StringIO()
+            with (
+                patch(
+                    "sys.argv",
+                    [
+                        "audit",
+                        "--lock",
+                        str(self.lock),
+                        "--manifest",
+                        str(self.manifest),
+                        "--cache",
+                        str(self.cache),
+                    ],
+                ),
+                redirect_stdout(output),
+            ):
+                self.assertEqual(gap.main(), 2)
+            self.assertEqual(
+                json.loads(output.getvalue()),
+                {"status": "rejected", "reason": "invalid_or_changed_inputs"},
+            )
+            self.assertNotIn(str(self.root), output.getvalue())

@@ -71,6 +71,8 @@ def audit(lock: Path, manifest: Path, cache: Path) -> dict[str, Any]:
     seen: set[str] = set()
     covered = local_packages = total_read = 0
     for package in packages:
+        if type(package) is not dict:
+            raise ValueError("invalid package entry")
         name, version = package.get("name"), package.get("version")
         if (
             type(name) is not str
@@ -146,7 +148,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         report = audit(args.lock, args.manifest, args.cache)
-    except (ValueError, OSError, KeyError, TypeError):
+    except (ValueError, OSError, KeyError, TypeError, RecursionError):
         print(json.dumps({"status": "rejected", "reason": "invalid_or_changed_inputs"}))
         return 2
     print(json.dumps(report, sort_keys=True))
