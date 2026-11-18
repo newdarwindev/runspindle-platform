@@ -52,7 +52,8 @@ object kinds, byte sizes and digests are bounded and checked before admission.
 A reviewed repository profile declares a closed set of setup/dependency inputs:
 
 - workflow YAML and local reusable workflows/actions, their manifests and all
-  setup/validation entrypoint scripts;
+  setup/validation entrypoint scripts and their full transitive code/configuration
+  closure, including code loaded by remote actions;
 - package/workspace manifests and lockfiles, toolchain/config files, build scripts,
   image definitions, qualification and validation manifests;
 - explicit absence commitments for optional setup paths (for example Cargo config
@@ -73,6 +74,8 @@ refreshing compatibility. Those bytes are still untrusted job code confined to
 the disposable worker. Application code may fail, request an unavailable module,
 or attempt unsupported effects; none grants network, secret, package-install or
 host authority. A passing environment never converts such failures into success.
+Application-path classification is only a resource/dependency compatibility claim,
+never a security or credential authority boundary.
 This profile is deliberately conservative and may rebuild too often; optimize its
 coverage only with explicit review and mutation tests, not ad hoc exclusions.
 
@@ -106,6 +109,9 @@ Demo persistent enrollment remains owner-performed under the standing custom rul
 4. Observe **actual** assigned repository, run ID/attempt, job ID, head SHA and
    runner ID/name. Requested intent is not proof of scheduler assignment. Record
    mismatch as such; never attribute another job's result to the requested commit.
+   Requested-commit compatibility does not establish actual-job compatibility.
+   Independently verify the assigned source/workflow against the sealed profile;
+   an unexpected assignment remains unqualified even when safely isolated.
 5. Preserve raw outcome vs proof separately: GitHub conclusion, executed tests,
    required coverage, timeout/unknown effects and cleanup. Missing coverage or
    uncertain cleanup cannot produce a qualified/pass receipt.
@@ -142,3 +148,22 @@ image catalog, assignment reconciliation and recovery are deployed and exercised
 No operational change follows from approving this design alone. Implementation,
 independent review, exact qualification and required action-time deployment
 approval remain separate steps.
+
+## Disconnected policy prototype
+
+`tools/runner_fleet/environment_applicability.py` now checks a bounded, complete
+blob inventory supplied by a trusted observer against an operator-reviewed closed
+profile. Every tracked file is either exact setup input or an explicitly listed
+non-executable application path. New files, including application files, require
+profile review. Explicit absent paths and an externally resolved transitive
+closure digest are fingerprinted. Actual assignment must independently match the
+requested repository/source/inventory; a compatible different assignment is still
+rejected. Successful comparison returns only a profile fingerprint, never a test
+verdict or registration authorization.
+
+This deliberately disconnected prototype neither implements the trusted Git
+observer nor proves an external closure digest's provenance/completeness. It does
+not parse workflows, establish authority, change v1 admission, install a catalog,
+or launch anything. Those integration prerequisites remain blocked. Eight focused
+normal and optimized tests cover closure invalidation, unknown/missing/duplicate
+paths, modes, bounds, repository/environment identity and wrong actual assignment.
