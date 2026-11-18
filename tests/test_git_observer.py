@@ -84,6 +84,22 @@ class ObserverTests(unittest.TestCase):
                     self.observe()
                 (self.root / name).unlink()
 
+    def test_extra_empty_directory_is_an_input_and_rejected(self) -> None:
+        (self.root / "nested").mkdir()
+        (self.root / "nested" / "tracked.txt").write_text("tracked\n")
+        self.commit()
+        self.observe()
+        for name in ("feature", "ignored_directory", "nested/empty"):
+            directory = self.root / name
+            directory.mkdir()
+            with (
+                self.subTest(name=name),
+                self.assertRaisesRegex(ValueError, "directory"),
+            ):
+                self.observe()
+            directory.rmdir()
+        self.observe()
+
     def test_index_and_wrong_commit_rejected(self) -> None:
         (self.root / "app.txt").write_text("staged\n")
         self.git("add", "app.txt")

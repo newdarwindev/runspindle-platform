@@ -16,7 +16,9 @@ all tracked regular files, including modes and SHA256 byte digests. It checks
 HEAD, index, and two complete raw filesystem inventories. Extra files, including
 ignored files and executable inputs, fail closed. Symlinks, gitlinks/submodules,
 nonregular files, missing files, dirty bytes/modes and staged changes fail closed.
-Empty directories are not executable inputs and do not enter the blob inventory.
+Directory presence can affect setup behavior and namespace-package discovery.
+Both raw scans require exactly the directory paths in the committed tree; even
+extra empty or ignored directories are rejected.
 This is deliberately unsuitable for dirty build worktrees or cache-filled trees.
 
 A trusted installed `/usr/bin/git` and an exclusively owned, quiescent local
