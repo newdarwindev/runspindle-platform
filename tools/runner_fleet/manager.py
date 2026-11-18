@@ -136,6 +136,13 @@ class Manager:
             raise RuntimeError("Runner registration still present")
 
     def cleanup(self, resource: dict[str, Any], reason: str) -> None:
+        if resource.get("details", {}).get("unregistered_probe") is True:
+            # Probe metadata/image are deliberately separate from manager defaults.
+            # Explicit reviewed single_probe recovery owns this reservation.
+            self.state.update(
+                resource, "uncertain", cleanup_error="explicit probe recovery required"
+            )
+            return
         conclusion = resource["details"].get("claimed_job", {}).get("conclusion")
         status = (
             "passed"
