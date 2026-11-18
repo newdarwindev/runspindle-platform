@@ -2,7 +2,7 @@
 """Explicit approved-test supervisor; not a service or automatic admission path.
 
 Source-only until reviewed and separately approved for Docker bridge effects.
-900s test budget +30s graceful stop +10s kill wait +180s owned cleanup. Prefix
+900s test budget +30s graceful stop +10s kill wait +190s owned cleanup (180s calls plus final CLI termination). Prefix
 and synthetic label must both match. Unknown identities retain evidence and fail.
 """
 
@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import re
+import selectors
 import signal
 import subprocess
 import sys
@@ -38,16 +39,102 @@ def owns(name: str, run_id: str, kind: str) -> bool:
     )
 
 
+def leader_status(child: subprocess.Popen[bytes]) -> int | None:
+    """Observe without reaping: the PID/group cannot be reused during cleanup."""
+    status = os.waitid(os.P_PID, child.pid, os.WEXITED | os.WNOHANG | os.WNOWAIT)
+    if status is None:
+        return None
+    return status.si_status if status.si_code == os.CLD_EXITED else -status.si_status
+
+
+def active_group(group: int) -> list[int]:
+    found = []
+    with os.scandir("/proc") as entries:
+        for count, entry in enumerate(entries):
+            if count > 16384:
+                raise ValueError("process inventory bound")
+            if not entry.name.isdigit():
+                continue
+            try:
+                raw = (Path(entry.path) / "stat").read_text()
+            except FileNotFoundError:
+                continue
+            fields = raw.rsplit(")", 1)[1].split()
+            if int(fields[2]) == group and fields[0] not in ("Z", "X"):
+                found.append(int(entry.name))
+    return found
+
+
+def stop_group(child: subprocess.Popen[bytes], grace: float = 30) -> None:
+    # Caller MUST NOT poll()/wait() first. The unreaped leader pins this group ID.
+    try:
+        os.killpg(child.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        pass
+    deadline = time.monotonic() + grace
+    while active_group(child.pid) and time.monotonic() < deadline:
+        time.sleep(0.05)
+    try:
+        os.killpg(child.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    deadline = time.monotonic() + 10
+    child.wait(timeout=10)  # Reap only after the final group signal.
+    while active_group(child.pid):
+        if time.monotonic() >= deadline:
+            raise ValueError("process group termination uncertain")
+        time.sleep(0.05)
+
+
+def capture(
+    child: subprocess.Popen[bytes], deadline: float, limit: int, output: Any
+) -> int:
+    if child.stdout is None:
+        raise ValueError("bounded pipe required")
+    count = 0
+    with selectors.DefaultSelector() as selector:
+        selector.register(child.stdout, selectors.EVENT_READ)
+        while True:
+            if time.monotonic() >= deadline:
+                raise TimeoutError("bounded process deadline")
+            events = selector.select(0.05)
+            for key, _ in events:
+                chunk = os.read(key.fd, 65536)
+                if not chunk:
+                    selector.unregister(key.fileobj)
+                else:
+                    count += len(chunk)
+                    if count > limit:
+                        raise ValueError("output bound")
+                    output.write(chunk)
+            status = leader_status(child)
+            # Drain already available buffered output even if the leader exited.
+            if status is not None and not selector.select(0):
+                return status
+
+
 def docker(args: list[str], deadline: float) -> str:
-    remaining = min(15.0, deadline - time.monotonic())
-    if remaining <= 0:
+    import io
+
+    end = min(deadline, time.monotonic() + 15)
+    if end <= time.monotonic():
         raise TimeoutError("cleanup deadline")
-    value = subprocess.run(
-        ["docker", *args], check=True, capture_output=True, text=True, timeout=remaining
+    child = subprocess.Popen(
+        ["docker", *args],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        start_new_session=True,
     )
-    if len(value.stdout) > 128 * 1024:
-        raise ValueError("Docker observation bound")
-    return value.stdout
+    output = io.BytesIO()
+    try:
+        code = capture(child, end, 128 * 1024, output)
+        if code != 0:
+            raise RuntimeError("Docker observation failed")
+        return output.getvalue().decode()
+    finally:
+        stop_group(child, grace=0)
+        if child.stdout is not None:
+            child.stdout.close()
 
 
 def inventory(kind: str, run_id: str, deadline: float) -> list[tuple[str, str]]:
@@ -149,18 +236,11 @@ def run(prepared: Path, evidence: Path) -> int:
                 ],
                 cwd=ROOT,
                 env=env,
-                stdout=log,
+                stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
                 start_new_session=True,
             )
-            end = time.monotonic() + 900
-            while child.poll() is None:
-                if time.monotonic() >= end:
-                    raise TimeoutError("test workload deadline")
-                if log.tell() > 16 * 1024 * 1024:
-                    raise ValueError("test log bound")
-                time.sleep(0.2)
-            code = child.returncode
+            code = capture(child, time.monotonic() + 900, 16 * 1024 * 1024, log)
         report["test_exit"] = code
         if code == 0:
             report["status"] = "passed"
@@ -170,13 +250,10 @@ def run(prepared: Path, evidence: Path) -> int:
         for sig in previous:
             signal.signal(sig, signal.SIG_IGN)
         try:
-            if child is not None and child.poll() is None:
-                os.killpg(child.pid, signal.SIGTERM)
-                try:
-                    child.wait(timeout=30)
-                except subprocess.TimeoutExpired:
-                    os.killpg(child.pid, signal.SIGKILL)
-                    child.wait(timeout=10)
+            if child is not None:
+                stop_group(child)
+                if child.stdout is not None:
+                    child.stdout.close()
         except BaseException as error:
             report.update(status="failed", process_stop_error_type=type(error).__name__)
         try:
