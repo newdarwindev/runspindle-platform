@@ -240,6 +240,14 @@ def observe_checkout(
             raise ValueError("Git blob length mismatch")
         blobs.append(Blob(path, mode, size, hashlib.sha256(content).hexdigest()))
         expected_index.append(mode.encode() + b" " + oid.encode() + b" 0\t" + name)
+    blob_directories = {
+        parent.as_posix()
+        for blob in blobs
+        for parent in Path(blob.path).parents
+        if parent != Path(".")
+    }
+    if expected_directories != blob_directories:
+        raise ValueError("Committed empty directories are unsupported")
     expected = tuple(sorted(blobs, key=lambda blob: blob.path))
     index = git(["ls-files", "--stage", "-z"])
     if sorted(index.split(b"\0")[:-1]) != sorted(expected_index):

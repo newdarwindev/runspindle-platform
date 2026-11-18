@@ -100,6 +100,47 @@ class ObserverTests(unittest.TestCase):
             directory.rmdir()
         self.observe()
 
+    def test_committed_empty_tree_is_rejected(self) -> None:
+        empty = (
+            subprocess.check_output(
+                ["/usr/bin/git", "-C", str(self.root), "mktree"], input=b""
+            )
+            .decode()
+            .strip()
+        )
+        original = subprocess.check_output(
+            ["/usr/bin/git", "-C", str(self.root), "ls-tree", "HEAD"]
+        )
+        tree = (
+            subprocess.check_output(
+                ["/usr/bin/git", "-C", str(self.root), "mktree"],
+                input=original + f"040000 tree {empty}\tfeature\n".encode(),
+            )
+            .decode()
+            .strip()
+        )
+        commit = (
+            subprocess.check_output(
+                [
+                    "/usr/bin/git",
+                    "-C",
+                    str(self.root),
+                    "commit-tree",
+                    tree,
+                    "-p",
+                    self.sha,
+                ],
+                input=b"synthetic empty directory\n",
+            )
+            .decode()
+            .strip()
+        )
+        self.git("update-ref", "HEAD", commit)
+        self.sha = commit
+        (self.root / "feature").mkdir()
+        with self.assertRaisesRegex(ValueError, "empty directories"):
+            self.observe()
+
     def test_index_and_wrong_commit_rejected(self) -> None:
         (self.root / "app.txt").write_text("staged\n")
         self.git("add", "app.txt")
