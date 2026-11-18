@@ -61,7 +61,7 @@ class AdmissionTests(unittest.TestCase):
             event="push",
             head_branch="main",
             head_sha="1" * 40,
-            head_repository={"full_name": "newdarwindev/runspindle-core"},
+            head_repository="newdarwindev/runspindle-core",
             labels=self.record.labels(),
             run_id=7,
         )
@@ -96,6 +96,62 @@ class AdmissionTests(unittest.TestCase):
         )
         self.assertEqual(self.state.active()[0]["phase"], "running")
         self.assertIsNone(self.admit())
+
+    def test_actual_inventory_shape_reaches_canonical_reservation(self) -> None:
+        from unittest.mock import patch
+        from tools.runner_fleet.manager import Manager
+
+        collector = object.__new__(Manager)
+        collector.cfg = {"owner": "newdarwindev", "repositories": ["runspindle-core"]}
+        collector.state = self.state
+        run = {
+            "id": 7,
+            "status": "queued",
+            "event": "push",
+            "head_branch": "main",
+            "head_sha": "1" * 40,
+            "head_repository": {"full_name": "newdarwindev/runspindle-core"},
+            "path": ".github/workflows/validation.yml",
+        }
+
+        def pages(path: str, key: str) -> list[dict[str, Any]]:
+            if key == "jobs":
+                return [{"id": 42, "status": "queued", "labels": self.record.labels()}]
+            return [run] if "status=queued" in path else []
+
+        with patch("tools.runner_fleet.manager.pages", side_effect=pages):
+            queue, _ = collector.inventory()
+        self.assertEqual(len(queue), 1)
+        self.assertEqual(queue[0]["head_repository"], "newdarwindev/runspindle-core")
+        self.job = queue[0]
+        self.state.set("drained", False)
+        resource = self.admit()
+        self.assertIsNotNone(resource)
+        retained = self.state.active()[0]
+        self.assertEqual(retained["details"]["requested_source"]["head_sha"], "1" * 40)
+        self.assertEqual(retained["details"]["requested_source"]["run_id"], 7)
+        self.backend.create.assert_called_once_with(resource, network_mode="verify")
+
+    def test_malformed_or_foreign_inventory_authority_has_no_effect(self) -> None:
+        self.state.set("drained", False)
+        for change in (
+            {"head_repository": "other/runspindle-core"},
+            {"head_repository": {"full_name": "newdarwindev/runspindle-core"}},
+            {"head_repository": None},
+            {"event": "pull_request"},
+            {"head_branch": "unreviewed"},
+            {"head_branch": None},
+            {"head_branch": 42},
+            {"id": True},
+        ):
+            original = self.job
+            self.job = original | change
+            with self.subTest(change=change), self.assertRaises(ValueError):
+                self.admit()
+            self.job = original
+            self.assertEqual(self.state.active(), [])
+        self.factory.assert_not_called()
+        self.capacity.assert_not_called()
 
     def test_generic_route_or_workflow_change_cannot_reserve(self) -> None:
         self.state.set("drained", False)
