@@ -206,3 +206,27 @@ class HistoricalAssignmentTests(unittest.TestCase):
         gh.assert_called_once_with(
             "repos/newdarwindev/runspindle-browser/actions/runs/10"
         )
+
+
+class PendingRunObservationTests(unittest.TestCase):
+    def test_existing_pending_run_is_observed_after_completion(self):
+        run = {"id": 44305972724, "run_attempt": 1, "status": "completed"}
+        job = {
+            "id": 134807610979,
+            "runner_name": "owned",
+            "status": "completed",
+            "conclusion": "failure",
+        }
+
+        def page(path, key):
+            return [job] if path.endswith("/44305972724/jobs") else []
+
+        with (
+            patch.object(p, "pages", side_effect=page),
+            patch.object(p, "gh", return_value=run),
+        ):
+            result = p.observe_jobs(
+                p.REPOS[0], "owned", "2026-11-18T13:07:00Z", [44305972724]
+            )
+        self.assertEqual(result[0]["conclusion"], "failure")
+        self.assertEqual(result[0]["id"], 134807610979)

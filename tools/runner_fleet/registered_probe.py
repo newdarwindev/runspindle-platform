@@ -326,13 +326,14 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
         budget = capacity(state.directory)
         if any(registrations(r) for r in REPOS):
             raise ValueError("Existing registration; no competing admission")
+        # GitHub can expose eligible runs under pending/requested/waiting or
+        # briefly inconsistent status filters. Inventory all bounded pages,
+        # not just queued/in_progress, so an old assigned run stays observable.
         prior_runs = sorted(
             {
                 int(run["id"])
-                for status in ("queued", "in_progress")
                 for run in pages(
-                    f"repos/newdarwindev/{repo}/actions/runs?status={status}",
-                    "workflow_runs",
+                    f"repos/newdarwindev/{repo}/actions/runs", "workflow_runs"
                 )
             }
         )
