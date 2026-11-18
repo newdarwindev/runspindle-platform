@@ -49,6 +49,7 @@ def base_references(state: Any) -> dict[str, str]:
         if (
             type(path) is not str
             or not Path(path).is_absolute()
+            or Path(path).resolve() != Path(path)
             or type(sha) is not str
             or not re.fullmatch(r"[0-9a-f]{64}", sha)
         ):
@@ -60,7 +61,9 @@ def base_references(state: Any) -> dict[str, str]:
 
 
 def assert_unreferenced_image(state: Any, path: Path) -> None:
-    if str(path.resolve()) in base_references(state):
+    if not path.is_absolute() or path.resolve() != path:
+        raise ValueError("Noncanonical image query; GC blocked")
+    if str(path) in base_references(state):
         raise ValueError("Image retained by canonical resource record")
 
 

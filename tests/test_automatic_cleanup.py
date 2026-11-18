@@ -132,6 +132,18 @@ class CleanupTests(unittest.TestCase):
         self.assertTrue((self.slot / "disk.qcow2").exists())
         self.assertEqual(list(self.archive.iterdir()), [])
 
+    def test_noncanonical_stored_or_queried_base_blocks_gc(self):
+        alias = self.root / "alias.qcow2"
+        alias.symlink_to(self.base)
+        with self.assertRaises(ValueError):
+            assert_unreferenced_image(self.state, alias)
+        for path in [str(alias), str(self.root / "sub" / ".." / "base.qcow2")]:
+            self.state.update(self.resource, "uncertain", image_path=path)
+            with self.assertRaises(ValueError):
+                base_references(self.state)
+            with self.assertRaises(ValueError):
+                assert_unreferenced_image(self.state, self.base)
+
     def test_foreign_resource_rejected_before_effects(self):
         with self.assertRaises(ValueError):
             self.cleanup.finish("f" * 32)
