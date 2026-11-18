@@ -154,7 +154,9 @@ approval remain separate steps.
 `tools/runner_fleet/environment_applicability.py` now checks a bounded, complete
 blob inventory supplied by a trusted observer against an operator-reviewed closed
 profile. Every tracked file is either exact setup input or an explicitly listed
-non-executable application path. New files, including application files, require
+Git-mode-100644 application path. This mode does not prevent interpretation or
+import as code; the operator must bind the full transitive setup closure.
+New files, including application files, require
 profile review. Explicit absent paths and an externally resolved transitive
 closure digest are fingerprinted. Actual assignment must independently match the
 requested repository/source/inventory; a compatible different assignment is still

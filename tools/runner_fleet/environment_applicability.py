@@ -168,7 +168,8 @@ def compatible(profile: Profile, observation: Observation) -> str:
         raise ValueError("Missing or unclassified path")
     if any(current[path] != blob for path, blob in setup.items()):
         raise ValueError("Setup closure changed")
-    # Application blobs may change content but cannot become executable setup.
+    # Git mode 100644 only. Interpreters/imports can still execute these bytes;
+    # the reviewed setup closure must include all transitively loaded code.
     if any(current[path].mode != "100644" for path in profile.application_paths):
         raise ValueError("Application mode unsupported")
     return fingerprint
