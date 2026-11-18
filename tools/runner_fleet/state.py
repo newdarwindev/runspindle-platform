@@ -140,6 +140,8 @@ class State:
         capacity: int = 2,
         details: dict[str, Any] | None = None,
         binding: dict[str, Any] | None = None,
+        *,
+        single_strix: bool = False,
     ) -> dict[str, Any]:
         if capacity not in (1, 2):
             raise ValueError("Fleet capacity must be one Mac slot or two Strix slots")
@@ -151,9 +153,14 @@ class State:
             or binding.get("host") != "macbook"
         ):
             raise ValueError("One-slot reservation requires a Mac host binding")
+        if type(single_strix) is not bool or (
+            single_strix and (capacity != 2 or binding is not None)
+        ):
+            raise ValueError("Single Strix reservation cannot change Mac binding")
+        effective_capacity = 1 if single_strix else capacity
         with self.transaction():
             occupied = self.active()
-            if len(occupied) >= capacity:
+            if len(occupied) >= effective_capacity:
                 raise RuntimeError("Capacity exhausted, including uncertain resources")
             if capacity == 1:
                 if binding is None:
@@ -165,7 +172,9 @@ class State:
                 )
                 binding = binding | {"lease_epoch": epoch}
             slot = next(
-                s for s in range(capacity) if s not in {r["slot"] for r in occupied}
+                s
+                for s in range(effective_capacity)
+                if s not in {r["slot"] for r in occupied}
             )
             identity = uuid.uuid4().hex
             name = "runspindle-fleet-" + identity
