@@ -2,8 +2,8 @@
 
 Requires reviewed installed helper (stopped slot becomes operator-private) and
 canonical manager state. No run-loop/entrypoint invokes this module currently.
-Interrupted moves retain capacity for explicit recovery; this is not automatic
-partial-move repair. All completed records continue protecting their backing base.
+Interrupted moves retain capacity for explicit exact-intent recovery; this is not
+automatic or reconstructive repair. All completed records continue protecting their backing base.
 """
 
 from __future__ import annotations
@@ -21,6 +21,7 @@ from .model import REPOSITORIES
 from .original_retention import (
     inspect_linked_disk,
     retain_originals,
+    resume_originals,
     verify_backing_binding,
 )
 
@@ -39,7 +40,7 @@ def cleanup_signals() -> Iterator[None]:
 
 
 def base_references(state: Any) -> dict[str, str]:
-    """No base may be removed/replaced while ANY canonical record references it."""
+    """Inventory automatic-owner base references, including released slots."""
     result = {}
     for resource in state.all_resources():
         details = resource["details"]
@@ -61,6 +62,13 @@ def base_references(state: Any) -> dict[str, str]:
 
 
 def assert_unreferenced_image(state: Any, path: Path) -> None:
+    # Legacy/probe retention has a different schema. Never silently assume it
+    # carries no backing references; a separate reviewed inventory is required.
+    if any(
+        r["details"].get("automatic_fleet_v1") is not True
+        for r in state.all_resources()
+    ):
+        raise ValueError("Legacy backing inventory unresolved; all GC blocked")
     if not path.is_absolute() or path.resolve() != path:
         raise ValueError("Noncanonical image query; GC blocked")
     if str(path) in base_references(state):
@@ -99,6 +107,13 @@ class AutomaticCleanup:
         self.state, self.root, self.stop, self.remove = state, root, stop, remove
 
     def finish(self, identity: str) -> dict[str, Any]:
+        return self._finish(identity, recover=False)
+
+    def recover(self, identity: str) -> dict[str, Any]:
+        """Reconcile only the exact canonical persisted no-copy intent."""
+        return self._finish(identity, recover=True)
+
+    def _finish(self, identity: str, *, recover: bool) -> dict[str, Any]:
         if not re.fullmatch(r"[0-9a-f]{32}", identity):
             raise ValueError("Exact resource identity required")
         with self.state.lock(), cleanup_signals():
@@ -134,9 +149,9 @@ class AutomaticCleanup:
             try:
                 with time_budget(240):
                     details = resource["details"]
-                    if "original_retention" in details:
+                    if ("original_retention" in details) != recover:
                         raise ValueError(
-                            "Existing retention intent requires explicit recovery"
+                            "Explicit recovery must match existing retention intent"
                         )
                     base = Path(details["image_path"])
                     base_references(self.state)
@@ -148,12 +163,6 @@ class AutomaticCleanup:
                         "serial": slot / "serial.log",
                         "key": directory / "key",
                     }
-                    binding = inspect_linked_disk(
-                        files["disk"],
-                        base,
-                        details["image_sha256"],
-                        lambda argv: backend.execute(argv, timeout=60, check=False),
-                    )
 
                     def persist(phase: str, receipt: dict[str, Any]) -> None:
                         self.state.update(
@@ -163,9 +172,30 @@ class AutomaticCleanup:
                             retention_phase=phase,
                         )
 
-                    receipt = retain_originals(
-                        files, self.root / "retained" / identity, binding, persist
-                    )
+                    if recover:
+                        receipt = details["original_retention"]
+                        binding = receipt["backing"]
+                        if (
+                            binding.get("base_path") != str(base)
+                            or binding.get("base_sha256") != details["image_sha256"]
+                        ):
+                            raise ValueError(
+                                "Recovery base differs from canonical reservation"
+                            )
+                        receipt = resume_originals(
+                            files, self.root / "retained" / identity, receipt, persist
+                        )
+                    else:
+                        binding = inspect_linked_disk(
+                            files["disk"],
+                            base,
+                            details["image_sha256"],
+                            lambda argv: backend.execute(argv, timeout=60, check=False),
+                        )
+                        receipt = retain_originals(
+                            files, self.root / "retained" / identity, binding, persist
+                        )
+
                     if any(slot.iterdir()):
                         raise ValueError("Unexpected slot files remain")
                     verify_backing_binding(binding)

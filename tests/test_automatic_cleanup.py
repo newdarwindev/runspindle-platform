@@ -144,6 +144,73 @@ class CleanupTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 assert_unreferenced_image(self.state, self.base)
 
+    def interrupt_after_first_move(self):
+        original = Path.rename
+        calls = 0
+
+        def interrupted(path, destination):
+            nonlocal calls
+            calls += 1
+            if calls == 2:
+                raise OSError("synthetic interruption")
+            return original(path, destination)
+
+        with patch.object(Path, "rename", interrupted):
+            self.assertEqual(
+                self.cleanup.finish(self.resource["id"])["status"], "uncertain"
+            )
+        self.assertTrue((self.archive / "disk-original").exists())
+        self.assertTrue((self.slot / "seed.iso").exists())
+
+    def test_explicit_partial_recovery_after_database_reopen(self):
+        self.interrupt_after_first_move()
+        reopened = State(self.state.directory)
+        self.addCleanup(reopened.db.close)
+        recovery = AutomaticCleanup(
+            reopened, root=self.root, stop=self.stop, remove=self.remove
+        )
+        result = recovery.recover(self.resource["id"])
+        self.assertEqual(result["status"], "retained")
+        self.assertEqual(reopened.active(), [])
+        self.assertEqual(len(list(self.archive.iterdir())), 4)
+        self.assertEqual(list(self.slot.iterdir()), [])
+        self.assertEqual(
+            base_references(reopened), {str(self.base): file_digest(self.base)}
+        )
+
+    def test_recovery_tamper_blocks_before_any_remaining_move(self):
+        self.interrupt_after_first_move()
+        key = self.state.directory / "resources" / self.resource["id"] / "key"
+        key.write_bytes(b"changed synthetic")
+        self.assertEqual(
+            self.cleanup.recover(self.resource["id"])["status"], "uncertain"
+        )
+        self.assertTrue((self.slot / "seed.iso").exists())
+        self.assertFalse((self.archive / "seed-original").exists())
+        self.assertTrue(self.state.active())
+
+    def test_recovery_cannot_substitute_target_or_run_without_intent(self):
+        self.assertEqual(
+            self.cleanup.recover(self.resource["id"])["status"], "uncertain"
+        )
+        self.assertEqual(list(self.archive.iterdir()), [])
+        self.interrupt_after_first_move()
+        resource = self.state.active()[0]
+        receipt = resource["details"]["original_retention"]
+        receipt["files"]["seed"]["destination"] = str(self.root / "other")
+        self.state.update(resource, "uncertain", original_retention=receipt)
+        self.assertEqual(
+            self.cleanup.recover(self.resource["id"])["status"], "uncertain"
+        )
+        self.assertTrue((self.slot / "seed.iso").exists())
+
+    def test_unresolved_legacy_records_block_all_gc(self):
+        self.assertEqual(self.cleanup.finish(self.resource["id"])["status"], "retained")
+        old = self.state.reserve({"repository": "runspindle-host", "id": 99})
+        self.state.update(old, "destroyed")
+        with self.assertRaisesRegex(ValueError, "Legacy"):
+            assert_unreferenced_image(self.state, self.root / "unreferenced.qcow2")
+
     def test_foreign_resource_rejected_before_effects(self):
         with self.assertRaises(ValueError):
             self.cleanup.finish("f" * 32)
