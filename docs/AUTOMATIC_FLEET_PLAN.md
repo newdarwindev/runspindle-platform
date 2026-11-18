@@ -180,3 +180,21 @@ runner label. Later commits with identical workflow/manifest are NOT admitted.
 Automatically generalizing image qualification across code revisions requires a
 separate dependency/lock/input applicability policy and review; this conservative
 candidate does not yet satisfy unattended validation of every new commit.
+
+## Explicit interrupted-retention recovery candidate
+
+A separate `recover(exact_resource_id)` now rechecks owned stop and registration
+absence, then validates the entire persisted intent before moving anything else.
+Each expected source/destination pair must contain exactly one matching original
+inode, bytes, mode and timestamp. Changed, missing, duplicated, linked or substituted
+files reject recovery while retaining capacity. Only the remaining original inodes
+move; no new retention plan, copy, backup, deletion or reconstruction is permitted.
+The exact base is revalidated before completion. An ordinary finish still refuses
+to retry an existing intent implicitly. Tests reopen actual temporary SQLite after
+an interrupted real tiny-qcow inode move, and reject tampered/path-substituted data
+before any remaining move. This remains source-only, not real fleet recovery.
+
+The GC guard additionally refuses ALL image deletion/replacement decisions while
+legacy/probe resource records lack a separately reviewed backing-reference inventory.
+Automatic-reference enumeration alone does not prove old retained overlays safe to
+orphan. No garbage collector or image writer has been activated or changed.

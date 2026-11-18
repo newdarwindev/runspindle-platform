@@ -226,3 +226,83 @@ def retain_originals(
     verify_backing_binding(binding)
     persist("complete", copy.deepcopy(receipt))
     return receipt
+
+
+def resume_originals(
+    files: dict[str, Path],
+    archive: Path,
+    receipt: dict[str, Any],
+    persist: Callable[[str, dict[str, Any]], None],
+) -> dict[str, Any]:
+    """Explicit recovery of an already durable intent, never a new retention plan.
+
+    Verify ALL original identities before moving any remainder. Exactly one of
+    each source/destination may exist. A missing, duplicated, changed or aliased
+    input keeps capacity occupied; no copy, deletion, substitution or repair.
+    """
+    if (
+        type(receipt) is not dict
+        or set(receipt) != {"schema", "files", "backing"}
+        or receipt["schema"] != "original-retention-v1"
+        or set(files) != {"disk", "seed", "serial", "key"}
+        or type(receipt["files"]) is not dict
+        or set(receipt["files"]) != set(files)
+    ):
+        raise ValueError("Unknown retention recovery schema")
+    _private(archive)
+    verify_backing_binding(receipt["backing"])
+    limits = {
+        "disk": MAX_DISK + 1024**3,
+        "seed": 16 * 1024**2,
+        "serial": 64 * 1024**2,
+        "key": 16384,
+    }
+    pending = []
+    for name, source in files.items():
+        destination = archive / (name + "-original")
+        row = receipt["files"][name]
+        _private(source.parent)
+        if (
+            type(row) is not dict
+            or set(row) != {"source", "destination", "stamp", "sha256"}
+            or row["source"] != str(source)
+            or row["destination"] != str(destination)
+            or source.is_symlink()
+            or destination.is_symlink()
+        ):
+            raise ValueError("Recovery path binding differs")
+        source_exists, destination_exists = source.exists(), destination.exists()
+        if source_exists == destination_exists:
+            raise ValueError("Recovery requires exactly one original inode")
+        observed = source if source_exists else destination
+        if (
+            _stamp(observed, limits[name]) != row["stamp"]
+            or file_digest(observed) != row["sha256"]
+            or observed.stat().st_dev != archive.stat().st_dev
+        ):
+            raise ValueError("Recovery original identity differs")
+        if source_exists:
+            pending.append((name, source, destination, row))
+    if receipt["files"]["disk"]["sha256"] != receipt["backing"]["overlay_sha256"]:
+        raise ValueError("Recovery overlay binding differs")
+    # Caller has exclusive canonical lock and private directories; no hostile
+    # same-UID concurrent writer guarantee is asserted.
+    for name, source, destination, row in pending:
+        if (
+            _stamp(source, limits[name]) != row["stamp"]
+            or file_digest(source) != row["sha256"]
+            or destination.exists()
+            or destination.is_symlink()
+        ):
+            raise ValueError("Recovery changed before move")
+        source.rename(destination)
+        if (
+            _stamp(destination, limits[name]) != row["stamp"]
+            or file_digest(destination) != row["sha256"]
+        ):
+            raise ValueError("Recovered original differs")
+        sync_directory(source.parent)
+        sync_directory(archive)
+    verify_backing_binding(receipt["backing"])
+    persist("complete", copy.deepcopy(receipt))
+    return receipt
