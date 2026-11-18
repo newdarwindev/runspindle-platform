@@ -92,3 +92,26 @@ nft version. The namespace routes were read using
 connected198.18.231.0/30 route. No network mutation was used to collect them.
 Version/ordering differences intentionally fail closed; these textual bindings
 are conservative compatibility pins, not generic nft semantic normalization.
+
+## Additional implemented source primitives (not manager integration)
+
+`automatic_policy.ImageRoute` produces one exact repository/image/tool-closure/
+validation-manifest/suite label. Registration must use `--no-default-labels` and
+ONLY that label: adding generic labels would still admit old generic jobs by
+GitHub subset matching. `capacity_one` admits at most one reservation against
+fresh RAM, minimum actual filesystem, corresponding physical thin-pool/metadata
+and remaining retention-budget observations. These functions cannot authenticate
+qualification records; a reviewed trusted catalog loader remains required.
+
+`original_retention` inspects real qcow2 backing metadata, binds original bytes
+and exact immutable base identity, then records intent before moving original
+inodes into an existing private same-filesystem directory. It makes no copied
+image/log/key/seed, performs no deletion and releases no reservation. Failures
+before, during or after moves preserve all original data; recovery must follow the
+persisted intent and leave uncertain capacity occupied. Base lifetime/GC protection
+must be integrated into the canonical resource state before deployment. The
+primitive requires private owner directories; current helper slot ownership/mode
+transition must be reviewed rather than silently chmodded or weakened. No current
+manager path calls it. Tests use newly created tiny synthetic qcow files, not real
+retained guests; they prove inode preservation and changed-base/intent/partial-move
+failures, not full production cleanup or restore qualification.
