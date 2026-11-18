@@ -44,7 +44,7 @@ class RegisteredProbeTests(unittest.TestCase):
             patch.object(p, "Backend") as backend,
         ):
             with self.assertRaises(ValueError):
-                p.run({}, state, p.REPOS[0])
+                p.run({"bindings": {"image_sha256": p.IMAGE_SHA}}, state, p.REPOS[0])
         state.reserve.assert_not_called()
         backend.assert_not_called()
 

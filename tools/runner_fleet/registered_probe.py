@@ -9,6 +9,9 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
+import argparse
+import signal
 import shutil
 import shlex
 import time
@@ -28,11 +31,15 @@ from .single_probe import (
     validate_state_directory,
     verify_guest_lifetime,
     verify_host_lifetime_policy,
+    plan,
+    terminated,
+    STATE_DIRECTORY,
 )
 from .offline_probe import write
 from .state import State
 
 REPOS = ("runspindle-browser", "runspindle-core", "runspindle-host")
+IMAGE_SHA = "a5db32338fd6721c53e5b5078d82220c4186181a25da28b6aee726787f632cd0"
 CAMPAIGN = "approved-three-repo-20261118-v1"
 GIB = 1024**3
 EXPECTED_MANAGER = "5fbb8157580a34c841ba016ec15e013f441603130c12ab48ce8377a160a78b0c"
@@ -109,7 +116,8 @@ def capacity(directory: Path) -> dict[str, Any]:
     metadata = float(row["metadata_percent"])
     # 49GiB covers original+snapshot+qcow metadata, then 30GiB reserve.
     if (
-        available < 13 * GIB
+        not all(math.isfinite(x) for x in (physical, metadata))
+        or available < 13 * GIB
         or disk < 79 * GIB
         or physical < 79 * GIB
         or not 0 <= metadata < 80
@@ -217,6 +225,8 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
     """
     if repo not in REPOS:
         raise ValueError("Outside approved repositories")
+    if intended.get("bindings", {}).get("image_sha256") != IMAGE_SHA:
+        raise ValueError("Outside approved exact image")
     guarded_installation()
     validate_state_directory(state.directory)
     manager_stopped()
@@ -225,6 +235,10 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
         manager_stopped()
         if state.active():
             raise ValueError("Occupied or uncertain shared capacity")
+        for slot in range(2):
+            observed = helper("observe", slot)
+            if observed.get("ActiveState") not in ("inactive", "failed"):
+                raise ValueError("Unknown or occupied host guest")
         history = state.get(CAMPAIGN, [])
         if (
             not isinstance(history, list)
@@ -317,3 +331,47 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
                 (json.dumps(report, indent=2) + "\n").encode(),
             )
         return report
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--repository", choices=REPOS, required=True)
+    parser.add_argument("--image", type=Path, required=True)
+    parser.add_argument("--manifest", type=Path, required=True)
+    parser.add_argument("--expected", type=Path, required=True)
+    parser.add_argument("--execute", action="store_true")
+    args = parser.parse_args()
+    intended = plan(args.image, args.manifest, args.expected)
+    if intended["bindings"]["image_sha256"] != IMAGE_SHA:
+        raise ValueError("Outside approved exact image")
+    if not args.execute:
+        print(
+            json.dumps(
+                {
+                    "status": "planned",
+                    "repository": args.repository,
+                    "bindings": intended["bindings"],
+                    "registered": False,
+                }
+            )
+        )
+        return 0
+    guarded_installation()
+    verify_host_lifetime_policy()
+    validate_state_directory(STATE_DIRECTORY)
+    manager_stopped()
+    previous = signal.signal(signal.SIGTERM, terminated)
+    state = None
+    try:
+        state = State(STATE_DIRECTORY)
+        result = run(intended, state, args.repository)
+        print(json.dumps(result))
+        return 0 if result["status"] == "passed" else 1
+    finally:
+        if state is not None:
+            state.db.close()
+        signal.signal(signal.SIGTERM, previous)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
