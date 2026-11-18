@@ -1,16 +1,14 @@
 """Synthetic policy tests confer no runner or image qualification."""
 
 import dataclasses
-import sys
 import unittest
-from pathlib import Path
+from typing import Any
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.automatic_policy import GIB, ImageRoute, capacity_one
+from tools.runner_fleet.automatic_policy import GIB, ImageRoute, capacity_one
 
 
 class PolicyTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.route = ImageRoute(
             "runspindle-core", "a" * 64, "b" * 64, "c" * 64, "validation"
         )
@@ -23,7 +21,7 @@ class PolicyTests(unittest.TestCase):
             retention_allowance=25 * GIB,
         )
 
-    def test_routes_exact_bindings_and_no_generic_labels(self):
+    def test_routes_exact_bindings_and_no_generic_labels(self) -> None:
         labels = self.route.labels()
         self.assertTrue(self.route.matches("runspindle-core", labels))
         for field, value in [
@@ -45,7 +43,7 @@ class PolicyTests(unittest.TestCase):
             self.assertFalse(self.route.matches("runspindle-core", request))
         self.assertFalse(self.route.matches("runspindle-host", labels))
 
-    def test_unqualified_fields_and_demo_rejected(self):
+    def test_unqualified_fields_and_demo_rejected(self) -> None:
         for field, value in [
             ("repository", "runspindle-demo-suite"),
             ("image_sha256", "latest"),
@@ -56,14 +54,14 @@ class PolicyTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 dataclasses.replace(self.route, **{field: value}).labels()
 
-    def test_capacity_is_at_most_one(self):
+    def test_capacity_is_at_most_one(self) -> None:
         self.assertEqual(capacity_one(**self.capacity), 1)
         for occupied in [1, 2, 100]:
             self.assertEqual(
                 capacity_one(**(self.capacity | {"occupied": occupied})), 0
             )
 
-    def test_each_independent_budget_blocks(self):
+    def test_each_independent_budget_blocks(self) -> None:
         for key in [
             "available_memory",
             "filesystem_free",
@@ -77,10 +75,11 @@ class PolicyTests(unittest.TestCase):
             capacity_one(**(self.capacity | {"pool_metadata_basis_points": 8000})), 0
         )
 
-    def test_invalid_observation_never_admitted(self):
+    def test_invalid_observation_never_admitted(self) -> None:
         for value in [-1, True, 1.0, None]:
             with self.assertRaises(ValueError):
-                capacity_one(**(self.capacity | {"pool_free": value}))
+                invalid: dict[str, Any] = self.capacity | {"pool_free": value}
+                capacity_one(**invalid)
 
 
 if __name__ == "__main__":

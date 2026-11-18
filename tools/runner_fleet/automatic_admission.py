@@ -74,7 +74,7 @@ class AutomaticAdmission:
             observation = self.capacity_probe()
             if not capacity_one(occupied=len(self.state.active()), **observation):
                 return None
-            resource = self.state.reserve(
+            resource: dict[str, Any] = self.state.reserve(
                 job,
                 single_strix=True,
                 details={

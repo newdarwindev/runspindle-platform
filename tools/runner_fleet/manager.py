@@ -35,7 +35,7 @@ def pages(path: str, key: str) -> list[dict[str, Any]]:
     raise RuntimeError("Pagination limit reached; inventory uncertain")
 
 
-def trusted(run, repository):
+def trusted(run: dict[str, Any], repository: str) -> bool:
     return (
         run.get("event") in ("push", "workflow_dispatch")
         and (

@@ -310,7 +310,13 @@ class Backend:
         if result.returncode:
             raise RuntimeError("verified preparation transfer failed")
 
-    def create(self, resource, prepare=False, *, network_mode="provision"):
+    def create(
+        self: Any,
+        resource: dict[str, Any],
+        prepare: bool = False,
+        *,
+        network_mode: str = "provision",
+    ) -> None:
         if network_mode not in ("provision", "verify"):
             raise ValueError("Unsupported network lifecycle")
         if prepare and (
@@ -535,7 +541,15 @@ GUEST
             checks["guest_docker_builder"] = True
         self.state.update(resource, "isolated", isolation=checks)
 
-    def register(self, resource, repository, token, labels, *, no_default_labels=False):
+    def register(
+        self: Any,
+        resource: dict[str, Any],
+        repository: str,
+        token: str,
+        labels: list[str],
+        *,
+        no_default_labels: bool = False,
+    ) -> None:
         if type(no_default_labels) is not bool:
             raise ValueError("Invalid default-label policy")
         label_mode = " --no-default-labels" if no_default_labels else ""

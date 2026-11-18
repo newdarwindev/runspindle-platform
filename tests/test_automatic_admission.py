@@ -1,20 +1,20 @@
 """Real local SQLite lifecycle, synthetic catalog/backend, no external action."""
 
-import sys
 import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet.automatic_admission import AutomaticAdmission
-from runner_fleet.automatic_policy import GIB, ImageRoute
-from runner_fleet.state import State
+from tools.runner_fleet.automatic_admission import AutomaticAdmission
+from tools.runner_fleet.automatic_catalog import QualifiedRecord
+from tools.runner_fleet.automatic_policy import GIB, ImageRoute
+from tools.runner_fleet.state import State
 
 
 class AdmissionTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.state = State(self.temp.name)
@@ -49,7 +49,10 @@ class AdmissionTests(unittest.TestCase):
         )
         self.factory = MagicMock(return_value=self.backend)
         self.manager = AutomaticAdmission(
-            self.state, self.capacity, lambda: (self.record,), self.factory
+            self.state,
+            self.capacity,
+            lambda: (cast(QualifiedRecord, self.record),),
+            self.factory,
         )
         self.job = dict(
             repository="runspindle-core",
@@ -63,22 +66,26 @@ class AdmissionTests(unittest.TestCase):
             run_id=7,
         )
 
-    def admit(self):
+    def admit(self) -> dict[str, Any] | None:
         return self.manager.admit(
             self.job, workflow_sha256="d" * 64, validation_manifest_sha256="c" * 64
         )
 
-    def test_default_drain_has_no_external_effect(self):
+    def test_default_drain_has_no_external_effect(self) -> None:
         self.assertIsNone(self.admit())
         self.factory.assert_not_called()
         self.capacity.assert_not_called()
 
-    def test_exact_route_creates_verify_only_and_registers_without_default_labels(self):
+    def test_exact_route_creates_verify_only_and_registers_without_default_labels(
+        self,
+    ) -> None:
         self.state.set("drained", False)
         resource = self.admit()
         self.backend.create.assert_called_once_with(resource, network_mode="verify")
         starting = self.state.active()[0]
-        self.manager.register_ready(resource, "synthetic-registration-token")
+        self.manager.register_ready(
+            cast(dict[str, Any], resource), "synthetic-registration-token"
+        )
         self.backend.isolation.assert_called_once()
         self.backend.register.assert_called_once_with(
             starting,
@@ -90,7 +97,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(self.state.active()[0]["phase"], "running")
         self.assertIsNone(self.admit())
 
-    def test_generic_route_or_workflow_change_cannot_reserve(self):
+    def test_generic_route_or_workflow_change_cannot_reserve(self) -> None:
         self.state.set("drained", False)
         self.job["labels"] = ["self-hosted", "linux", "x64"]
         with self.assertRaises(ValueError):
@@ -98,7 +105,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(self.state.active(), [])
         self.factory.assert_not_called()
 
-    def test_later_source_with_same_workflow_and_manifest_is_not_admitted(self):
+    def test_later_source_with_same_workflow_and_manifest_is_not_admitted(self) -> None:
         self.state.set("drained", False)
         self.job["head_sha"] = "2" * 40
         with self.assertRaises(ValueError):
@@ -106,7 +113,7 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(self.state.active(), [])
         self.factory.assert_not_called()
 
-    def test_create_failure_retains_uncertain_capacity(self):
+    def test_create_failure_retains_uncertain_capacity(self) -> None:
         self.state.set("drained", False)
         self.backend.create.side_effect = RuntimeError("network drift")
         with self.assertRaises(RuntimeError):
@@ -114,23 +121,24 @@ class AdmissionTests(unittest.TestCase):
         self.assertEqual(self.state.active()[0]["phase"], "uncertain")
         self.backend.register.assert_not_called()
 
-    def test_catalog_change_or_drain_blocks_registration(self):
+    def test_catalog_change_or_drain_blocks_registration(self) -> None:
         self.state.set("drained", False)
         resource = self.admit()
         self.record.manifest_sha256 = "9" * 64
         with self.assertRaises(ValueError):
-            self.manager.register_ready(resource, "synthetic")
+            self.manager.register_ready(cast(dict[str, Any], resource), "synthetic")
         self.backend.register.assert_not_called()
         self.state.set("drained", True)
         with self.assertRaises(ValueError):
-            self.manager.register_ready(resource, "synthetic")
+            self.manager.register_ready(cast(dict[str, Any], resource), "synthetic")
         self.backend.register.assert_not_called()
 
 
 class BackendOptionTests(unittest.TestCase):
-    def test_no_default_labels_is_present_only_when_requested(self):
+    def test_no_default_labels_is_present_only_when_requested(self) -> None:
         from unittest.mock import patch
-        from runner_fleet import backend
+
+        from tools.runner_fleet import backend
 
         instance = object.__new__(backend.Backend)
         for enabled in (False, True):
@@ -154,9 +162,10 @@ class BackendOptionTests(unittest.TestCase):
             self.assertEqual("--no-default-labels" in script, enabled)
             self.assertIn("--ephemeral --disableupdate", script)
 
-    def test_automatic_wrong_image_rejected_before_helper(self):
+    def test_automatic_wrong_image_rejected_before_helper(self) -> None:
         from unittest.mock import patch
-        from runner_fleet import backend
+
+        from tools.runner_fleet import backend
 
         instance = object.__new__(backend.Backend)
         instance.image = Path("/synthetic/base")
@@ -179,9 +188,10 @@ class BackendOptionTests(unittest.TestCase):
 
 
 class LegacyOwnerTests(unittest.TestCase):
-    def test_old_manager_cannot_advance_or_cleanup_new_owner(self):
+    def test_old_manager_cannot_advance_or_cleanup_new_owner(self) -> None:
         from unittest.mock import patch
-        from runner_fleet.manager import Manager
+
+        from tools.runner_fleet.manager import Manager
 
         manager = object.__new__(Manager)
         manager.state = MagicMock()
@@ -195,8 +205,8 @@ class LegacyOwnerTests(unittest.TestCase):
             lambda key, default=None: False if key == "drained" else None
         )
         manager.backend = MagicMock()
-        with patch("runner_fleet.manager.helper") as helper:
-            manager.advance(resource, [])
+        with patch("tools.runner_fleet.manager.helper") as helper:
+            cast(Callable[..., Any], manager.advance)(resource, [])
             manager.cleanup(resource, "restart")
             self.assertFalse(manager.can_admit())
         helper.assert_not_called()

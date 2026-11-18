@@ -20,8 +20,8 @@ from .manager import gh, pages
 from .model import REPOSITORIES
 from .original_retention import (
     inspect_linked_disk,
-    retain_originals,
     resume_originals,
+    retain_originals,
     verify_backing_binding,
 )
 
@@ -41,7 +41,7 @@ def cleanup_signals() -> Iterator[None]:
 
 def base_references(state: Any) -> dict[str, str]:
     """Inventory automatic-owner base references, including released slots."""
-    result = {}
+    result: dict[str, str] = {}
     for resource in state.all_resources():
         details = resource["details"]
         if details.get("automatic_fleet_v1") is not True:
