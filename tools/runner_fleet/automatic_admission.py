@@ -58,13 +58,15 @@ class AutomaticAdmission:
             matches = [
                 record
                 for record in self.catalog()
-                if record.route.matches(repository, job.get("labels"))
+                if record.route.repository == repository
+                and job.get("labels") == record.labels()
             ]
             if len(matches) != 1:
                 raise ValueError("No exact qualified image route")
             record = matches[0]
             if (
-                workflow_sha256 != record.workflow_sha256
+                job.get("head_sha") != record.source_sha
+                or workflow_sha256 != record.workflow_sha256
                 or validation_manifest_sha256 != record.route.validation_manifest_sha256
             ):
                 raise ValueError("Requested workflow inputs differ")
@@ -82,7 +84,8 @@ class AutomaticAdmission:
                     "manifest_path": str(record.manifest_path),
                     "manifest_sha256": record.manifest_sha256,
                     "evidence_sha256": record.evidence_sha256,
-                    "route_labels": record.route.labels(),
+                    "route_labels": record.labels(),
+                    "qualified_source_sha": record.source_sha,
                     "suite": record.route.suite,
                     "workflow_sha256": workflow_sha256,
                     "validation_manifest_sha256": validation_manifest_sha256,
@@ -122,19 +125,24 @@ class AutomaticAdmission:
                 r
                 for r in self.catalog()
                 if r.route.repository == current["repository"]
-                and r.route.labels() == details.get("route_labels")
+                and r.labels() == details.get("route_labels")
             ]
             if len(matches) != 1:
                 raise ValueError("Catalog route disappeared")
             record = matches[0]
             record.verify()
             expected = {
+                "qualified_source_sha": record.source_sha,
                 "image_path": str(record.image_path),
                 "manifest_path": str(record.manifest_path),
                 "manifest_sha256": record.manifest_sha256,
                 "evidence_sha256": record.evidence_sha256,
             }
-            if any(details.get(k) != v for k, v in expected.items()):
+            if (
+                any(details.get(k) != v for k, v in expected.items())
+                or details.get("requested_source", {}).get("head_sha")
+                != record.source_sha
+            ):
                 raise ValueError("Reserved catalog binding changed")
             backend = self.backend_factory(
                 self.state, record.image_path, image_manifest=record.manifest_path
@@ -148,7 +156,7 @@ class AutomaticAdmission:
                     current,
                     "newdarwindev/" + current["repository"],
                     registration_token,
-                    record.route.labels(),
+                    record.labels(),
                     no_default_labels=True,
                 )
                 self.state.update(current, "running")

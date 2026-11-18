@@ -155,6 +155,10 @@ class QualifiedRecord:
             tuple(checks),
         )
 
+    def labels(self) -> list[str]:
+        """Exact-source route until broader closure applicability is reviewed."""
+        return [self.route.labels()[0] + "-source-" + self.source_sha]
+
     def verify(self) -> None:
         manifest_bytes = sealed_bytes(self.manifest_path, 1024 * 1024)
         evidence_bytes = sealed_bytes(self.evidence_path, 1024 * 1024)
