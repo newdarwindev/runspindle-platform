@@ -49,9 +49,14 @@ class ApplicabilityTests(unittest.TestCase):
 
     def test_every_setup_change_rejected(self) -> None:
         for index in range(len(self.setup)):
-            for field, value in [("sha256", "0" * 64), ("mode", "100755"), ("size", 9)]:
+            original = self.observed.blobs[index]
+            for field, changed in [
+                ("sha256", dc.replace(original, sha256="0" * 64)),
+                ("mode", dc.replace(original, mode="100755")),
+                ("size", dc.replace(original, size=9)),
+            ]:
                 blobs = list(self.observed.blobs)
-                blobs[index] = dc.replace(blobs[index], **{field: value})
+                blobs[index] = changed
                 with (
                     self.subTest(index=index, field=field),
                     self.assertRaises(ValueError),
@@ -91,14 +96,14 @@ class ApplicabilityTests(unittest.TestCase):
                 compatible(self.profile, dc.replace(self.observed, blobs=blobs))
 
     def test_environment_external_closure_and_revision_fail_closed(self) -> None:
-        for field, value in [
-            ("environment_sha256", "0" * 64),
-            ("external_closure_sha256", "0" * 64),
-            ("source_sha", "main"),
-            ("repository", "../repo"),
+        for changed in [
+            dc.replace(self.observed, environment_sha256="0" * 64),
+            dc.replace(self.observed, external_closure_sha256="0" * 64),
+            dc.replace(self.observed, source_sha="main"),
+            dc.replace(self.observed, repository="../repo"),
         ]:
-            with self.subTest(field=field), self.assertRaises(ValueError):
-                compatible(self.profile, dc.replace(self.observed, **{field: value}))
+            with self.subTest(changed=changed), self.assertRaises(ValueError):
+                compatible(self.profile, changed)
 
     def test_actual_assignment_independently_checked(self) -> None:
         for assigned in [
