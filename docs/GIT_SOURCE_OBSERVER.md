@@ -40,3 +40,11 @@ on defective storage. No Git or filesystem state is repaired.
 
 Tests use tiny disposable synthetic repositories. Passing them is component
 verification, not CI, image, live workload or production qualification.
+
+`.git` administrative metadata is excluded from the returned observation, including
+local configuration/includes, refs/tags, shallow history and alternate object
+stores. Exact commit/tree/blob hashes do not bind later `git describe`, `rev-list`
+or `config` results. Setups depending on these inputs must be prohibited by the
+reviewed profile or bind them in a separately reviewed setup/external closure.
+Trusted Git plus an exact source commit is not a complete transitive build-input
+attestation on its own.
