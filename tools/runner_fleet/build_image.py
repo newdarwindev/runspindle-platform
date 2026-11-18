@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Build and seal a pinned image in a reserved, isolated preparation guest."""
 
+import argparse
 import grp
 import json
 import os
@@ -18,9 +19,10 @@ from typing import Any
 from tools.runner_fleet import backend as _backend
 from tools.runner_fleet import model as _model
 from tools.runner_fleet import state as _state
+from tools.runner_fleet.cached_staging import prepare_inputs
 from tools.runner_fleet.identity import binding
+from tools.runner_fleet.input_cache import InputCache
 from tools.runner_fleet.retention import capture_bytes, capture_file
-from tools.runner_fleet.staging import verify as verify_staged
 
 # Existing process/state helpers exchange dynamic JSON records. Their boundary
 # remains explicit; new staged closure and identity validation stay fully typed.
@@ -191,7 +193,15 @@ def verify_build_source(source_sha: str, source_binding: dict[str, str]) -> None
         )
 
 
-def main() -> None:
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--input-cache-root",
+        type=Path,
+        default=Path.home() / ".cache/runspindle/inputs/sha256",
+        help="Shared digest cache; requires 30 GiB free reserve, never evicts",
+    )
+    args = parser.parse_args([] if argv is None else argv)
     cfg = config()
     require_build_capacity(ROOT, cfg["hosts"]["strix"]["minimum_disk_gib"])
     require_build_runtime(
@@ -220,7 +230,9 @@ def main() -> None:
     with state.lock():
         if state.active():
             raise SystemExit("Existing reservations must be reconciled first")
-        if not download.exists():
+        cache = InputCache(args.input_cache_root)
+
+        def acquire_ubuntu() -> None:
             execute(
                 [
                     "curl",
@@ -233,9 +245,8 @@ def main() -> None:
                 ],
                 timeout=600,
             )
-        if digest(download) != pins["ubuntu"]["sha256"]:
-            raise SystemExit("Pinned Ubuntu checksum mismatch; no guest booted")
-        verify_staged(SOURCE, download.parent)
+
+        prepare_inputs(SOURCE, download.parent, cache, acquire_ubuntu)
         base = ROOT / "images/ubuntu-base.qcow2"
         if (
             base.is_symlink()
@@ -407,4 +418,4 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
