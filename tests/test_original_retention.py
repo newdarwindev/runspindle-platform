@@ -126,6 +126,35 @@ class OriginalRetentionTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify_backing_binding(self.binding)
 
+    def test_relative_backing_rejected_before_retention(self):
+        relative = self.root / "relative.qcow2"
+        subprocess.run(
+            [
+                "qemu-img",
+                "create",
+                "-f",
+                "qcow2",
+                "-F",
+                "qcow2",
+                "-b",
+                self.base.name,
+                relative.name,
+                "1M",
+            ],
+            cwd=self.root,
+            check=True,
+            capture_output=True,
+            timeout=10,
+        )
+        relative.chmod(0o600)
+        inode = relative.stat().st_ino
+        with self.assertRaisesRegex(ValueError, "backing chain"):
+            inspect_linked_disk(
+                relative, self.base, file_digest(self.base), self.command
+            )
+        self.assertEqual(relative.stat().st_ino, inode)
+        self.assertEqual(list(self.archive.iterdir()), [])
+
     def test_wrong_base_or_symlink_rejected(self):
         with self.assertRaises(ValueError):
             inspect_linked_disk(self.disk, self.base, "a" * 64, self.command)
