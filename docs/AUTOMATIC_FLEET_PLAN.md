@@ -174,3 +174,9 @@ with all host stop/GitHub operations mocked. They cover preserved inode identity
 restart/base-reference retention, failure of stop/removal/DB updates, and refusal
 to retry an existing partial intent. No real retained guest has been moved or
 recovered with this new code, and no automatic run loop is enabled.
+Catalog applicability is deliberately exact-source: requested head must equal the
+qualified source revision, which is durably retained and included in the custom
+runner label. Later commits with identical workflow/manifest are NOT admitted.
+Automatically generalizing image qualification across code revisions requires a
+separate dependency/lock/input applicability policy and review; this conservative
+candidate does not yet satisfy unattended validation of every new commit.

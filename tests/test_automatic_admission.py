@@ -24,6 +24,8 @@ class AdmissionTests(unittest.TestCase):
         )
         self.record = SimpleNamespace(
             route=route,
+            source_sha="1" * 40,
+            labels=lambda: [route.labels()[0] + "-source-" + "1" * 40],
             workflow_sha256="d" * 64,
             image_path=Path("/sealed/base"),
             manifest_path=Path("/sealed/manifest"),
@@ -57,7 +59,7 @@ class AdmissionTests(unittest.TestCase):
             head_branch="main",
             head_sha="1" * 40,
             head_repository={"full_name": "newdarwindev/runspindle-core"},
-            labels=route.labels(),
+            labels=self.record.labels(),
             run_id=7,
         )
 
@@ -82,7 +84,7 @@ class AdmissionTests(unittest.TestCase):
             starting,
             "newdarwindev/runspindle-core",
             "synthetic-registration-token",
-            self.record.route.labels(),
+            self.record.labels(),
             no_default_labels=True,
         )
         self.assertEqual(self.state.active()[0]["phase"], "running")
@@ -91,6 +93,14 @@ class AdmissionTests(unittest.TestCase):
     def test_generic_route_or_workflow_change_cannot_reserve(self):
         self.state.set("drained", False)
         self.job["labels"] = ["self-hosted", "linux", "x64"]
+        with self.assertRaises(ValueError):
+            self.admit()
+        self.assertEqual(self.state.active(), [])
+        self.factory.assert_not_called()
+
+    def test_later_source_with_same_workflow_and_manifest_is_not_admitted(self):
+        self.state.set("drained", False)
+        self.job["head_sha"] = "2" * 40
         with self.assertRaises(ValueError):
             self.admit()
         self.assertEqual(self.state.active(), [])
