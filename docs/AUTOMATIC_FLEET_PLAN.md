@@ -115,3 +115,30 @@ transition must be reviewed rather than silently chmodded or weakened. No curren
 manager path calls it. Tests use newly created tiny synthetic qcow files, not real
 retained guests; they prove inode preservation and changed-base/intent/partial-move
 failures, not full production cleanup or restore qualification.
+
+## Catalog/admission integration candidate
+
+A separate source-only `AutomaticAdmission` coordinator now connects trusted
+catalog validation, atomic one-Strix-slot reservation and verify-only Backend
+creation. Ready registration repeats catalog bindings and isolation, then uses
+only the exact route label with `--no-default-labels`. Default drain remains on.
+The existing manager quarantines resources owned by this new lifecycle rather
+than registering them generically or taking flattened backups. No installed code,
+catalog, workflow label or service has changed.
+
+The catalog loader requires root-owned non-writable regular files and exact
+manifest/evidence hashes. Its explicit suite schema rejects partial scaffold
+qualification: validation requires all seven partitions plus aggregate; Browser
+account E2E requires normal/optimized/sandbox/cleanup results. These are trusted
+operator-reviewed evidence records, not cryptographic proof or self-authorization.
+No actual repository entry has been marked qualified or installed. Backend still
+rehashes the actual image and requires its existing recipe/controller bindings.
+
+This coordinator deliberately has no run-loop/CLI activation: restart recovery,
+registration absence verification, exact retention/base lifetime integration and
+actual assignment observation still need independent implementation/qualification.
+Do not use it operationally yet. Capacity input must come from the verified actual
+mount/pool probe while holding the canonical lock, not a guessed free-space value.
+Requested workflow/manifest digests must come from the exact requested GitHub
+source. Routing cannot constrain another eligible workflow's token/secrets/OIDC
+permissions; the complete eligible-workflow authority audit remains a prerequisite.
