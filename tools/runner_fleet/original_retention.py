@@ -105,6 +105,7 @@ def inspect_linked_disk(
         or type(base_size) is not int
         or not 0 < base_size <= size <= MAX_DISK
         or source.get("full-backing-filename") != str(base)
+        or source.get("backing-filename") != str(base)
         or source.get("backing-filename-format") != "qcow2"
         or any(k in backing for k in ("backing-filename", "full-backing-filename"))
     ):
