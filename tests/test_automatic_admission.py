@@ -244,6 +244,30 @@ class BackendOptionTests(unittest.TestCase):
 
 
 class LegacyOwnerTests(unittest.TestCase):
+    def test_old_manager_preserves_offline_inventory_owner(self) -> None:
+        from unittest.mock import patch
+        from tools.runner_fleet.manager import Manager
+
+        manager = object.__new__(Manager)
+        manager.state = MagicMock()
+        resource = {
+            "id": "a" * 32,
+            "phase": "starting",
+            "details": {"offline_browser_inventory_v1": True},
+        }
+        manager.state.active.return_value = [resource]
+        manager.state.get.side_effect = (
+            lambda key, default=None: False if key == "drained" else None
+        )
+        manager.backend = MagicMock()
+        with patch("tools.runner_fleet.manager.helper") as helper:
+            cast(Callable[..., Any], manager.advance)(resource, [])
+            manager.cleanup(resource, "restart")
+            self.assertFalse(manager.can_admit())
+        helper.assert_not_called()
+        self.assertEqual(manager.backend.mock_calls, [])
+        self.assertEqual(manager.state.update.call_count, 2)
+
     def test_old_manager_cannot_advance_or_cleanup_new_owner(self) -> None:
         from unittest.mock import patch
 

@@ -194,6 +194,7 @@ class Manager:
             resource.get("details", {}).get("unregistered_probe") is True
             or resource.get("details", {}).get("manual_registered_probe") is True
             or resource.get("details", {}).get("automatic_fleet_v1") is True
+            or resource.get("details", {}).get("offline_browser_inventory_v1") is True
         ):
             # Probe metadata/image are deliberately separate from manager defaults.
             # Explicit reviewed single_probe recovery owns this reservation.
@@ -279,7 +280,10 @@ class Manager:
         )
 
     def advance(self, resource, jobs):
-        if resource.get("details", {}).get("automatic_fleet_v1") is True:
+        if (
+            resource.get("details", {}).get("automatic_fleet_v1") is True
+            or resource.get("details", {}).get("offline_browser_inventory_v1") is True
+        ):
             self.state.update(
                 resource, "uncertain", cleanup_error="explicit automatic owner required"
             )
@@ -410,6 +414,7 @@ class Manager:
             and not self.state.get("error")
             and not any(
                 r.get("details", {}).get("automatic_fleet_v1") is True
+                or r.get("details", {}).get("offline_browser_inventory_v1") is True
                 for r in self.state.active()
             )
         )
