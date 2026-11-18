@@ -71,3 +71,113 @@ class RegisteredProbeTests(unittest.TestCase):
         gh.assert_called_once_with(
             "repos/newdarwindev/runspindle-browser/actions/runners/2", "DELETE"
         )
+
+
+class CapacityRecoveryTests(unittest.TestCase):
+    def test_spacious_state_does_not_hide_full_fleet(self):
+        import json
+
+        pool = {
+            "report": [
+                {
+                    "lv": [
+                        {
+                            "lv_size": str(579 * p.GIB),
+                            "data_percent": "50",
+                            "metadata_percent": "3",
+                        }
+                    ]
+                }
+            ]
+        }
+        with (
+            patch.object(
+                p,
+                "storage_identity",
+                return_value={
+                    "state": 200 * p.GIB,
+                    "fleet": 2 * p.GIB,
+                    "slots": 2 * p.GIB,
+                    "retained": 2 * p.GIB,
+                },
+            ),
+            patch.object(
+                p.Path, "read_text", return_value="MemAvailable: 20000000 kB\n"
+            ),
+            patch.object(p, "execute", return_value=Mock(stdout=json.dumps(pool))),
+        ):
+            with self.assertRaisesRegex(ValueError, "reserve"):
+                p.capacity(p.STATE_DIRECTORY)
+
+    def test_wrong_actual_mount_rejected(self):
+        import json
+        import os
+        import stat
+
+        device = os.makedev(254, 7)
+        info = Mock(st_mode=stat.S_IFBLK, st_rdev=device, st_dev=device)
+        mounts = {
+            "filesystems": [
+                {"source": "/dev/other", "fstype": "ext4", "maj:min": "254:9"}
+            ]
+        }
+        with (
+            patch.object(p.Path, "stat", return_value=info),
+            patch.object(p.Path, "resolve", lambda self, **kw: self),
+            patch.object(p, "execute", return_value=Mock(stdout=json.dumps(mounts))),
+        ):
+            with self.assertRaisesRegex(ValueError, "mount identity"):
+                p.storage_identity(p.STATE_DIRECTORY)
+
+    def test_recovery_stops_removes_but_does_not_release_or_copy(self):
+        from contextlib import nullcontext
+
+        identity = "a" * 32
+        resource = {
+            "id": identity,
+            "slot": 0,
+            "runner_name": "runspindle-fleet-" + identity,
+            "repository": p.REPOS[0],
+            "details": {"manual_registered_probe": True, "image_sha256": p.IMAGE_SHA},
+        }
+        state = Mock(directory=p.STATE_DIRECTORY)
+        state.lock.return_value = nullcontext()
+        state.active.return_value = [resource]
+        with (
+            patch.object(p, "guarded_installation"),
+            patch.object(p, "validate_state_directory"),
+            patch.object(p, "manager_stopped"),
+            patch.object(
+                p, "helper", return_value={"ActiveState": "inactive"}
+            ) as helper,
+            patch.object(p, "remove_owned") as remove,
+            patch.object(p, "Backend") as backend,
+        ):
+            result = p.recover(state, identity)
+        helper.assert_any_call("stop", 0, identity)
+        remove.assert_called_once_with(p.REPOS[0], resource)
+        backend.assert_not_called()
+        self.assertTrue(result["recovery_stopped"])
+        self.assertFalse(result["snapshot_created"])
+        self.assertFalse(result["capacity_released"])
+        self.assertEqual(state.update.call_args.args[1], "uncertain")
+
+    def test_recovery_wrong_binding_does_not_touch_resources(self):
+        from contextlib import nullcontext
+
+        state = Mock(directory=p.STATE_DIRECTORY)
+        state.lock.return_value = nullcontext()
+        state.active.return_value = [
+            {"id": "a" * 32, "details": {}, "repository": p.REPOS[0]}
+        ]
+        with (
+            patch.object(p, "guarded_installation"),
+            patch.object(p, "validate_state_directory"),
+            patch.object(p, "manager_stopped"),
+            patch.object(p, "helper") as helper,
+            patch.object(p, "remove_owned") as remove,
+        ):
+            with self.assertRaises(ValueError):
+                p.recover(state, "a" * 32)
+        helper.assert_not_called()
+        remove.assert_not_called()
