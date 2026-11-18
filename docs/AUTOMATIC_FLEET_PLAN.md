@@ -142,3 +142,35 @@ mount/pool probe while holding the canonical lock, not a guessed free-space valu
 Requested workflow/manifest digests must come from the exact requested GitHub
 source. Routing cannot constrain another eligible workflow's token/secrets/OIDC
 permissions; the complete eligible-workflow authority audit remains a prerequisite.
+
+## Owned no-copy cleanup integration candidate
+
+`AutomaticCleanup.finish` now uses the existing canonical resource record and
+lock. Exact resource/repository/slot/runner identity is checked before effects.
+Stop and deregistration are separately attempted under bounded cleanup even when
+the first state write fails. Repeated cancellation is deferred through cleanup;
+the existing host watchdog still handles uncatchable failures. No copied guest
+archive, flattened image or deletion is used.
+
+Only after termination and registration absence are verified may the original
+inodes move. Intent and completion are stored in the existing resource details.
+Any uncertain step keeps capacity occupied. Existing interrupted retention intent
+is deliberately not retried blindly; explicit partial-move recovery remains a
+blocker to unattended operation. A successful completion releases the slot but
+retains the resource row and immutable-base references. The read-only
+`assert_unreferenced_image` guard rejects deletion/replacement of referenced bases;
+no garbage collector is enabled. Other image writers/promoters must be audited
+and integrated with this guard before activation, so this is not a claim that all
+external base writers are already constrained.
+
+The helper source proposes tightening a stopped slot directory to0700 after
+confirmed cgroup termination and ownership return. This is a security-sensitive
+installed-helper change requiring separate deployment approval; it has NOT been
+applied. The no-copy primitive currently rejects the old0770 slot mode rather
+than silently loosening its private-directory check.
+
+Tests use actual newly created tiny qcow images and actual temporary SQLite,
+with all host stop/GitHub operations mocked. They cover preserved inode identity,
+restart/base-reference retention, failure of stop/removal/DB updates, and refusal
+to retry an existing partial intent. No real retained guest has been moved or
+recovered with this new code, and no automatic run loop is enabled.

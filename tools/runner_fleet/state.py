@@ -134,6 +134,16 @@ class State:
             )
         ]
 
+    def all_resources(self) -> list[dict[str, Any]]:
+        """Bounded canonical base-reference inventory, including released slots."""
+        _validate_schema(self.db)
+        rows = self.db.execute(
+            "SELECT * FROM resources ORDER BY created LIMIT 10001"
+        ).fetchall()
+        if len(rows) > 10000:
+            raise RuntimeError("Retention inventory bound exceeded; no GC or admission")
+        return [dict(row) | {"details": json.loads(row["details"])} for row in rows]
+
     def reserve(
         self,
         job: dict[str, Any],

@@ -430,6 +430,8 @@ def stop(slot: int, identity: str) -> None:
             os.chown(path, operator.pw_uid, pwd.getpwnam(f"runspindle-vm{slot}").pw_gid)
             os.chmod(path, 0o600)
     os.chown(directory, operator.pw_uid, pwd.getpwnam(f"runspindle-vm{slot}").pw_gid)
+    # Stopped original files become operator-private before no-copy retention.
+    os.chmod(directory, 0o700)
 
 
 def teardown() -> None:
