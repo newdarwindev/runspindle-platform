@@ -1,0 +1,319 @@
+"""One owner-approved repository runner, never a broad manager or exact-job gate.
+
+Source-only until independent review and deployed recovery-guard verification.
+GitHub can assign ANY eligible job in the selected repository. No hook is an
+admission boundary. The existing guest isolation and host watchdog remain required.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json
+import shutil
+import shlex
+import time
+import uuid
+from pathlib import Path
+from typing import Any
+
+from .backend import Backend, execute, helper
+from .candidate import time_budget
+from .manager import gh, pages
+from .single_probe import (
+    GUEST_SCRIPT,
+    IsolatedMetadata,
+    manager_stopped,
+    read_regular,
+    validate_observation,
+    validate_state_directory,
+    verify_guest_lifetime,
+    verify_host_lifetime_policy,
+)
+from .offline_probe import write
+from .state import State
+
+REPOS = ("runspindle-browser", "runspindle-core", "runspindle-host")
+CAMPAIGN = "approved-three-repo-20261118-v1"
+GIB = 1024**3
+EXPECTED_MANAGER = "5fbb8157580a34c841ba016ec15e013f441603130c12ab48ce8377a160a78b0c"
+
+
+def guarded_installation() -> None:
+    for path in (
+        Path(__file__).with_name("manager.py"),
+        Path("/opt/runspindle-fleet/tools/runner_fleet/manager.py"),
+    ):
+        if hashlib.sha256(read_regular(path)).hexdigest() != EXPECTED_MANAGER:
+            raise ValueError("Installed/local manager differs from frozen guard")
+    unit = execute(
+        [
+            "systemctl",
+            "show",
+            "runspindle-fleet.service",
+            "--property=ExecStart",
+            "--value",
+        ]
+    ).stdout
+    if unit.count("argv[]=") != 1:
+        raise ValueError("Unexpected manager entrypoint")
+    argv = shlex.split(unit.split("argv[]=", 1)[1].split(";", 1)[0].strip())
+    if argv != [
+        "/usr/bin/python3",
+        "/opt/runspindle-fleet/tools/fleet.py",
+        "manage",
+        "--host",
+        "strix",
+        "--state-dir",
+        "/home/standard/.local/state/runspindle-fleet",
+    ]:
+        raise ValueError("Unexpected manager entrypoint")
+
+
+LABELS = ["self-hosted", "linux", "x64", "runspindle-isolated", "strix"]
+
+
+def capacity(directory: Path) -> dict[str, Any]:
+    """Conservative allowances, not hard quotas; pool and filesystem both checked."""
+    available = (
+        int(
+            next(
+                line.split()[1]
+                for line in Path("/proc/meminfo").read_text().splitlines()
+                if line.startswith("MemAvailable:")
+            )
+        )
+        * 1024
+    )
+    disk = shutil.disk_usage(directory).free
+    raw = execute(
+        [
+            "sudo",
+            "-n",
+            "lvs",
+            "--reportformat",
+            "json",
+            "--units",
+            "b",
+            "--nosuffix",
+            "-o",
+            "lv_size,data_percent,metadata_percent",
+            "pve/data",
+        ],
+        timeout=20,
+    ).stdout
+    rows = json.loads(raw)["report"][0]["lv"]
+    if len(rows) != 1:
+        raise ValueError("Ambiguous backing pool")
+    row = rows[0]
+    physical = float(row["lv_size"]) * (1 - float(row["data_percent"]) / 100)
+    metadata = float(row["metadata_percent"])
+    # 49GiB covers original+snapshot+qcow metadata, then 30GiB reserve.
+    if (
+        available < 13 * GIB
+        or disk < 79 * GIB
+        or physical < 79 * GIB
+        or not 0 <= metadata < 80
+    ):
+        raise ValueError(
+            "Insufficient independently checked RAM/filesystem/pool reserve"
+        )
+    return {
+        "available_memory": available,
+        "filesystem_free": disk,
+        "pool_free": int(physical),
+        "pool_metadata_percent": metadata,
+    }
+
+
+def registrations(repo: str) -> list[dict[str, Any]]:
+    return pages(f"repos/newdarwindev/{repo}/actions/runners", "runners")
+
+
+def remove_owned(repo: str, resource: dict[str, Any]) -> None:
+    for row in registrations(repo):
+        if row["name"] == resource["runner_name"]:
+            gh(f"repos/newdarwindev/{repo}/actions/runners/{int(row['id'])}", "DELETE")
+    if any(row["name"] == resource["runner_name"] for row in registrations(repo)):
+        raise RuntimeError("Owned registration remains")
+
+
+def observe_jobs(repo: str, runner: str, since: str) -> list[dict[str, Any]]:
+    # Actual assignment is observed after the fact, never promised in advance.
+    runs = pages(
+        f"repos/newdarwindev/{repo}/actions/runs?created=%3E%3D{since}", "workflow_runs"
+    )
+    result = []
+    for run in runs:
+        for job in pages(
+            f"repos/newdarwindev/{repo}/actions/runs/{run['id']}/jobs", "jobs"
+        ):
+            if job.get("runner_name") == runner:
+                result.append(
+                    {
+                        k: job.get(k)
+                        for k in (
+                            "id",
+                            "name",
+                            "status",
+                            "conclusion",
+                            "head_sha",
+                            "started_at",
+                            "completed_at",
+                        )
+                    }
+                    | {"run_id": run["id"], "run_attempt": run["run_attempt"]}
+                )
+    return result
+
+
+def cleanup(
+    state: Any, backend: Any, resource: dict[str, Any], repo: str
+) -> dict[str, Any]:
+    errors: list[str] = []
+    # Each effect independently attempted even if persistence/removal fails.
+    try:
+        with time_budget(15):
+            state.update(resource, "cleaning")
+    except BaseException as error:
+        errors.append("state:" + type(error).__name__)
+    try:
+        with time_budget(30):
+            helper("stop", resource["slot"], resource["id"])
+    except BaseException as error:
+        errors.append("stop:" + type(error).__name__)
+    try:
+        with time_budget(120):
+            remove_owned(repo, resource)
+    except BaseException as error:
+        errors.append("registration:" + type(error).__name__)
+    try:
+        with time_budget(650):
+            backend.destroy(resource)  # Approved one retained synthetic snapshot.
+            observed = helper("observe", resource["slot"])
+            if observed.get("ActiveState") not in ("inactive", "failed"):
+                raise ValueError("Guest stop uncertain")
+    except BaseException as error:
+        errors.append("retention:" + type(error).__name__)
+    try:
+        with time_budget(15):
+            state.update(
+                resource,
+                "uncertain" if errors else "destroyed",
+                cleanup_verified=not errors,
+                cleanup_error_types=errors,
+            )
+    except BaseException as error:
+        errors.append("final-state:" + type(error).__name__)
+    return {
+        "cleanup": "blocked" if errors else "verified",
+        "cleanup_error_types": errors,
+    }
+
+
+def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
+    """Caller must first verify frozen installed guard, source and candidate pins.
+
+    No public CLI currently exposes execution; reviewed driver integration pending.
+    """
+    if repo not in REPOS:
+        raise ValueError("Outside approved repositories")
+    guarded_installation()
+    validate_state_directory(state.directory)
+    manager_stopped()
+    verify_host_lifetime_policy()
+    with state.lock():
+        manager_stopped()
+        if state.active():
+            raise ValueError("Occupied or uncertain shared capacity")
+        history = state.get(CAMPAIGN, [])
+        if (
+            not isinstance(history, list)
+            or any(x not in REPOS for x in history)
+            or len(history) != len(set(history))
+            or repo in history
+            or len(history) >= 3
+        ):
+            raise ValueError("Campaign attempt unavailable")
+        budget = capacity(state.directory)
+        if any(registrations(r) for r in REPOS):
+            raise ValueError("Existing registration; no competing admission")
+        # Record attempt BEFORE reservation so interruption cannot repeat it.
+        state.set(CAMPAIGN, history + [repo])
+        directory = state.directory / ("registered-probe-" + uuid.uuid4().hex)
+        directory.mkdir(mode=0o700)
+        write(
+            directory / "candidate.json",
+            (json.dumps(intended["manifest"]) + "\n").encode(),
+        )
+        resource = state.reserve(
+            {"repository": repo, "id": -1},
+            details={
+                "manual_registered_probe": True,
+                "probe_directory": directory.name,
+                "probe_image": intended["image"],
+                "image_sha256": intended["bindings"]["image_sha256"],
+            },
+        )
+        backend = Backend(IsolatedMetadata(state, directory), intended["image"])
+        report: dict[str, Any] = {
+            "status": "failed",
+            "resource": resource["id"],
+            "repository": repo,
+            "budget": budget,
+            "bindings": intended["bindings"],
+            "ci_qualified": False,
+            "promoted": False,
+        }
+        try:
+            with time_budget(1250):
+                backend.create(resource)
+                verify_guest_lifetime(resource["slot"])
+                deadline = time.monotonic() + 240
+                while not backend.ready(resource):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("Guest startup")
+                    time.sleep(2)
+                observed = json.loads(
+                    backend.ssh(resource, GUEST_SCRIPT, timeout=60).stdout
+                )
+                validate_observation(observed, intended, resource)
+                backend.isolation(resource)
+                # Short-lived registration credential only through existing stdin path.
+                token = gh(
+                    f"repos/newdarwindev/{repo}/actions/runners/registration-token",
+                    "POST",
+                )["token"]
+                try:
+                    backend.register(resource, "newdarwindev/" + repo, token, LABELS)
+                finally:
+                    token = None
+                report["registered"] = True
+                deadline = time.monotonic() + 900
+                while not backend.runner_exited(resource):
+                    if time.monotonic() >= deadline:
+                        raise TimeoutError("One runner job/admission budget")
+                    time.sleep(5)
+                # Receipt observation separate from execution success and qualification.
+                from datetime import datetime, timezone
+
+                since = datetime.fromtimestamp(
+                    resource["created"] - 60, timezone.utc
+                ).strftime("%Y-%m-%dT%H:%M:%SZ")
+                jobs = observe_jobs(repo, resource["runner_name"], since)
+                report["jobs"] = jobs
+                if len(jobs) != 1 or jobs[0]["status"] != "completed":
+                    raise ValueError("Single terminal assignment not established")
+                report["status"] = (
+                    "passed" if jobs[0]["conclusion"] == "success" else "failed"
+                )
+        except BaseException as error:
+            report["error_type"] = type(error).__name__
+        finally:
+            report.update(cleanup(state, backend, resource, repo))
+            if report["cleanup"] != "verified":
+                report["status"] = "failed"
+            write(
+                directory / "result.json",
+                (json.dumps(report, indent=2) + "\n").encode(),
+            )
+        return report
