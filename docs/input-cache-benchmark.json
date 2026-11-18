@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "evidence_class": "local_input_cache_microbenchmark",
+  "input": "pinned quality-node-modules.tar.gz",
+  "sha256": "ec040b616152ddaecc4d8324639e2097b320078aafbe3ed08bb90f92d09dda23",
+  "python": "3.14.8",
+  "iterations": [
+    {
+      "iteration": 0,
+      "cold_import_plus_materialize_seconds": 0.06859,
+      "warm_materialize_seconds": 0.028131,
+      "import_mode": "copy",
+      "cold_materialize_mode": "copy",
+      "warm_materialize_mode": "copy",
+      "distinct_inodes": true,
+      "bytes": 9417683
+    },
+    {
+      "iteration": 1,
+      "cold_import_plus_materialize_seconds": 0.057982,
+      "warm_materialize_seconds": 0.025724,
+      "import_mode": "copy",
+      "cold_materialize_mode": "copy",
+      "warm_materialize_mode": "copy",
+      "distinct_inodes": true,
+      "bytes": 9417683
+    },
+    {
+      "iteration": 2,
+      "cold_import_plus_materialize_seconds": 0.062559,
+      "warm_materialize_seconds": 0.029663,
+      "import_mode": "copy",
+      "cold_materialize_mode": "copy",
+      "warm_materialize_mode": "copy",
+      "distinct_inodes": true,
+      "bytes": 9417683
+    }
+  ],
+  "bounds": [
+    "cold means empty application cache, not cold OS page cache",
+    "both paths verify bytes; no result cache or test skip",
+    "no guest, network or CI timing measured",
+    "temporary benchmark copies removed; shared archive unchanged"
+  ]
+}

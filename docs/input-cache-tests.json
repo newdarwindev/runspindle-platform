@@ -1,0 +1,97 @@
+{
+  "schema_version": 1,
+  "evidence_class": "local input cache and actual pre-guest staging consumer with synthetic pinned closure",
+  "base_source": "f059821ac8c8e4a32768b2d22956cda835c71ddf",
+  "python": "3.14.8",
+  "source_sha256": {
+    "tools/runner_fleet/build_image.py": "b891caa626a28907a71740c7ec1f3c94c012cf4e63412c903492e5bbe86830ed",
+    "tools/runner_fleet/input_cache.py": "44c15dffbe24e4fd7aaf6a605caf989ea3dc0951cd2b3c45a638cae4e356e870",
+    "tools/runner_fleet/cached_staging.py": "a03875cb2c65d4466696e524f1c7adc3933e1e1feacccd96298095ea98e218d6",
+    "tools/runner_fleet/staging.py": "1f772524e739f803a4e20625affd691f033ca59483cf58ed8d2b669586568189",
+    "tools/runner_fleet/quality.py": "e55be883b4760508f70dace738505814ca36d3ec25fa13657f3fa94b329c5c4a",
+    "tests/test_input_cache.py": "cde4bd1c23f42e55ea9fa967443ce435cd92e4b192f5fd84b26a092eaae71a8f",
+    "tests/test_cached_staging.py": "d638e4d27dcc0c0bd24739f9b82c241872d5a622c4654c10fef54f5d40a16cd3"
+  },
+  "checks": {
+    "cache_tests": {
+      "normal": "passed",
+      "optimized": "covered by final full optimized suite",
+      "tests": 10
+    },
+    "consumer_integration": {
+      "status": "passed",
+      "inputs_restored": 22,
+      "acquisition_calls": 0,
+      "existing_full_staging_verifier": "called and passed",
+      "corrupt_existing_staged_input": "rejected without acquisition"
+    },
+    "full_normal": {
+      "status": "passed",
+      "tests": 500,
+      "skipped": 13
+    },
+    "full_optimized": {
+      "status": "passed",
+      "tests": 500,
+      "skipped": 13
+    },
+    "scaffold": "passed",
+    "diff_check": "passed",
+    "static_aggregate": {
+      "checks": {
+        "javascript": {
+          "files": 0,
+          "not_applicable": true,
+          "tools": [
+            "eslint",
+            "typescript",
+            "prettier",
+            "@types/node"
+          ]
+        },
+        "python": {
+          "files": 111,
+          "format": "ruff",
+          "lint": "ruff E4/E7/E9/F/I",
+          "types": "mypy strict; imported modules separately enumerated"
+        },
+        "python_runtime": "3.14.8",
+        "runtime_pin": "runner-image qualification is separate from package pins",
+        "shell": {
+          "files": 2,
+          "not_applicable": false,
+          "tool": "shellcheck"
+        },
+        "yaml": {
+          "files": 6,
+          "not_applicable": false,
+          "tool": "yamllint"
+        }
+      },
+      "existing_debt": 702,
+      "new_diagnostics": 0,
+      "status": "passed"
+    }
+  },
+  "log_sha256": {
+    "cache-platform-full-final4.log": "fe14d93b623558eebadaff9744b3b4aa65f861087266e52e6678d5f469165c28",
+    "cache-platform-full-O-final4.log": "721150933beb2d23f4bc63469f92591b47ccf0fd7f17240cc048bbd68f6cfe03",
+    "cache-platform-static-final.log": "6e78ad560289a7b5df2723ff39d5a35452fa4521ca16c3256362a7799b1bb44f"
+  },
+  "review_corrections": [
+    "Explicit cache root independent of preparation state",
+    "Real 22-input consumer integration test retains full verification",
+    "Reject import at exact entry limit",
+    "Preserve destination filesystem reserve",
+    "Bind copy to capacity-reserved input size and reject growth"
+  ],
+  "benchmark": "input-cache-benchmark.json",
+  "not_run": [
+    "production cache population",
+    "image build or guest boot",
+    "GitHub Actions dispatch",
+    "network acquisition",
+    "runner activation or security changes"
+  ],
+  "qualification": "not CI or production qualification; tests and mutations still execute and writable targets remain isolated"
+}
