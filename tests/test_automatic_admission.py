@@ -99,6 +99,7 @@ class AdmissionTests(unittest.TestCase):
 
     def test_actual_inventory_shape_reaches_canonical_reservation(self) -> None:
         from unittest.mock import patch
+
         from tools.runner_fleet.manager import Manager
 
         collector = object.__new__(Manager)
@@ -120,7 +121,7 @@ class AdmissionTests(unittest.TestCase):
             return [run] if "status=queued" in path else []
 
         with patch("tools.runner_fleet.manager.pages", side_effect=pages):
-            queue, _ = collector.inventory()
+            queue, _ = cast(Callable[..., Any], collector.inventory)()
         self.assertEqual(len(queue), 1)
         self.assertEqual(queue[0]["head_repository"], "newdarwindev/runspindle-core")
         self.job = queue[0]
@@ -246,6 +247,7 @@ class BackendOptionTests(unittest.TestCase):
 class LegacyOwnerTests(unittest.TestCase):
     def test_old_manager_preserves_offline_inventory_owner(self) -> None:
         from unittest.mock import patch
+
         from tools.runner_fleet.manager import Manager
 
         manager = object.__new__(Manager)
