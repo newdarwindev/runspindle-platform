@@ -211,13 +211,22 @@ def remove_owned(repo: str, resource: dict[str, Any]) -> None:
         raise RuntimeError("Owned registration remains")
 
 
-def observe_jobs(repo: str, runner: str, since: str) -> list[dict[str, Any]]:
+def observe_jobs(
+    repo: str, runner: str, since: str, prior_runs: list[int]
+) -> list[dict[str, Any]]:
     # Actual assignment is observed after the fact, never promised in advance.
     runs = pages(
         f"repos/newdarwindev/{repo}/actions/runs?created=%3E%3D{since}", "workflow_runs"
     )
+    known = {int(run["id"]): run for run in runs}
+    for run_id in prior_runs:
+        if run_id not in known:
+            run = gh(f"repos/newdarwindev/{repo}/actions/runs/{run_id}")
+            if int(run["id"]) != run_id:
+                raise ValueError("Historical run identity mismatch")
+            known[run_id] = run
     result = []
-    for run in runs:
+    for run in known.values():
         for job in pages(
             f"repos/newdarwindev/{repo}/actions/runs/{run['id']}/jobs", "jobs"
         ):
@@ -317,6 +326,16 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
         budget = capacity(state.directory)
         if any(registrations(r) for r in REPOS):
             raise ValueError("Existing registration; no competing admission")
+        prior_runs = sorted(
+            {
+                int(run["id"])
+                for status in ("queued", "in_progress")
+                for run in pages(
+                    f"repos/newdarwindev/{repo}/actions/runs?status={status}",
+                    "workflow_runs",
+                )
+            }
+        )
         # Record attempt BEFORE reservation so interruption cannot repeat it.
         state.set(CAMPAIGN, history + [repo])
         directory = state.directory / ("registered-probe-" + uuid.uuid4().hex)
@@ -329,6 +348,7 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
             {"repository": repo, "id": -1},
             details={
                 "manual_registered_probe": True,
+                "prior_run_ids": prior_runs,
                 "probe_directory": directory.name,
                 "probe_image": intended["image"],
                 "image_sha256": intended["bindings"]["image_sha256"],
@@ -379,7 +399,7 @@ def run(intended: dict[str, Any], state: State, repo: str) -> dict[str, Any]:
                 since = datetime.fromtimestamp(
                     resource["created"] - 60, timezone.utc
                 ).strftime("%Y-%m-%dT%H:%M:%SZ")
-                jobs = observe_jobs(repo, resource["runner_name"], since)
+                jobs = observe_jobs(repo, resource["runner_name"], since, prior_runs)
                 report["jobs"] = jobs
                 if len(jobs) != 1 or jobs[0]["status"] != "completed":
                     raise ValueError("Single terminal assignment not established")

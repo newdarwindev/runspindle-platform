@@ -181,3 +181,28 @@ class CapacityRecoveryTests(unittest.TestCase):
                 p.recover(state, "a" * 32)
         helper.assert_not_called()
         remove.assert_not_called()
+
+
+class HistoricalAssignmentTests(unittest.TestCase):
+    def test_old_queued_run_completed_after_registration_is_observed(self):
+        old_run = {"id": 10, "run_attempt": 1}
+        job = {
+            "id": 20,
+            "runner_name": "owned",
+            "status": "completed",
+            "conclusion": "success",
+        }
+
+        def page(path, key):
+            return [job] if path.endswith("/10/jobs") else []
+
+        with (
+            patch.object(p, "pages", side_effect=page),
+            patch.object(p, "gh", return_value=old_run) as gh,
+        ):
+            result = p.observe_jobs(p.REPOS[0], "owned", "2026-11-18T00:00:00Z", [10])
+        self.assertEqual([x["id"] for x in result], [20])
+        self.assertEqual(result[0]["run_id"], 10)
+        gh.assert_called_once_with(
+            "repos/newdarwindev/runspindle-browser/actions/runs/10"
+        )
