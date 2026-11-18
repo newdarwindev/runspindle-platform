@@ -13,9 +13,8 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools"))
-from runner_fleet import single_probe as probe
-from runner_fleet.state import State
+from tools.runner_fleet import single_probe as probe
+from tools.runner_fleet.state import State
 
 
 def intended() -> dict[str, Any]:
@@ -185,7 +184,7 @@ class Tests(unittest.TestCase):
                 probe.read_record(link)
 
     def test_manager_refuses_probe_default_image_cleanup(self) -> None:
-        from runner_fleet.manager import Manager
+        from tools.runner_fleet.manager import Manager
 
         manager = Manager.__new__(Manager)
         manager.state = Mock()
