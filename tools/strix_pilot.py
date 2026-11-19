@@ -2,16 +2,18 @@
 
 import argparse
 import json
+import os
 from pathlib import Path
 import signal
 import socket
+import stat
 import subprocess
 import sys
 import time
 
 from tools.runner_fleet.direct_routing import enroll_job, queued_jobs
 from tools.runner_fleet.ephemeral_registration import configure, start_listener
-from tools.runner_fleet.private_relay import Route, inventory
+from tools.runner_fleet.github_jobs import Route, inventory
 
 SUPPORT = Path("/home/standard/Projects/runspindle-platform-automatic-fleet-20261118")
 CANARY = "newdarwindev/runspindle-strix-ci-canary"
@@ -28,7 +30,8 @@ CANARY_WORKFLOW = 423463385
 
 
 def api(method, path, expected=200):
-    args = ["gh", "api", "--hostname", "github.com", "--method", method, path]
+    args = ["gh", "api", "--hostname", "github.com", "--method", method,
+            "-H", "X-GitHub-Api-Version: 2026-03-10", path]
     try:
         result = subprocess.run(args, capture_output=True, timeout=18, check=False, text=True)
         if result.returncode:
@@ -112,6 +115,54 @@ def network_read(*args):
     return subprocess.run(("sudo", "-n", *args), capture_output=True, text=True, check=True, timeout=8)
 
 
+def retain_stopped(state, resource, slot_path, backend, inspect_disk):
+    """Preserve the original overlay, serial log, and seed on their own mount."""
+    archive = backend.ROOT / "retained" / resource["id"] / "slot-originals"
+    archive.mkdir(mode=0o700, exist_ok=True)
+    archive_info = archive.lstat()
+    if (
+        not stat.S_ISDIR(archive_info.st_mode) or archive_info.st_uid != os.getuid()
+        or stat.S_IMODE(archive_info.st_mode) != 0o700 or any(archive.iterdir())
+    ):
+        raise RuntimeError("unexpected original retention directory state")
+    entries = []
+    for name in ("disk.qcow2", "serial.log", "seed.iso"):
+        source = slot_path / name
+        if not source.exists() and not source.is_symlink():
+            continue
+        info = source.lstat()
+        if (
+            not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_nlink != 1 or info.st_dev != archive.stat().st_dev
+        ):
+            raise RuntimeError("unsafe stopped guest file")
+        entries.append({
+            "source": str(source), "destination": str(archive / name),
+            "inode": info.st_ino, "size": info.st_size, "sha256": backend.digest(source),
+        })
+    if {item.name for item in slot_path.iterdir()} != {Path(row["source"]).name for row in entries}:
+        raise RuntimeError("unknown input remains in the stopped slot")
+    disk = slot_path / "disk.qcow2"
+    binding = inspect_disk(disk, IMAGE, IMAGE_SHA, backend.execute) if disk.exists() else None
+    state.update(resource, "cleaning", original_retention={"files": entries, "backing": binding})
+    for entry in entries:
+        source = Path(entry["source"])
+        target = Path(entry["destination"])
+        info = source.lstat()
+        if (info.st_ino, info.st_size) != (entry["inode"], entry["size"]) or target.exists():
+            raise RuntimeError("stopped file changed after retention intent")
+        source.rename(target)
+        actual = target.lstat()
+        if (
+            (actual.st_ino, actual.st_size) != (entry["inode"], entry["size"])
+            or backend.digest(target) != entry["sha256"]
+        ):
+            raise RuntimeError("original file changed during retention")
+        backend.sync_directory(slot_path)
+        backend.sync_directory(archive)
+    state.update(resource, "cleaning", original_retention_complete=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -125,6 +176,7 @@ def run(args):
     sys.path.insert(0, str(SUPPORT / "tools"))
     from runner_fleet import backend, host_helper
     from runner_fleet.registered_probe import capacity
+    from runner_fleet.original_retention import inspect_linked_disk
     from runner_fleet.single_probe import (
         IsolatedMetadata, STATE_DIRECTORY, manager_stopped,
         validate_state_directory, verify_guest_lifetime, verify_host_lifetime_policy,
@@ -226,7 +278,8 @@ def run(args):
                 )
                 print(json.dumps(report["job"]), flush=True)
             except (RuntimeError, ValueError, OSError, subprocess.SubprocessError) as error:
-                report["error"] = str(error)[:180]
+                report["error"] = str(error)[:400]
+                print(report["error"], flush=True)
             finally:
                 errors = []
                 try:
@@ -254,7 +307,9 @@ def run(args):
                 if not errors:
                     try:
                         if current.get("resource_id") == identity:
-                            machine.destroy(resource)
+                            retain_stopped(
+                                state, resource, machine.slot(resource), backend, inspect_linked_disk,
+                            )
                         elif any(machine.slot(resource).iterdir()):
                             raise RuntimeError("unowned files remain in slot")
                     except Exception as error:
@@ -264,23 +319,57 @@ def run(args):
                 state.update(resource, "destroyed" if not errors else "uncertain", pilot_result=report)
                 print(json.dumps(report), flush=True)
             wanted = "failure" if repo == CANARY and args.name == "failure-proof" else "success"
-            return 0 if report.get("job", {}).get("conclusion") == wanted and not errors else 1
+            if errors or "job" not in report:
+                return 2
+            return 0 if report["job"]["conclusion"] == wanted else 1
     finally:
         state.db.close()
+        backend.helper = installed_helper
+
+
+def drain_host(args):
+    """Serve the eight jobs of one authenticated Host push, one guest at a time."""
+    route = Route(HOST, REPOS[HOST], HOST_WORKFLOW, args.workflow_blob)
+    path = f"/repos/{HOST}/actions/runs/{args.run_id}"
+    completed = set()
+    deadline = time.monotonic() + 150 * 60
+    wait_for_job = time.monotonic() + 90
+    while time.monotonic() < deadline:
+        execution = api("GET", path)
+        if execution.get("status") == "completed":
+            return 0 if execution.get("conclusion") == "success" and len(completed) == 8 else 1
+        _, jobs = queued_jobs(api, route, args.run_id, actor_ids={OWNER})
+        if not jobs:
+            if time.monotonic() >= wait_for_job:
+                raise TimeoutError("Host workflow did not make another job available")
+            time.sleep(3)
+            continue
+        args.job_id = min(job["id"] for job in jobs)
+        if args.job_id in completed:
+            raise RuntimeError("job reappeared after pilot reconciliation")
+        if run(args) == 2:
+            return 2
+        completed.add(args.job_id)
+        wait_for_job = time.monotonic() + 90
+    raise TimeoutError("Host run exceeded its elapsed budget")
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("lane", choices=("canary", "host"))
     parser.add_argument("run_id", type=int)
-    parser.add_argument("job_id", type=int)
+    parser.add_argument("job_id", type=int, nargs="?")
     parser.add_argument("--name", choices=("proof", "failure-proof"), default="proof")
     parser.add_argument("--workflow-blob")
     args = parser.parse_args()
+    if args.job_id is None and args.lane != "host":
+        parser.error("the canary requires an exact job ID")
+    if args.lane == "host" and not args.workflow_blob:
+        parser.error("the Host pilot requires the approved workflow blob")
     def interrupted(*_):
         raise InterruptedError("pilot interrupted")
     signal.signal(signal.SIGTERM, interrupted)
-    return run(args)
+    return drain_host(args) if args.job_id is None else run(args)
 
 
 if __name__ == "__main__":

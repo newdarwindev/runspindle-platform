@@ -1,6 +1,6 @@
 """Admission checks for a public repository's disposable Strix runner."""
 
-from .private_relay import PARTITIONS, RelayError, inventory, observe_public, positive
+from .github_jobs import PARTITIONS, RoutingError, inventory, observe_public, positive
 from .ephemeral_registration import configure, start_listener
 
 JOB_NAMES = {
@@ -11,7 +11,7 @@ JOB_NAMES = {
 def queued_jobs(api, route, run_id, *, actor_ids):
     """Return exact queued jobs with dedicated labels for an approved push."""
     if not actor_ids or any(not positive(actor_id) for actor_id in actor_ids):
-        raise RelayError("direct routing requires approved GitHub actor IDs")
+        raise RoutingError("direct routing requires approved GitHub actor IDs")
     options = {"statuses": ("queued", "in_progress"), "actor_ids": actor_ids}
     attempt = observe_public(api, route, run_id, **options)
     jobs = inventory(
@@ -19,7 +19,7 @@ def queued_jobs(api, route, run_id, *, actor_ids):
     )
     names = {job.get("name") for job in jobs}
     if len(names) != len(jobs) or not names.issubset(JOB_NAMES):
-        raise RelayError("unexpected direct job inventory")
+        raise RoutingError("unexpected direct job inventory")
     queued = []
     for job in jobs:
         suffix = JOB_NAMES[job["name"]]
@@ -30,13 +30,13 @@ def queued_jobs(api, route, run_id, *, actor_ids):
             or job.get("head_sha") != attempt.sha
             or job.get("labels") != [label]
         ):
-            raise RelayError("unexpected direct job identity or label")
+            raise RoutingError("unexpected direct job identity or label")
         if job.get("status") == "queued":
             if job.get("runner_id") not in (None, 0) or job.get("runner_name"):
-                raise RelayError("queued direct job already has a runner")
+                raise RoutingError("queued direct job already has a runner")
             queued.append(job)
     if observe_public(api, route, run_id, **options) != attempt:
-        raise RelayError("public run attempt changed during job admission")
+        raise RoutingError("public run attempt changed during job admission")
     return attempt, queued
 
 
@@ -46,7 +46,7 @@ def enroll_job(read_api, runner_api, ssh, route, run_id, job_id, runner_name, *,
     attempt, jobs = queued_jobs(read_api, route, run_id, actor_ids=actor_ids)
     intended = next((job for job in jobs if job["id"] == job_id), None)
     if intended is None:
-        raise RelayError("requested job is no longer queued")
+        raise RoutingError("requested job is no longer queued")
     label, = intended["labels"]
 
     def admit():
@@ -55,7 +55,7 @@ def enroll_job(read_api, runner_api, ssh, route, run_id, job_id, runner_name, *,
         if current != attempt or not any(
             job["id"] == job_id and job["labels"] == [label] for job in jobs
         ):
-            raise RelayError("requested job changed before listener startup")
+            raise RoutingError("requested job changed before listener startup")
 
     runner_id = configure(
         runner_api, ssh, route.repository, route.repository_id, runner_name, label, admit=admit,

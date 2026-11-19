@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import Mock
 
 from tools.runner_fleet.ephemeral_registration import configure, start_listener
-from tools.runner_fleet.private_relay import RelayError
+from tools.runner_fleet.github_jobs import RoutingError
 
 
 class EphemeralRegistrationTest(unittest.TestCase):
@@ -25,7 +25,7 @@ class EphemeralRegistrationTest(unittest.TestCase):
                         "status": "offline", "labels": [{"name": label, "type": "custom"}],
                     }]},
                 ])
-                ssh = Mock(return_value=SimpleNamespace(returncode=0))
+                ssh = Mock(return_value=SimpleNamespace(returncode=0, stdout="10\n"))
                 admit = Mock()
                 self.assertEqual(
                     configure(api, ssh, repository, 500, name, label, admit=admit, clock=lambda: now),
@@ -47,7 +47,7 @@ class EphemeralRegistrationTest(unittest.TestCase):
     def test_rejects_generic_and_cross_scope_labels_before_api(self):
         api = Mock()
         for label in ("self-hosted", "runspindle-strix-canary-proof-123-1"):
-            with self.assertRaises(RelayError):
+            with self.assertRaises(RoutingError):
                 configure(
                     api, Mock(), "newdarwindev/runspindle-host", 500,
                     "runspindle-fleet-" + "f" * 32, label, admit=Mock(),
