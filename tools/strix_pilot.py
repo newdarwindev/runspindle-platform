@@ -26,6 +26,10 @@ TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOW = "d2c9ff0ed291789922d2627ed43a9b03e68bc812"
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
 TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
+BROWSER = "newdarwindev/runspindle-browser"
+BROWSER_PROFILE_WORKFLOW = "02dc3ac029df03e593fb7e0a2a8efe8cd92f44d1"
+BROWSER_PROFILE_WHEELHOUSE = "browser-profile-wheels.rHUFxUbY"
+BROWSER_PROFILE_SUMS = "157cd92e4b14e91e7fc36fb16ed97a93598f385f7df06e2bbc850e95de2d7cac"
 CONSOLE = "newdarwindev/runspindle-console"
 CONSOLE_UI_WORKFLOW = "08bd9447641817f4675fca665ab16818e6bf8a97"
 CONSOLE_UI_CACHE = "console-ui-cache-d208a9d3.tar.gz"
@@ -299,30 +303,29 @@ def reconcile_stopped_direct(state, backend, helper):
     print(f"Recovered cleanup for direct runner resource {identity}", flush=True)
 
 
-def stage_tether_visual(machine, resource, state_directory):
+def stage_wheelhouse(machine, resource, wheelhouse, manifest_sha256, destination):
     """Send the pinned wheelhouse over the verified guest connection."""
-    wheelhouse = state_directory / TETHER_VISUAL_WHEELHOUSE
     manifest = wheelhouse / "SHA256SUMS"
     if wheelhouse.is_symlink() or manifest.is_symlink() or not manifest.is_file():
-        raise RuntimeError("offline Tether wheel manifest missing")
+        raise RuntimeError("offline wheel manifest missing")
     data = manifest.read_bytes()
-    if hashlib.sha256(data).hexdigest() != TETHER_VISUAL_SUMS:
-        raise RuntimeError("offline Tether wheel manifest changed")
+    if hashlib.sha256(data).hexdigest() != manifest_sha256:
+        raise RuntimeError("offline wheel manifest changed")
     wheels = []
     for line in data.decode("ascii").splitlines():
         digest, filename = line.split("  ", 1)
         if not re.fullmatch(r"[a-z0-9_.-]+\.whl", filename):
-            raise RuntimeError("invalid offline Tether wheel name")
+            raise RuntimeError("invalid offline wheel name")
         path = wheelhouse / filename
         if path.is_symlink() or not path.is_file():
-            raise RuntimeError("offline Tether wheel missing")
+            raise RuntimeError("offline wheel missing")
         with path.open("rb") as stream:
             if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
-                raise RuntimeError("offline Tether wheel changed")
+                raise RuntimeError("offline wheel changed")
         wheels.append(path)
     for wheel in wheels:
-        machine.copy_prepared(resource, wheel, f"tether-visual/wheels/{wheel.name}")
-    print("Verified offline Tether wheels staged", flush=True)
+        machine.copy_prepared(resource, wheel, f"{destination}/wheels/{wheel.name}")
+    print(f"Verified offline wheels staged for {destination}", flush=True)
 
 
 def stage_console_ui(machine, resource, state_directory):
@@ -432,7 +435,18 @@ def run(args):
                     repo == TETHER and route.workflow_blob == TETHER_VISUAL_WORKFLOW
                     and job["name"] in {"validation / component", "validation / quality"}
                 ):
-                    stage_tether_visual(machine, resource, STATE_DIRECTORY)
+                    stage_wheelhouse(
+                        machine, resource, STATE_DIRECTORY / TETHER_VISUAL_WHEELHOUSE,
+                        TETHER_VISUAL_SUMS, "tether-visual",
+                    )
+                if (
+                    repo == BROWSER and route.workflow_blob == BROWSER_PROFILE_WORKFLOW
+                    and job["name"] == "validation / component"
+                ):
+                    stage_wheelhouse(
+                        machine, resource, STATE_DIRECTORY / BROWSER_PROFILE_WHEELHOUSE,
+                        BROWSER_PROFILE_SUMS, "browser-profile",
+                    )
                 if (
                     repo == CONSOLE and route.workflow_blob == CONSOLE_UI_WORKFLOW
                     and job["name"] == "validation / quality"
