@@ -6,6 +6,7 @@ from .ephemeral_registration import configure, start_listener
 JOB_NAMES = {
     f"validation / {name}": name for name in (*PARTITIONS, "strix-linux-x64")
 }
+CORE_SHARD_NAMES = {f"validation / auth_{index}": f"auth_{index}" for index in range(1, 6)}
 
 
 def queued_jobs(api, route, run_id, *, actor_ids):
@@ -17,12 +18,15 @@ def queued_jobs(api, route, run_id, *, actor_ids):
     jobs = inventory(
         api, f"{attempt.public_path}/actions/runs/{run_id}/attempts/{attempt.attempt}/jobs", "jobs",
     )
+    expected_names = JOB_NAMES
+    if route.repository == "newdarwindev/runspindle-core":
+        expected_names = JOB_NAMES | CORE_SHARD_NAMES
     names = {job.get("name") for job in jobs}
-    if len(names) != len(jobs) or not names.issubset(JOB_NAMES):
+    if len(names) != len(jobs) or not names.issubset(expected_names):
         raise RoutingError("unexpected direct job inventory")
     queued = []
     for job in jobs:
-        suffix = JOB_NAMES[job["name"]]
+        suffix = expected_names[job["name"]]
         label = f"runspindle-strix-direct-{run_id}-{attempt.attempt}-{suffix}"
         if (
             job.get("run_id") != run_id
