@@ -546,7 +546,11 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
             else:
                 receipt["test_summary"] = "unavailable"
         if entry["id"] == "python-tests":
-            from tools.python_tests import CANONICAL_COMMAND, valid_coverage
+            from tools.python_tests import (
+                CANONICAL_COMMAND,
+                REQUIRED_IDS,
+                valid_coverage,
+            )
 
             line = capture.coverage_line if capture.coverage_count == 1 else None
             try:
@@ -570,6 +574,15 @@ def run_entry(root: Path, entry: dict[str, Any]) -> dict[str, Any]:
             ):
                 receipt["status"] = "failed"
                 receipt.setdefault("reason", "required_temporal_coverage_missing")
+                if observed_invocation == invocation and isinstance(coverage, dict):
+                    passed = coverage.get("passed")
+                    if isinstance(passed, list) and all(
+                        isinstance(test, str) and test in REQUIRED_IDS
+                        for test in passed
+                    ):
+                        receipt["reported_temporal_unpassed"] = [
+                            test for test in REQUIRED_IDS if test not in passed
+                        ]
             else:
                 receipt["temporal_coverage"] = coverage
         del capture, output
@@ -880,6 +893,8 @@ def write_reports(output: Path, result: dict[str, Any]) -> None:
 
 def failure_summary(result: dict[str, Any]) -> list[str]:
     """Expose only receipt fields we constructed, never child output or argv."""
+    from tools.python_tests import REQUIRED_IDS
+
     lines: list[str] = []
     for entry in result.get("checks", []):
         if entry.get("status") != "failed":
@@ -903,6 +918,14 @@ def failure_summary(result: dict[str, Any]) -> list[str]:
         version = entry.get("required_version")
         if isinstance(version, str) and re.fullmatch(r"\d+(?:\.\d+){1,3}", version):
             fields.append(f"required_version={version}")
+        cases = entry.get("reported_temporal_unpassed")
+        if isinstance(cases, list) and all(
+            isinstance(case, str) and case in REQUIRED_IDS for case in cases
+        ):
+            names = ",".join(
+                case.rsplit(".", 1)[-1] for case in REQUIRED_IDS if case in cases
+            )
+            fields.append(f"reported_temporal_unpassed={names or 'none'}")
         fields.append(diagnostic_summary(entry))
         lines.append("hygiene failure: " + " ".join(fields))
     return lines[:32]
