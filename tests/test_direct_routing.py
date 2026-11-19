@@ -54,6 +54,16 @@ class DirectRoutingTest(unittest.TestCase):
             record.assert_called_once_with(52)
             listen.assert_not_called()
 
+    def test_pending_run_admits_only_materialized_queued_jobs(self):
+        self.run["status"] = "pending"
+        observed = direct_routing.queued_jobs(self.read, self.route, 300, actor_ids={42})
+        self.assertEqual(observed, (self.attempt, [self.job]))
+        self.job["status"] = "pending"
+        self.assertEqual(
+            direct_routing.queued_jobs(self.read, self.route, 300, actor_ids={42}),
+            (self.attempt, []),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

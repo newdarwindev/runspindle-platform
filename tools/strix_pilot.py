@@ -374,7 +374,7 @@ def watch(routes_path):
         candidates = []
         for route in routes:
             path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
-            for status in ("queued", "in_progress"):
+            for status in ("pending", "queued", "in_progress"):
                 rows = inventory(api, path, "workflow_runs", {"event": "push", "status": status})
                 for row in rows:
                     try:

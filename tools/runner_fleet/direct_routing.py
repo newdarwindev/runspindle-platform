@@ -13,7 +13,9 @@ def queued_jobs(api, route, run_id, *, actor_ids):
     """Return exact queued jobs with dedicated labels for an approved push."""
     if not actor_ids or any(not positive(actor_id) for actor_id in actor_ids):
         raise RoutingError("direct routing requires approved GitHub actor IDs")
-    options = {"statuses": ("queued", "in_progress"), "actor_ids": actor_ids}
+    # The run may still report pending after GitHub releases individual jobs.
+    # Only an exact, unassigned job that reports queued is eligible below.
+    options = {"statuses": ("pending", "queued", "in_progress"), "actor_ids": actor_ids}
     attempt = observe_public(api, route, run_id, **options)
     jobs = inventory(
         api, f"{attempt.public_path}/actions/runs/{run_id}/attempts/{attempt.attempt}/jobs", "jobs",
