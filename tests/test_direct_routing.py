@@ -106,6 +106,19 @@ class DirectRoutingTest(unittest.TestCase):
                 "DELETE", f"/repos/{repo}/actions/runners/52", 204,
             ))
 
+    def test_queue_rotates_repositories_and_picks_oldest_eligible_run(self):
+        routes = [self.route, Route(LAB, 101, 201, "c" * 40)]
+        with (
+            patch.object(strix_pilot, "inventory", return_value=[{"id": 800}, {"id": 700}]),
+            patch.object(strix_pilot, "queued_jobs", return_value=(
+                self.attempt, [{"id": 901}, {"id": 900}],
+            )) as jobs,
+        ):
+            self.assertEqual(strix_pilot.next_queued_job(routes, 1), (1, 700, 900))
+            jobs.assert_called_once_with(
+                strix_pilot.api, routes[1], 700, actor_ids={strix_pilot.OWNER},
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

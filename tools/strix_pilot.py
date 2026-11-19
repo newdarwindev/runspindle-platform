@@ -484,42 +484,49 @@ def drain_host(args):
     raise TimeoutError("Host run exceeded its elapsed budget")
 
 
+def next_queued_job(routes, cursor):
+    """Poll one rotation, preserving FIFO order within each repository."""
+    for offset in range(len(routes)):
+        index = (cursor + offset) % len(routes)
+        route = routes[index]
+        path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
+        run_ids = set()
+        for status in ("pending", "queued", "in_progress"):
+            rows = inventory(api, path, "workflow_runs", {"event": "push", "status": status})
+            run_ids.update(row["id"] for row in rows)
+        for run_id in sorted(run_ids):
+            try:
+                _, jobs = queued_jobs(api, route, run_id, actor_ids={OWNER})
+            except RoutingError:
+                continue
+            if jobs:
+                return index, run_id, min(job["id"] for job in jobs)
+    return None
+
+
 def watch(routes_path):
     """Poll approved workflows and serve one direct job at a time."""
     routes = [Route(**row) for row in json.loads(routes_path.read_text())]
     if not routes or len({route.repository_id for route in routes}) != len(routes):
         raise ValueError("expected unique approved repository routes")
+    cursor = 0
     while True:
         try:
             run(argparse.Namespace(lane="cleanup"))
-        except (BlockingIOError, RunnerCleanupPending, GitHubUnavailable) as error:
-            print(str(error), flush=True)
-            time.sleep(60)
-            continue
-        candidates = []
-        for route in routes:
-            path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
-            for status in ("pending", "queued", "in_progress"):
-                rows = inventory(api, path, "workflow_runs", {"event": "push", "status": status})
-                for row in rows:
-                    try:
-                        _, jobs = queued_jobs(api, route, row["id"], actor_ids={OWNER})
-                    except RoutingError:
-                        continue
-                    candidates.extend((row["id"], job["id"], route) for job in jobs)
-        if not candidates:
-            time.sleep(60)
-            continue
-        run_id, job_id, route = min(candidates, key=lambda row: (row[0], row[1]))
-        try:
+            candidate = next_queued_job(routes, cursor)
+            if candidate is None:
+                time.sleep(60)
+                continue
+            index, run_id, job_id = candidate
             status = run(argparse.Namespace(
-                lane="direct", route=route, run_id=run_id, job_id=job_id, name=None,
+                lane="direct", route=routes[index], run_id=run_id, job_id=job_id, name=None,
             ))
         except (BlockingIOError, CapacityUnavailable, RoutingError,
                 RunnerCleanupPending, GitHubUnavailable) as error:
             print(str(error), flush=True)
             time.sleep(60)
             continue
+        cursor = (index + 1) % len(routes)
         if status == 2:
             time.sleep(60)
 
