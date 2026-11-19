@@ -23,7 +23,10 @@ HOST = "newdarwindev/runspindle-host"
 REPOS = {CANARY: 1463722751, HOST: 1456479612}
 HOST_WORKFLOW = 417698603
 TETHER = "newdarwindev/runspindle-tether"
-TETHER_VISUAL_WORKFLOW = "d2c9ff0ed291789922d2627ed43a9b03e68bc812"
+TETHER_VISUAL_WORKFLOWS = {
+    "d2c9ff0ed291789922d2627ed43a9b03e68bc812",
+    "b95cf4d906807224abb27891691a3e561c0338c2",
+}
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
 TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
 BROWSER = "newdarwindev/runspindle-browser"
@@ -31,7 +34,10 @@ BROWSER_PROFILE_WORKFLOW = "02dc3ac029df03e593fb7e0a2a8efe8cd92f44d1"
 BROWSER_PROFILE_WHEELHOUSE = "browser-profile-wheels.rHUFxUbY"
 BROWSER_PROFILE_SUMS = "157cd92e4b14e91e7fc36fb16ed97a93598f385f7df06e2bbc850e95de2d7cac"
 CONSOLE = "newdarwindev/runspindle-console"
-CONSOLE_UI_WORKFLOW = "08bd9447641817f4675fca665ab16818e6bf8a97"
+CONSOLE_UI_WORKFLOWS = {
+    "08bd9447641817f4675fca665ab16818e6bf8a97",
+    "dcd890f5ade00e4c9a77cf511d6cedac38303597",
+}
 CONSOLE_UI_CACHE = "console-ui-cache-d208a9d3.tar.gz"
 CONSOLE_UI_SHA256 = "d208a9d34bebc3460dd9d18a2405d3a7a1b2e7dac4cadb5eb093db8c958e3494"
 OWNER = 329000935
@@ -432,7 +438,7 @@ def run(args):
                 print("Guest online and isolation verified", flush=True)
 
                 if (
-                    repo == TETHER and route.workflow_blob == TETHER_VISUAL_WORKFLOW
+                    repo == TETHER and route.workflow_blob in TETHER_VISUAL_WORKFLOWS
                     and job["name"] in {"validation / component", "validation / quality"}
                 ):
                     stage_wheelhouse(
@@ -448,7 +454,7 @@ def run(args):
                         BROWSER_PROFILE_SUMS, "browser-profile",
                     )
                 if (
-                    repo == CONSOLE and route.workflow_blob == CONSOLE_UI_WORKFLOW
+                    repo == CONSOLE and route.workflow_blob in CONSOLE_UI_WORKFLOWS
                     and job["name"] == "validation / quality"
                 ):
                     stage_console_ui(machine, resource, STATE_DIRECTORY)
