@@ -549,8 +549,11 @@ def main():
         parser.error("the canary requires an exact job ID")
     if args.lane == "host" and not args.workflow_blob:
         parser.error("the Host pilot requires the approved workflow blob")
+
     def interrupted(*_):
-        raise InterruptedError("pilot interrupted")
+        # Exit through the cleanup blocks even if SIGTERM arrives during I/O.
+        raise SystemExit(0)
+
     signal.signal(signal.SIGTERM, interrupted)
     if args.lane == "watch":
         return watch(args.routes)
