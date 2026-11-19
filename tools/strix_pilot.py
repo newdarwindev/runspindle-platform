@@ -1,6 +1,7 @@
 """Run one exact GitHub job in a disposable Strix VM under the fleet lock."""
 
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -21,6 +22,10 @@ CANARY = "newdarwindev/runspindle-strix-ci-canary"
 HOST = "newdarwindev/runspindle-host"
 REPOS = {CANARY: 1463722751, HOST: 1456479612}
 HOST_WORKFLOW = 417698603
+TETHER = "newdarwindev/runspindle-tether"
+TETHER_VISUAL_WORKFLOW = "d2c9ff0ed291789922d2627ed43a9b03e68bc812"
+TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
+TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
 OWNER = 329000935
 IMAGE = Path("/var/lib/runspindle-fleet/images/candidate-45811b5b28f5.qcow2")
 IMAGE_SHA = "a5db32338fd6721c53e5b5078d82220c4186181a25da28b6aee726787f632cd0"
@@ -290,6 +295,32 @@ def reconcile_stopped_direct(state, backend, helper):
     print(f"Recovered cleanup for direct runner resource {identity}", flush=True)
 
 
+def stage_tether_visual(machine, resource, state_directory):
+    """Send the pinned wheelhouse over the verified guest connection."""
+    wheelhouse = state_directory / TETHER_VISUAL_WHEELHOUSE
+    manifest = wheelhouse / "SHA256SUMS"
+    if wheelhouse.is_symlink() or manifest.is_symlink() or not manifest.is_file():
+        raise RuntimeError("offline Tether wheel manifest missing")
+    data = manifest.read_bytes()
+    if hashlib.sha256(data).hexdigest() != TETHER_VISUAL_SUMS:
+        raise RuntimeError("offline Tether wheel manifest changed")
+    wheels = []
+    for line in data.decode("ascii").splitlines():
+        digest, filename = line.split("  ", 1)
+        if not re.fullmatch(r"[a-z0-9_.-]+\.whl", filename):
+            raise RuntimeError("invalid offline Tether wheel name")
+        path = wheelhouse / filename
+        if path.is_symlink() or not path.is_file():
+            raise RuntimeError("offline Tether wheel missing")
+        with path.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != digest:
+                raise RuntimeError("offline Tether wheel changed")
+        wheels.append(path)
+    for wheel in wheels:
+        machine.copy_prepared(resource, wheel, f"tether-visual/wheels/{wheel.name}")
+    print("Verified offline Tether wheels staged", flush=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -377,6 +408,12 @@ def run(args):
                     time.sleep(2)
                 machine.isolation(resource, check_tooling=False)
                 print("Guest online and isolation verified", flush=True)
+
+                if (
+                    repo == TETHER and route.workflow_blob == TETHER_VISUAL_WORKFLOW
+                    and job["name"] in {"validation / component", "validation / quality"}
+                ):
+                    stage_tether_visual(machine, resource, STATE_DIRECTORY)
 
                 def verify_guest():
                     active = installed_helper("observe", slot)
