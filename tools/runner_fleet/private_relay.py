@@ -116,7 +116,7 @@ class Attempt:
         return f"/repos/{self.route.repository}"
 
 
-def observe_public(api, route, run_id):
+def observe_public(api, route, run_id, *, statuses=("in_progress",), actor_ids=None):
     """Read the normal event and pin the reporter bytes at its exact commit."""
     if not positive(run_id):
         raise RelayError("invalid public run ID")
@@ -129,13 +129,18 @@ def observe_public(api, route, run_id):
         or run.get("workflow_id") != route.workflow_id
         or run.get("path") != SOURCE_PATH
         or run.get("event") != "push"
-        or run.get("status") != "in_progress"
+        or run.get("status") not in statuses
         or not (branch == "main" or (isinstance(branch, str) and re.fullmatch(r"ci/.+", branch)))
         or not isinstance(head, str)
         or not SHA.fullmatch(head)
         or not positive(run.get("run_attempt"))
     ):
         raise RelayError("public run is outside the approved route")
+    if actor_ids is not None and any(
+        (run.get(field) or {}).get("id") not in actor_ids
+        for field in ("actor", "triggering_actor")
+    ):
+        raise RelayError("public run actor is outside the approved route")
     for field in ("repository", "head_repository"):
         repository = run.get(field) or {}
         if (

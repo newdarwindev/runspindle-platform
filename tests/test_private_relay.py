@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from tools.render_strix_workflow import private_workflow, public_workflow
+from tools.runner_fleet.direct_routing import queued_jobs as direct_jobs
 from tools.runner_fleet.private_relay import (
     Attempt,
     CHECK_NAME,
@@ -150,6 +151,26 @@ class RelayTest(unittest.TestCase):
         self.jobs[0]["labels"].append("self-hosted")
         with self.assertRaisesRegex(RelayError, "private job identity"):
             self.relay.queued_jobs(self.attempt)
+
+    def test_direct_route_requires_approved_push_actor_and_job_label(self):
+        self.public.update(status="queued", actor={"id": 42}, triggering_actor={"id": 42})
+        job = {
+            "id": 401, "name": "validation / component", "status": "queued",
+            "run_id": 300, "run_attempt": 1, "head_sha": self.attempt.sha,
+            "runner_id": 0, "labels": ["runspindle-strix-direct-300-1-component"],
+        }
+
+        def read(method, path):
+            if "/attempts/1/jobs?" in path:
+                return {"total_count": 1, "jobs": [job]}
+            return self.public_api(method, path)
+
+        self.assertEqual(direct_jobs(read, self.route, 300, actor_ids={42}), (self.attempt, [job]))
+        with self.assertRaisesRegex(RelayError, "actor"):
+            direct_jobs(read, self.route, 300, actor_ids={43})
+        job["labels"].append("self-hosted")
+        with self.assertRaisesRegex(RelayError, "identity or label"):
+            direct_jobs(read, self.route, 300, actor_ids={42})
 
     def test_unconfirmed_cleanup_prevents_publication(self):
         self.relay.dispatch(self.attempt)
