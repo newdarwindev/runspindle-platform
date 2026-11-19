@@ -39,8 +39,22 @@ request unresolved for an operator. Use the canonical supervisor to reconcile
 any runner and VM tied to the request before releasing capacity.
 
 Source verification covers synthetic GitHub responses, durable intent,
-reporter rendering and shell syntax. Live disposition depends on the original
-executor's no-replay receipt, the private runner canary, the Host component
-qualification, and approval of the production repository, App grants and
-activation. Measure the Host workload and queue before treating the reporter's
-145-minute deadline as production capacity.
+reporter rendering and shell syntax. Measure the Host workload and queue
+before treating the reporter's 145-minute deadline as production capacity.
+
+## Direct registration
+
+The rollout also supports direct runner registration for the private canary and
+the eight public Runspindle repositories. The owner removed the SSH replay
+evidence prerequisite. Use the canonical fleet lock and the existing isolation,
+capacity, and cleanup checks. A normal public validation push selects a
+dedicated label for its run, attempt, and job. The registrar configures an
+ephemeral runner with only that label, then reads the exact offline
+registration back from GitHub before the supervisor releases the listener.
+
+The registration adapter consumes a short-lived repository token through the
+existing guest SSH stdin channel. Shell output from configuration is withheld
+because this step handles credential material. The startup path opens its log
+with noclobber enabled. Use the fleet ledger to record the runner ID and reconcile
+an interrupted registration before allocating the slot again. The installed
+manager still needs to use this adapter in place of its generic-label registrar.
