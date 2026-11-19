@@ -26,6 +26,10 @@ TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOW = "d2c9ff0ed291789922d2627ed43a9b03e68bc812"
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
 TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
+CONSOLE = "newdarwindev/runspindle-console"
+CONSOLE_UI_WORKFLOW = "08bd9447641817f4675fca665ab16818e6bf8a97"
+CONSOLE_UI_CACHE = "console-ui-cache-d208a9d3.tar.gz"
+CONSOLE_UI_SHA256 = "d208a9d34bebc3460dd9d18a2405d3a7a1b2e7dac4cadb5eb093db8c958e3494"
 OWNER = 329000935
 IMAGE = Path("/var/lib/runspindle-fleet/images/candidate-45811b5b28f5.qcow2")
 IMAGE_SHA = "a5db32338fd6721c53e5b5078d82220c4186181a25da28b6aee726787f632cd0"
@@ -321,6 +325,18 @@ def stage_tether_visual(machine, resource, state_directory):
     print("Verified offline Tether wheels staged", flush=True)
 
 
+def stage_console_ui(machine, resource, state_directory):
+    """Send the locked npm cache over the verified guest connection."""
+    archive = state_directory / CONSOLE_UI_CACHE
+    if archive.is_symlink() or not archive.is_file():
+        raise RuntimeError("offline Console UI cache missing")
+    with archive.open("rb") as stream:
+        if hashlib.file_digest(stream, "sha256").hexdigest() != CONSOLE_UI_SHA256:
+            raise RuntimeError("offline Console UI cache changed")
+    machine.copy_prepared(resource, archive, "console-ui-cache.tar.gz")
+    print("Verified offline Console UI cache staged", flush=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -417,6 +433,11 @@ def run(args):
                     and job["name"] in {"validation / component", "validation / quality"}
                 ):
                     stage_tether_visual(machine, resource, STATE_DIRECTORY)
+                if (
+                    repo == CONSOLE and route.workflow_blob == CONSOLE_UI_WORKFLOW
+                    and job["name"] == "validation / quality"
+                ):
+                    stage_console_ui(machine, resource, STATE_DIRECTORY)
 
                 def verify_guest():
                     active = installed_helper("observe", slot)
