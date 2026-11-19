@@ -34,8 +34,9 @@ def _scope(repository, repository_id, name, label):
     return f"/repos/{repository}"
 
 
-def _registration_token(api, path, now):
+def _registration_token(api, path, clock):
     response = api("POST", path + "/actions/runners/registration-token", 201)
+    now = clock()
     token = response.get("token", "")
     try:
         expires = datetime.fromisoformat(response.get("expires_at", ""))
@@ -45,7 +46,7 @@ def _registration_token(api, path, now):
         not isinstance(token, str)
         or not re.fullmatch(r"[A-Za-z0-9_-]{16,256}", token)
         or expires.utcoffset() is None
-        or not timedelta(0) < expires - now <= timedelta(hours=1)
+        or not timedelta(0) < expires - now <= timedelta(hours=1, seconds=2)
     ):
         raise RelayError("invalid short-lived repository registration credential")
     return token
@@ -62,8 +63,7 @@ def configure(api, ssh, repository, repository_id, name, label, *, admit, clock=
     ):
         raise RelayError("registration repository identity changed")
     admit()
-    now = clock() if clock else datetime.now(timezone.utc)
-    token = _registration_token(api, path, now)
+    token = _registration_token(api, path, clock or (lambda: datetime.now(timezone.utc)))
     try:
         admit()
         script = f"""set -eu
@@ -76,6 +76,7 @@ done
 set -a
 . /etc/environment
 set +a
+export PATH=/opt/runspindle-quality/bin:$PATH
 ACTIONS_RUNNER_INPUT_TOKEN={shlex.quote(token)} ./bin/Runner.Listener configure \\
     --unattended --ephemeral --disableupdate --no-default-labels \\
     --url "https://github.com/{repository}" --name "{name}" --labels "{label}" --work _work \\
@@ -113,6 +114,7 @@ test ! -e .env && test ! -L .env
 set -a
 . /etc/environment
 set +a
+export PATH=/opt/runspindle-quality/bin:$PATH
 set -C
 exec 3> /home/runner/job.log
 nohup env -u SSH_AUTH_SOCK ./bin/Runner.Listener run >&3 2>&1 < /dev/null &
