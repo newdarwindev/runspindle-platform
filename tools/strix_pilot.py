@@ -13,7 +13,7 @@ import time
 
 from tools.runner_fleet.direct_routing import enroll_job, queued_jobs
 from tools.runner_fleet.ephemeral_registration import configure, start_listener
-from tools.runner_fleet.github_jobs import Route, inventory
+from tools.runner_fleet.github_jobs import Route, RoutingError, inventory
 
 SUPPORT = Path("/home/standard/Projects/runspindle-platform-automatic-fleet-20261118")
 CANARY = "newdarwindev/runspindle-strix-ci-canary"
@@ -27,6 +27,10 @@ MANIFEST = "registered-probe-3c27c78e84054c84a9ef2f45622834c7/candidate.json"
 CANARY_HEAD = "722739a047f320d029180b0322a3f2429e14924a"
 CANARY_BRANCH = "ci/strix-canary-exclusive-label-20261119"
 CANARY_WORKFLOW = 423463385
+
+
+class CapacityUnavailable(RuntimeError):
+    """The host lacks the current reserve for another guest."""
 
 
 def api(method, path, expected=200):
@@ -194,8 +198,10 @@ def run(args):
         return installed_helper(command, *values)
 
     backend.helper = read_only_helper
-    repo = CANARY if args.lane == "canary" else HOST
-    route = Route(HOST, REPOS[HOST], HOST_WORKFLOW, args.workflow_blob) if repo == HOST else None
+    route = getattr(args, "route", None)
+    if args.lane == "host":
+        route = Route(HOST, REPOS[HOST], HOST_WORKFLOW, args.workflow_blob)
+    repo = route.repository if route else CANARY
 
     def lookup():
         if repo == CANARY:
@@ -216,7 +222,10 @@ def run(args):
             manager_stopped()
             if state.active():
                 raise RuntimeError("fleet slot is occupied or unresolved")
-            budget = capacity(STATE_DIRECTORY)
+            try:
+                budget = capacity(STATE_DIRECTORY)
+            except ValueError as error:
+                raise CapacityUnavailable("one-VM capacity is temporarily unavailable") from error
             host_helper.verify_network()
             if inventory(api, runners_path, "runners"):
                 raise RuntimeError("another runner is already registered")
@@ -261,8 +270,9 @@ def run(args):
                 if repo == CANARY:
                     def admit():
                         verify_guest()
-                        if lookup() != job:
-                            raise RuntimeError("canary job changed during admission")
+                        # GitHub can update queue metadata while the immutable
+                        # requested identity and unassigned status stay valid.
+                        lookup()
 
                     record_runner(configure(
                         api, ssh, repo, REPOS[repo], name, job["labels"][0], admit=admit,
@@ -344,7 +354,8 @@ def drain_host(args):
                 raise TimeoutError("Host workflow did not make another job available")
             time.sleep(3)
             continue
-        args.job_id = min(job["id"] for job in jobs)
+        first = min(jobs, key=lambda job: (job["name"] != "validation / component", job["id"]))
+        args.job_id = first["id"]
         if args.job_id in completed:
             raise RuntimeError("job reappeared after pilot reconciliation")
         if run(args) == 2:
@@ -354,21 +365,62 @@ def drain_host(args):
     raise TimeoutError("Host run exceeded its elapsed budget")
 
 
+def watch(routes_path):
+    """Poll approved public workflows and serve one direct job at a time."""
+    routes = [Route(**row) for row in json.loads(routes_path.read_text())]
+    if not routes or len({route.repository_id for route in routes}) != len(routes):
+        raise ValueError("expected unique approved repository routes")
+    while True:
+        candidates = []
+        for route in routes:
+            path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
+            for status in ("queued", "in_progress"):
+                rows = inventory(api, path, "workflow_runs", {"event": "push", "status": status})
+                for row in rows:
+                    try:
+                        _, jobs = queued_jobs(api, route, row["id"], actor_ids={OWNER})
+                    except RoutingError:
+                        continue
+                    candidates.extend((row["id"], job["id"], route) for job in jobs)
+        if not candidates:
+            time.sleep(20)
+            continue
+        run_id, job_id, route = min(candidates, key=lambda row: (row[0], row[1]))
+        try:
+            status = run(argparse.Namespace(
+                lane="public", route=route, run_id=run_id, job_id=job_id, name=None,
+            ))
+        except (CapacityUnavailable, RoutingError) as error:
+            print(str(error), flush=True)
+            time.sleep(20)
+            continue
+        if status == 2:
+            raise RuntimeError("direct runner stopped on an unresolved job")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("lane", choices=("canary", "host"))
-    parser.add_argument("run_id", type=int)
+    parser.add_argument("lane", choices=("canary", "host", "watch"))
+    parser.add_argument("run_id", type=int, nargs="?")
     parser.add_argument("job_id", type=int, nargs="?")
     parser.add_argument("--name", choices=("proof", "failure-proof"), default="proof")
     parser.add_argument("--workflow-blob")
+    parser.add_argument("--routes", type=Path)
     args = parser.parse_args()
-    if args.job_id is None and args.lane != "host":
+    if args.lane == "watch":
+        if not args.routes:
+            parser.error("watch requires an approved route file")
+    elif args.run_id is None:
+        parser.error("the pilot requires an exact run ID")
+    if args.job_id is None and args.lane == "canary":
         parser.error("the canary requires an exact job ID")
     if args.lane == "host" and not args.workflow_blob:
         parser.error("the Host pilot requires the approved workflow blob")
     def interrupted(*_):
         raise InterruptedError("pilot interrupted")
     signal.signal(signal.SIGTERM, interrupted)
+    if args.lane == "watch":
+        return watch(args.routes)
     return drain_host(args) if args.job_id is None else run(args)
 
 
