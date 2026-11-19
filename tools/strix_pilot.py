@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import signal
 import socket
 import stat
@@ -12,8 +13,8 @@ import sys
 import time
 
 from tools.runner_fleet.direct_routing import enroll_job, queued_jobs
-from tools.runner_fleet.ephemeral_registration import configure, start_listener
-from tools.runner_fleet.github_jobs import Route, RoutingError, inventory
+from tools.runner_fleet.ephemeral_registration import LABEL, configure, start_listener
+from tools.runner_fleet.github_jobs import DIRECT_REPOSITORIES, Route, RoutingError, inventory
 
 SUPPORT = Path("/home/standard/Projects/runspindle-platform-automatic-fleet-20261118")
 CANARY = "newdarwindev/runspindle-strix-ci-canary"
@@ -33,16 +34,56 @@ class CapacityUnavailable(RuntimeError):
     """The host lacks the current reserve for another guest."""
 
 
+class GitHubUnavailable(RuntimeError):
+    """A transient GitHub API failure."""
+
+
+class GitHubRejected(RuntimeError):
+    """An API response with an explicit failure status."""
+
+    def __init__(self, method, status):
+        super().__init__(f"GitHub {method} rejected (HTTP {status})")
+        self.status = status
+
+
+class RunnerCleanupPending(RuntimeError):
+    """GitHub has yet to release a stopped guest's runner."""
+
+
 def api(method, path, expected=200):
     args = ["gh", "api", "--hostname", "github.com", "--method", method,
             "-H", "X-GitHub-Api-Version: 2026-03-10", path]
+    retries = (0, 2, 5) if method == "GET" else (0,)
+    for delay in retries:
+        if delay:
+            time.sleep(delay)
+        try:
+            return api_once(args, method)
+        except GitHubUnavailable as error:
+            last_error = error
+    raise last_error
+
+
+def api_once(args, method):
     try:
         result = subprocess.run(args, capture_output=True, timeout=18, check=False, text=True)
-        if result.returncode:
-            raise RuntimeError(f"GitHub {method} failed")
+    except (OSError, subprocess.TimeoutExpired):
+        raise GitHubUnavailable(f"GitHub {method} transport unavailable") from None
+    if result.returncode:
+        match = re.search(r"\(HTTP ([0-9]{3})\)", result.stderr)
+        status = int(match[1]) if match else None
+        throttled = status == 429 or (
+            status == 403 and "rate limit" in result.stderr.lower()
+        )
+        if throttled:
+            raise RuntimeError(f"GitHub {method} rate-limited (HTTP {status})")
+        if status is None or status == 408 or 500 <= status <= 599:
+            raise GitHubUnavailable(f"GitHub {method} temporarily unavailable (HTTP {status})")
+        raise GitHubRejected(method, status)
+    try:
         return json.loads(result.stdout) if result.stdout.strip() else None
-    except (OSError, ValueError, subprocess.TimeoutExpired):
-        raise RuntimeError(f"GitHub {method} unavailable") from None
+    except ValueError:
+        raise GitHubUnavailable(f"GitHub {method} returned invalid JSON") from None
 
 
 def canary_job(run_id, job_id, name):
@@ -84,7 +125,12 @@ def observe_result(repo, run_id, job, runner, name, seconds):
     path = f"/repos/{repo}/actions/jobs/{job['id']}"
     deadline = time.monotonic() + seconds
     while time.monotonic() < deadline:
-        row = api("GET", path)
+        try:
+            row = api("GET", path)
+        except GitHubUnavailable as error:
+            print(str(error), flush=True)
+            time.sleep(5)
+            continue
         if any(row.get(key) != value for key, value in {
             "id": job["id"], "run_id": run_id, "run_attempt": job["run_attempt"],
             "head_sha": job["head_sha"], "labels": job["labels"], "name": job["name"],
@@ -167,6 +213,83 @@ def retain_stopped(state, resource, slot_path, backend, inspect_disk):
     state.update(resource, "cleaning", original_retention_complete=True)
 
 
+def remove_owned_runner(repo, name, label, runner_id):
+    path = f"/repos/{repo}/actions/runners"
+
+    def owned():
+        return [
+            row for row in inventory(api, path, "runners")
+            if row["name"] == name or row["id"] == runner_id
+        ]
+
+    matches = owned()
+    if not matches:
+        return
+    if len(matches) != 1:
+        raise RuntimeError("ambiguous runner identity during cleanup")
+    row, = matches
+    if (
+        row["name"] != name or (runner_id is not None and row["id"] != runner_id)
+        or [(item.get("name"), item.get("type")) for item in row.get("labels", [])]
+        != [(label, "custom")]
+    ):
+        raise RuntimeError("runner identity changed during cleanup")
+    if row.get("status") != "offline" or row.get("busy") is not False:
+        raise RunnerCleanupPending(f"GitHub runner {row['id']} is still online or busy")
+    try:
+        api("DELETE", f"{path}/{row['id']}", 204)
+    except (GitHubUnavailable, GitHubRejected) as error:
+        if isinstance(error, GitHubRejected) and error.status not in (404, 422):
+            raise
+        if owned():
+            raise
+        return
+    if owned():
+        raise RunnerCleanupPending(f"GitHub runner {row['id']} remains registered")
+
+
+def reconcile_stopped_direct(state, backend, helper):
+    resources = state.active()
+    if not resources:
+        return
+    if len(resources) != 1:
+        raise RuntimeError("multiple fleet slots require reconciliation")
+    resource, = resources
+    details = resource["details"]
+    identity, slot = resource["id"], resource["slot"]
+    repo = f"newdarwindev/{resource['repository']}"
+    guest = helper("observe", slot)
+    if (
+        resource["phase"] != "uncertain"
+        or details.get("isolated_direct_pilot") is not True
+        or details.get("image_sha256") != IMAGE_SHA
+        or details.get("original_retention_complete") is not True
+        or resource["runner_name"] != f"runspindle-fleet-{identity}"
+        or repo not in DIRECT_REPOSITORIES | {CANARY}
+        or guest.get("resource_id") != identity or guest.get("ActiveState") != "inactive"
+        or int(guest.get("MainPID", 0))
+        or Path(f"/sys/fs/cgroup/system.slice/runspindle-vm-{slot}.service").exists()
+        or any((backend.ROOT / "slots" / str(slot)).iterdir())
+    ):
+        raise RuntimeError("fleet slot is occupied or unresolved")
+    event, = state.db.execute(
+        "SELECT details FROM events WHERE resource=? AND kind='reserved'", (identity,),
+    ).fetchall()
+    reserved = json.loads(event[0])["job"]
+    label, = reserved["labels"]
+    if (
+        not LABEL.fullmatch(label) or reserved["id"] != resource["requested_job"]
+        or reserved["run_id"] != details["run_id"]
+    ):
+        raise RuntimeError("durable job identity changed during cleanup")
+    remove_owned_runner(repo, resource["runner_name"], label, details.get("runner_id"))
+    state.update(resource, "destroyed", direct_recovery={
+        "runner_id": details.get("runner_id"), "job_id": reserved["id"],
+        "runner_absent": True, "vm_cgroup_absent": True, "originals_retained": True,
+    })
+    print(f"Recovered cleanup for direct runner resource {identity}", flush=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -177,7 +300,9 @@ def run(args):
         ["git", "-C", str(SUPPORT), "status", "--porcelain"], text=True,
     ):
         raise RuntimeError("reviewed fleet support checkout changed")
-    sys.path.insert(0, str(SUPPORT / "tools"))
+    support_path = str(SUPPORT / "tools")
+    if support_path not in sys.path:
+        sys.path.insert(0, support_path)
     from runner_fleet import backend, host_helper
     from runner_fleet.registered_probe import capacity
     from runner_fleet.original_retention import inspect_linked_disk
@@ -209,7 +334,7 @@ def run(args):
         _, jobs = queued_jobs(api, route, args.run_id, actor_ids={OWNER})
         found = [job for job in jobs if job["id"] == args.job_id]
         if len(found) != 1:
-            raise RuntimeError("requested public job is not queued")
+            raise RuntimeError("requested direct job is not queued")
         return found[0]
 
     manager_stopped()
@@ -220,8 +345,9 @@ def run(args):
     try:
         with state.lock():
             manager_stopped()
-            if state.active():
-                raise RuntimeError("fleet slot is occupied or unresolved")
+            reconcile_stopped_direct(state, backend, installed_helper)
+            if args.lane == "cleanup":
+                return 0
             try:
                 budget = capacity(STATE_DIRECTORY)
             except ValueError as error:
@@ -303,17 +429,6 @@ def run(args):
                         raise RuntimeError("guest cgroup remains")
                 except Exception as error:
                     errors.append(f"guest stop: {type(error).__name__}")
-                try:
-                    rows = inventory(api, runners_path, "runners")
-                    for row in rows:
-                        if row.get("name") == name and row.get("labels") == [
-                            item for item in row.get("labels", []) if item.get("name") == job["labels"][0]
-                        ] and len(row.get("labels", [])) == 1:
-                            api("DELETE", f"{runners_path}/{row['id']}", 204)
-                    if any(r.get("name") == name for r in inventory(api, runners_path, "runners")):
-                        raise RuntimeError("owned runner remains registered")
-                except Exception as error:
-                    errors.append(f"runner cleanup: {type(error).__name__}")
                 if not errors:
                     try:
                         if current.get("resource_id") == identity:
@@ -324,6 +439,10 @@ def run(args):
                             raise RuntimeError("unowned files remain in slot")
                     except Exception as error:
                         errors.append(f"retention: {type(error).__name__}")
+                    try:
+                        remove_owned_runner(repo, name, job["labels"][0], runner_id)
+                    except Exception as error:
+                        errors.append(f"runner cleanup: {type(error).__name__}")
                 report["cleanup"] = "verified" if not errors else "uncertain"
                 report["cleanup_errors"] = errors
                 state.update(resource, "destroyed" if not errors else "uncertain", pilot_result=report)
@@ -366,11 +485,17 @@ def drain_host(args):
 
 
 def watch(routes_path):
-    """Poll approved public workflows and serve one direct job at a time."""
+    """Poll approved workflows and serve one direct job at a time."""
     routes = [Route(**row) for row in json.loads(routes_path.read_text())]
     if not routes or len({route.repository_id for route in routes}) != len(routes):
         raise ValueError("expected unique approved repository routes")
     while True:
+        try:
+            run(argparse.Namespace(lane="cleanup"))
+        except (BlockingIOError, RunnerCleanupPending, GitHubUnavailable) as error:
+            print(str(error), flush=True)
+            time.sleep(60)
+            continue
         candidates = []
         for route in routes:
             path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
@@ -383,19 +508,20 @@ def watch(routes_path):
                         continue
                     candidates.extend((row["id"], job["id"], route) for job in jobs)
         if not candidates:
-            time.sleep(20)
+            time.sleep(60)
             continue
         run_id, job_id, route = min(candidates, key=lambda row: (row[0], row[1]))
         try:
             status = run(argparse.Namespace(
-                lane="public", route=route, run_id=run_id, job_id=job_id, name=None,
+                lane="direct", route=route, run_id=run_id, job_id=job_id, name=None,
             ))
-        except (BlockingIOError, CapacityUnavailable, RoutingError) as error:
+        except (BlockingIOError, CapacityUnavailable, RoutingError,
+                RunnerCleanupPending, GitHubUnavailable) as error:
             print(str(error), flush=True)
-            time.sleep(20)
+            time.sleep(60)
             continue
         if status == 2:
-            raise RuntimeError("direct runner stopped on an unresolved job")
+            time.sleep(60)
 
 
 def main():

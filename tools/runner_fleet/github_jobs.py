@@ -6,8 +6,11 @@ from urllib.parse import urlencode
 
 PUBLIC_REPOSITORIES = frozenset(
     f"newdarwindev/runspindle{suffix}" for suffix in
-    ("", "-platform", "-core", "-host", "-browser", "-tether", "-refinery", "-console")
+    ("", "-platform", "-core", "-host", "-browser", "-tether", "-refinery", "-console", "-lab")
 )
+LAB = "newdarwindev/runspindle-lab"
+NEXT = "newdarwindev/runspindle-next-experiment"
+DIRECT_REPOSITORIES = PUBLIC_REPOSITORIES | {NEXT}
 PARTITIONS = ("quality", "component", "rust", "mutation_1", "mutation_2", "mutation_3", "mutation_4")
 SOURCE_PATH = ".github/workflows/validation.yml"
 SHA = re.compile(r"[0-9a-f]{40}")
@@ -54,12 +57,20 @@ class Route:
 
     def __post_init__(self):
         if (
-            self.repository not in PUBLIC_REPOSITORIES
+            self.repository not in DIRECT_REPOSITORIES
             or not positive(self.repository_id)
             or not positive(self.workflow_id)
             or not SHA.fullmatch(self.workflow_blob)
         ):
-            raise RoutingError("invalid approved public route")
+            raise RoutingError("invalid approved direct route")
+
+    @property
+    def workflow_path(self):
+        return ".github/workflows/local-ci.yml" if self.repository == LAB else SOURCE_PATH
+
+    @property
+    def private(self):
+        return self.repository == NEXT
 
 
 @dataclass(frozen=True)
@@ -74,14 +85,14 @@ class Attempt:
         return f"strix-v1:{self.route.repository_id}:{self.run_id}:{self.attempt}:{self.sha}"
 
     @property
-    def public_path(self):
+    def repository_path(self):
         return f"/repos/{self.route.repository}"
 
 
-def observe_public(api, route, run_id, *, statuses=("in_progress",), actor_ids=None):
-    """Read the normal event and pin the reporter bytes at its exact commit."""
+def observe_push(api, route, run_id, *, statuses=("in_progress",), actor_ids=None):
+    """Read the push event and pin the workflow bytes at its exact commit."""
     if not positive(run_id):
-        raise RoutingError("invalid public run ID")
+        raise RoutingError("invalid workflow run ID")
     path = f"/repos/{route.repository}"
     run = api("GET", f"{path}/actions/runs/{run_id}")
     head = run.get("head_sha", "")
@@ -89,7 +100,7 @@ def observe_public(api, route, run_id, *, statuses=("in_progress",), actor_ids=N
     if (
         run.get("id") != run_id
         or run.get("workflow_id") != route.workflow_id
-        or run.get("path") != SOURCE_PATH
+        or run.get("path") != route.workflow_path
         or run.get("event") != "push"
         or run.get("status") not in statuses
         or not (branch == "main" or (isinstance(branch, str) and re.fullmatch(r"ci/.+", branch)))
@@ -97,21 +108,21 @@ def observe_public(api, route, run_id, *, statuses=("in_progress",), actor_ids=N
         or not SHA.fullmatch(head)
         or not positive(run.get("run_attempt"))
     ):
-        raise RoutingError("public run is outside the approved route")
+        raise RoutingError("workflow run is outside the approved route")
     if actor_ids is not None and any(
         (run.get(field) or {}).get("id") not in actor_ids
         for field in ("actor", "triggering_actor")
     ):
-        raise RoutingError("public run actor is outside the approved route")
+        raise RoutingError("workflow run actor is outside the approved route")
     for field in ("repository", "head_repository"):
         repository = run.get(field) or {}
         if (
             repository.get("id") != route.repository_id
             or repository.get("full_name") != route.repository
-            or repository.get("private") is not False
+            or repository.get("private") is not route.private
         ):
-            raise RoutingError("public source repository identity did not match")
-    reporter = api("GET", f"{path}/contents/{SOURCE_PATH}?ref={head}")
-    if reporter.get("type") != "file" or reporter.get("sha") != route.workflow_blob:
-        raise RoutingError("public reporter workflow is outside the approved revision")
+            raise RoutingError("source repository identity did not match")
+    workflow = api("GET", f"{path}/contents/{route.workflow_path}?ref={head}")
+    if workflow.get("type") != "file" or workflow.get("sha") != route.workflow_blob:
+        raise RoutingError("workflow is outside the approved revision")
     return Attempt(route, run_id, run["run_attempt"], head)

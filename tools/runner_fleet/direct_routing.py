@@ -1,6 +1,6 @@
-"""Admission checks for a public repository's disposable Strix runner."""
+"""Admission checks for a repository's disposable Strix runner."""
 
-from .github_jobs import PARTITIONS, RoutingError, inventory, observe_public, positive
+from .github_jobs import LAB, NEXT, PARTITIONS, RoutingError, inventory, observe_push, positive
 from .ephemeral_registration import configure, start_listener
 
 JOB_NAMES = {
@@ -16,13 +16,15 @@ def queued_jobs(api, route, run_id, *, actor_ids):
     # The run may still report pending after GitHub releases individual jobs.
     # Only an exact, unassigned job that reports queued is eligible below.
     options = {"statuses": ("pending", "queued", "in_progress"), "actor_ids": actor_ids}
-    attempt = observe_public(api, route, run_id, **options)
+    attempt = observe_push(api, route, run_id, **options)
     jobs = inventory(
-        api, f"{attempt.public_path}/actions/runs/{run_id}/attempts/{attempt.attempt}/jobs", "jobs",
+        api, f"{attempt.repository_path}/actions/runs/{run_id}/attempts/{attempt.attempt}/jobs", "jobs",
     )
     expected_names = JOB_NAMES
     if route.repository == "newdarwindev/runspindle-core":
         expected_names = JOB_NAMES | CORE_SHARD_NAMES
+    elif route.repository in {LAB, NEXT}:
+        expected_names = {"verify": "verify"}
     names = {job.get("name") for job in jobs}
     if len(names) != len(jobs) or not names.issubset(expected_names):
         raise RoutingError("unexpected direct job inventory")
@@ -41,8 +43,8 @@ def queued_jobs(api, route, run_id, *, actor_ids):
             if job.get("runner_id") not in (None, 0) or job.get("runner_name"):
                 raise RoutingError("queued direct job already has a runner")
             queued.append(job)
-    if observe_public(api, route, run_id, **options) != attempt:
-        raise RoutingError("public run attempt changed during job admission")
+    if observe_push(api, route, run_id, **options) != attempt:
+        raise RoutingError("run attempt changed during job admission")
     return attempt, queued
 
 

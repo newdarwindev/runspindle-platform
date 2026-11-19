@@ -5,9 +5,10 @@ import re
 import shlex
 import time
 
-from .github_jobs import PUBLIC_REPOSITORIES, RoutingError, inventory, positive
+from .github_jobs import DIRECT_REPOSITORIES, NEXT, RoutingError, inventory, positive
 
 PRIVATE_REPOSITORIES = {
+    NEXT,
     "newdarwindev/runspindle-strix-ci-canary",
     "newdarwindev/runspindle-strix-exec",
 }
@@ -20,14 +21,14 @@ RUNNER_NAME = re.compile(r"runspindle-fleet-[0-9a-f]{32}")
 
 def _scope(repository, repository_id, name, label):
     if (
-        repository not in PUBLIC_REPOSITORIES | PRIVATE_REPOSITORIES
+        repository not in DIRECT_REPOSITORIES | PRIVATE_REPOSITORIES
         or not positive(repository_id)
         or not RUNNER_NAME.fullmatch(name)
         or not LABEL.fullmatch(label)
     ):
         raise RoutingError("invalid repository runner scope")
     if (
-        (repository in PUBLIC_REPOSITORIES) != label.startswith("runspindle-strix-direct-")
+        (repository in DIRECT_REPOSITORIES) != label.startswith("runspindle-strix-direct-")
         or (repository == "newdarwindev/runspindle-strix-ci-canary")
         != label.startswith("runspindle-strix-canary-")
     ):
