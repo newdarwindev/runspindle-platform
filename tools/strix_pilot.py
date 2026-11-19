@@ -379,6 +379,9 @@ def run(args):
             reconcile_stopped_direct(state, backend, installed_helper)
             if args.lane == "cleanup":
                 return 0
+            routes_path = getattr(args, "routes_path", None)
+            if routes_path is not None and route not in load_routes(routes_path):
+                raise RoutingError("repository route changed before guest admission")
             try:
                 budget = capacity(STATE_DIRECTORY)
             except ValueError as error:
@@ -541,15 +544,20 @@ def next_queued_job(routes, cursor):
     return None
 
 
-def watch(routes_path):
-    """Poll approved workflows and serve one direct job at a time."""
+def load_routes(routes_path):
     routes = [Route(**row) for row in json.loads(routes_path.read_text())]
     if not routes or len({route.repository_id for route in routes}) != len(routes):
         raise ValueError("expected unique approved repository routes")
+    return routes
+
+
+def watch(routes_path):
+    """Poll approved workflows and serve one direct job at a time."""
     cursor = 0
     while True:
         try:
             run(argparse.Namespace(lane="cleanup"))
+            routes = load_routes(routes_path)
             candidate = next_queued_job(routes, cursor)
             if candidate is None:
                 time.sleep(60)
@@ -557,6 +565,7 @@ def watch(routes_path):
             index, run_id, job_id = candidate
             status = run(argparse.Namespace(
                 lane="direct", route=routes[index], run_id=run_id, job_id=job_id, name=None,
+                routes_path=routes_path,
             ))
         except (BlockingIOError, CapacityUnavailable, RoutingError,
                 RunnerCleanupPending, GitHubUnavailable) as error:
