@@ -4,10 +4,12 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest.mock import Mock, patch
 from pathlib import Path
 from urllib.parse import urlsplit
 
 from tools.render_strix_workflow import private_workflow, public_workflow
+from tools.runner_fleet import direct_routing
 from tools.runner_fleet.direct_routing import queued_jobs as direct_jobs
 from tools.runner_fleet.private_relay import (
     Attempt,
@@ -171,6 +173,23 @@ class RelayTest(unittest.TestCase):
         job["labels"].append("self-hosted")
         with self.assertRaisesRegex(RelayError, "identity or label"):
             direct_jobs(read, self.route, 300, actor_ids={42})
+
+    def test_direct_enrollment_records_identity_before_listener(self):
+        job = {"id": 401, "labels": ["runspindle-strix-direct-300-1-component"]}
+        record = Mock(side_effect=OSError("ledger unavailable"))
+        with (
+            patch.object(direct_routing, "queued_jobs", return_value=(self.attempt, [job])),
+            patch.object(direct_routing, "configure", return_value=52),
+            patch.object(direct_routing, "start_listener") as listen,
+        ):
+            with self.assertRaises(OSError):
+                direct_routing.enroll_job(
+                    self.public_api, Mock(), Mock(), self.route, 300, 401,
+                    "runspindle-fleet-" + "f" * 32, actor_ids={42},
+                    verify_guest=Mock(), record_runner=record,
+                )
+            record.assert_called_once_with(52)
+            listen.assert_not_called()
 
     def test_unconfirmed_cleanup_prevents_publication(self):
         self.relay.dispatch(self.attempt)
