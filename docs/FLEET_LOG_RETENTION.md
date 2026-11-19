@@ -59,3 +59,27 @@ They explicitly skip if those tools are absent; skips are not passing evidence.
 Other tests mock infrastructure orchestration. Run the complete suite, scaffold
 and pinned static quality too. No test here boots a guest, installs a controller
 or qualifies live cancellation, installed tools or a production system.
+
+## Offline sizing of candidate compact-success retention
+
+`python3 tools/retention_dry_run.py reviewed-sample.json` takes one bounded,
+offline JSON sample. It never contacts GitHub, reads runner state or guest
+payloads, frees space, or clears a controller hold. It is not wired into the
+installed Strix pilot.
+
+A sample provides `identity` (repository, exact head SHA, resource ID and
+positive numeric run ID, run attempt and job ID), `overlay_allocated_bytes`,
+`compact_allocated_bytes` (null if unmeasured), and `proofs`. Each independently
+prepared proof repeats the same exact identity: `github.exact_job_success`,
+`teardown.{guest_exited,cgroup_empty,runner_absent}` and
+`retention.{bounded_receipt_readback,no_hold,eligible_under_policy}`. These are
+caller attestations, not authentication; the tool only checks shape, identity
+agreement and conservative classification. A GitHub success by itself is not
+teardown, evidence readback or release of a hold. Omit unknown proofs; missing,
+mismatched, false or unmeasured inputs contribute zero estimated savings.
+
+Only a fully reviewed sample gets a nonnegative estimate, computed from a
+same-scope allocated-byte comparison, with zero actual bytes freed. Do not use
+logical image size or sum deduplicated/reflinked samples as physical savings.
+Existing failure, cancellation, uncertain and historical evidence stays
+untouched. This report does not qualify any change to deployed behavior.
