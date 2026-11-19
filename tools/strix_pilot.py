@@ -390,7 +390,7 @@ def watch(routes_path):
             status = run(argparse.Namespace(
                 lane="public", route=route, run_id=run_id, job_id=job_id, name=None,
             ))
-        except (CapacityUnavailable, RoutingError) as error:
+        except (BlockingIOError, CapacityUnavailable, RoutingError) as error:
             print(str(error), flush=True)
             time.sleep(20)
             continue
