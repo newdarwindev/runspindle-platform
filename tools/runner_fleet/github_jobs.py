@@ -54,6 +54,7 @@ class Route:
     repository_id: int
     workflow_id: int
     workflow_blob: str
+    additional_workflow_blobs: tuple[str, ...] = ()
 
     def __post_init__(self):
         if (
@@ -61,8 +62,14 @@ class Route:
             or not positive(self.repository_id)
             or not positive(self.workflow_id)
             or not SHA.fullmatch(self.workflow_blob)
+            or not isinstance(self.additional_workflow_blobs, (tuple, list))
+            or any(
+                not isinstance(blob, str) or not SHA.fullmatch(blob)
+                for blob in self.additional_workflow_blobs
+            )
         ):
             raise RoutingError("invalid approved direct route")
+        object.__setattr__(self, "additional_workflow_blobs", tuple(self.additional_workflow_blobs))
 
     @property
     def workflow_path(self):
@@ -79,6 +86,7 @@ class Attempt:
     run_id: int
     attempt: int
     sha: str
+    workflow_blob: str
 
     @property
     def key(self):
@@ -123,6 +131,9 @@ def observe_push(api, route, run_id, *, statuses=("in_progress",), actor_ids=Non
         ):
             raise RoutingError("source repository identity did not match")
     workflow = api("GET", f"{path}/contents/{route.workflow_path}?ref={head}")
-    if workflow.get("type") != "file" or workflow.get("sha") != route.workflow_blob:
+    workflow_blob = workflow.get("sha")
+    if workflow.get("type") != "file" or workflow_blob not in (
+        route.workflow_blob, *route.additional_workflow_blobs
+    ):
         raise RoutingError("workflow is outside the approved revision")
-    return Attempt(route, run_id, run["run_attempt"], head)
+    return Attempt(route, run_id, run["run_attempt"], head, workflow_blob)

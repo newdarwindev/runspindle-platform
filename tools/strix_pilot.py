@@ -31,7 +31,11 @@ TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOWS = {
     "d2c9ff0ed291789922d2627ed43a9b03e68bc812",
     "b95cf4d906807224abb27891691a3e561c0338c2",
+    "836c1fad6aae67eed3fd61298d9ec723cfb892da",
 }
+TETHER_UPSTREAM_WORKFLOW = "836c1fad6aae67eed3fd61298d9ec723cfb892da"
+TETHER_UPSTREAM_WHEELHOUSE = Path("/srv/builds/runspindle-quality/tether-upstream-wheels")
+TETHER_UPSTREAM_SUMS = "9a290a4b53d612536795e7167fe9ee5988f641159982d57a1e25c9445dc04396"
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
 TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
 BROWSER = "newdarwindev/runspindle-browser"
@@ -428,12 +432,12 @@ def run(args):
 
     def lookup():
         if repo == CANARY:
-            return canary_job(args.run_id, args.job_id, args.name)
-        _, jobs = queued_jobs(api, route, args.run_id, actor_ids={OWNER})
+            return canary_job(args.run_id, args.job_id, args.name), None
+        attempt, jobs = queued_jobs(api, route, args.run_id, actor_ids={OWNER})
         found = [job for job in jobs if job["id"] == args.job_id]
         if len(found) != 1:
             raise RuntimeError("requested direct job is not queued")
-        return found[0]
+        return found[0], attempt.workflow_blob
 
     manager_stopped()
     verify_host_lifetime_policy()
@@ -456,7 +460,7 @@ def run(args):
             host_helper.verify_network()
             if inventory(api, runners_path, "runners"):
                 raise RuntimeError("another runner is already registered")
-            job = lookup()
+            job, workflow_blob = lookup()
             resource = state.reserve(job | {"repository": repo.removeprefix("newdarwindev/")}, details={
                 "isolated_direct_pilot": True, "image_sha256": IMAGE_SHA, "run_id": args.run_id,
             })
@@ -480,12 +484,20 @@ def run(args):
                 print("Guest online and isolation verified", flush=True)
 
                 if (
-                    repo == TETHER and route.workflow_blob in TETHER_VISUAL_WORKFLOWS
+                    repo == TETHER and workflow_blob in TETHER_VISUAL_WORKFLOWS
                     and job["name"] in {"validation / component", "validation / quality"}
                 ):
                     stage_wheelhouse(
                         machine, resource, STATE_DIRECTORY / TETHER_VISUAL_WHEELHOUSE,
                         TETHER_VISUAL_SUMS, "tether-visual",
+                    )
+                if (
+                    repo == TETHER and workflow_blob == TETHER_UPSTREAM_WORKFLOW
+                    and job["name"] == "validation / quality"
+                ):
+                    stage_wheelhouse(
+                        machine, resource, TETHER_UPSTREAM_WHEELHOUSE,
+                        TETHER_UPSTREAM_SUMS, "tether-upstream",
                     )
                 if (
                     repo == BROWSER
@@ -496,7 +508,7 @@ def run(args):
                         BROWSER_PROFILE_SUMS, "browser-profile",
                     )
                 if (
-                    repo == CONSOLE and route.workflow_blob in CONSOLE_UI_WORKFLOWS
+                    repo == CONSOLE and workflow_blob in CONSOLE_UI_WORKFLOWS
                     and job["name"] == "validation / quality"
                 ):
                     stage_console_ui(machine, resource, STATE_DIRECTORY)

@@ -9,7 +9,7 @@ from tools.runner_fleet.github_jobs import LAB, NEXT, Attempt, Route, RoutingErr
 class DirectRoutingTest(unittest.TestCase):
     def setUp(self):
         self.route = Route("newdarwindev/runspindle-host", 100, 200, "a" * 40)
-        self.attempt = Attempt(self.route, 300, 1, "b" * 40)
+        self.attempt = Attempt(self.route, 300, 1, "b" * 40, self.route.workflow_blob)
         repository = {"id": 100, "full_name": self.route.repository, "private": False}
         self.run = {
             "id": 300, "workflow_id": 200, "event": "push", "status": "queued",
@@ -56,6 +56,20 @@ class DirectRoutingTest(unittest.TestCase):
             record.assert_called_once_with(52)
             listen.assert_not_called()
 
+    def test_additional_workflow_revision_is_bound_to_attempt(self):
+        route = Route(self.route.repository, 100, 200, "a" * 40, ["b" * 40])
+
+        def read(method, path):
+            if "/contents/" in path:
+                return {"type": "file", "sha": "b" * 40}
+            return self.read(method, path)
+
+        attempt, jobs = direct_routing.queued_jobs(read, route, 300, actor_ids={42})
+        self.assertEqual(attempt.workflow_blob, "b" * 40)
+        self.assertEqual(jobs, [self.job])
+        with self.assertRaisesRegex(RoutingError, "approved revision"):
+            direct_routing.queued_jobs(read, self.route, 300, actor_ids={42})
+
     def test_pending_run_admits_only_materialized_queued_jobs(self):
         self.run["status"] = "pending"
         observed = direct_routing.queued_jobs(self.read, self.route, 300, actor_ids={42})
@@ -70,7 +84,7 @@ class DirectRoutingTest(unittest.TestCase):
         for repository, private in ((LAB, False), (NEXT, True)):
             with self.subTest(repository=repository):
                 self.route = Route(repository, 100, 200, "a" * 40)
-                attempt = Attempt(self.route, 300, 1, "b" * 40)
+                attempt = Attempt(self.route, 300, 1, "b" * 40, self.route.workflow_blob)
                 source = {"id": 100, "full_name": repository, "private": private}
                 self.run.update(
                     path=self.route.workflow_path, repository=source, head_repository=source,
