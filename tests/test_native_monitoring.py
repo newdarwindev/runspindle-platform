@@ -178,15 +178,27 @@ class NativeMonitoringDocumentTests(unittest.TestCase):
                     path.write_bytes(original)
 
     def test_rehashed_unknown_harness_rejected(self) -> None:
-        name = "tools/collector_privacy_check.py"
-        path = self.root / name
-        path.write_bytes(path.read_bytes() + b"\n")
-        self.edit(
-            "telemetry/native-monitoring-lift.json",
-            ["artifact_sha256", name],
-            hashlib.sha256(path.read_bytes()).hexdigest(),
-        )
-        self.assert_invalid("prior source evidence drift")
+        manifest = self.root / "telemetry/native-monitoring-lift.json"
+        original_manifest = manifest.read_bytes()
+        for name in (
+            "tools/collector_privacy_check.py",
+            "tools/collector_recovery_check.py",
+            "tools/collector_trace_http.py",
+        ):
+            with self.subTest(artifact=name):
+                path = self.root / name
+                original = path.read_bytes()
+                try:
+                    path.write_bytes(original + b"\n")
+                    self.edit(
+                        "telemetry/native-monitoring-lift.json",
+                        ["artifact_sha256", name],
+                        hashlib.sha256(path.read_bytes()).hexdigest(),
+                    )
+                    self.assert_invalid("prior source evidence drift")
+                finally:
+                    path.write_bytes(original)
+                    manifest.write_bytes(original_manifest)
 
     def test_historical_source_identity_cannot_be_rewritten(self) -> None:
         self.edit(
@@ -200,7 +212,7 @@ class NativeMonitoringDocumentTests(unittest.TestCase):
         result = validate(self.root)
         self.assertEqual(result["current_harness_runtime_qualification"], "not_run")
         self.assertEqual(
-            result["prior_runtime_evidence"], "historical_only_classifier_changed"
+            result["prior_runtime_evidence"], "historical_only_harness_changed"
         )
 
     def test_incomplete_source_accounting_rejected(self) -> None:

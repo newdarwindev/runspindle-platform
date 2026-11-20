@@ -13,6 +13,7 @@ import subprocess
 import tempfile
 import time
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -23,7 +24,9 @@ PYTHON_IMAGE = (
 CANARY = "SYNTHETIC_PRIVACY_CANARY_17"
 
 
-def command(*args, check=True, timeout=30):
+def command(
+    *args: object, check: bool = True, timeout: float = 30
+) -> subprocess.CompletedProcess[str]:
     arguments = list(map(str, args))
     automatic = arguments[0] == "run" and "--name" not in arguments
     container = "runspindle-command-" + uuid.uuid4().hex if automatic else None
@@ -58,6 +61,16 @@ def sha(data):
 def check(value, message):
     if not value:
         raise AssertionError(message)
+
+
+def require_trace_acceptance(
+    client: Callable[[str, str, str], str], host: str, payload: str
+) -> None:
+    script = Path(__file__).with_name("collector_trace_http.py").read_text()
+    receipt = client(script, host, payload)
+    if receipt not in ("accepted", "accepted_with_warning"):
+        state = receipt if receipt in ("spans_rejected", "rejected") else "unknown"
+        raise RuntimeError(f"full trace acceptance unconfirmed ({state})")
 
 
 def fixture():
@@ -130,7 +143,7 @@ def fixture():
     }
 
 
-def canary_paths(value, prefix=""):
+def canary_paths(value: object, prefix: str = "") -> list[str]:
     if isinstance(value, dict):
         return [
             path
@@ -178,7 +191,7 @@ def object_list(value: object) -> list[dict[str, Any]]:
     )
 
 
-def outcome(http_accepted, records):
+def outcome(http_accepted: object, records: object) -> dict[str, Any]:
     # Exact synthetic context is required independently of transport acceptance.
     # This is file-readback evidence only, not native source authentication.
     expected_resource = {
@@ -339,7 +352,7 @@ def run():
                 "--config=/config.yaml",
             )
 
-            def client(code, *args):
+            def client(code: str, *args: str) -> str:
                 name = prefix + "-client-" + str(len(clients))
                 clients.append(name)
                 result = command(
@@ -374,18 +387,18 @@ def run():
                             CANARY, "[synthetic-canary]"
                         )
                     )
-                return result
+                return result.stdout.strip()
 
             # Readiness probe transmits no telemetry and is independent of export.
             ready = "import time,urllib.request; end=time.monotonic()+15\nwhile True:\n try:\n  urllib.request.urlopen('http://collector:13133',timeout=1);break\n except Exception:\n  if time.monotonic()>end:raise\n  time.sleep(.1)"
             client(ready)
-            post = "import sys,urllib.request; b=sys.argv[1].encode(); r=urllib.request.urlopen(urllib.request.Request('http://collector:4318/v1/traces',data=b,headers={'Content-Type':'application/json'}),timeout=5); print(r.status)"
             payload = json.dumps(fixture(), separators=(",", ":"))
             # Explicit duplicate event: synthetic delivery count is independently visible.
-            accepted = [client(post, payload).stdout.strip() == "200" for _ in range(2)]
+            for _ in range(2):
+                require_trace_acceptance(client, "collector", payload)
             reject = "import urllib.request,urllib.error\ntry:\n urllib.request.urlopen(urllib.request.Request('http://collector:4318/v1/traces',data=b'{invalid-SYNTHETIC_PRIVACY_CANARY_17',headers={'Content-Type':'application/json','X-Synthetic-Secret':'SYNTHETIC_PRIVACY_CANARY_17'}),timeout=5)\nexcept urllib.error.HTTPError as e:\n print(e.code)"
             check(
-                client(reject).stdout.strip() == "400",
+                client(reject) == "400",
                 "malformed envelope was not explicitly rejected",
             )
             path = folder / "observed.jsonl"
@@ -396,12 +409,12 @@ def run():
                     records = [
                         json.loads(line) for line in path.read_text().splitlines()
                     ]
-                    if outcome(all(accepted), records)["matching_records"] == 2:
+                    if outcome(True, records)["matching_records"] == 2:
                         break
                 except (OSError, ValueError):
                     pass
                 time.sleep(0.1)
-            observed = outcome(all(accepted), records)
+            observed = outcome(True, records)
             check(
                 observed["matching_records"] == 2,
                 "no independent correlated file readback",
@@ -460,10 +473,7 @@ def run():
                 "--config=/config.yaml",
             )
             client(ready)
-            check(
-                client(post, payload).stdout.strip() == "200",
-                "buffered event not accepted",
-            )
+            require_trace_acceptance(client, "collector", payload)
             command("kill", collector)
             output = buffered / "observed.jsonl"
             buffered_records = (

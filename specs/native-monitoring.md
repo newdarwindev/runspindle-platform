@@ -191,6 +191,10 @@ not native source authentication or full OTLP schema validation. See
 [correlation evidence](../docs/telemetry-correlation-evidence.md).
 `tools/collector_privacy_check.py` and `tools/collector_recovery_check.py` remain the
 single isolated integration harness; do not duplicate them with a custom receiver.
+Both probes inspect the bounded [OTLP/HTTP trace response](https://opentelemetry.io/docs/specs/otlp/#otlphttp-response).
+An HTTP 200 with rejected spans blocks the acceptance step. Zero rejected spans
+with a warning still counts as transport acceptance. The probes publish only
+the classified result and verify persistence separately through file readback.
 Their full execution requires separately authorized prepared immutable images and
 disposable network/runtime resources. No TLS/auth denial, native flush, Langfuse
 readback, authenticated UI or live deployment result is invented here.

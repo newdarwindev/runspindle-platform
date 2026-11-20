@@ -42,6 +42,12 @@ CASES = {
         '"persisted_file_only" if http_accepted else "unknown"',
         "test_telemetry_evidence.TelemetryEvidenceTests.test_http_acceptance_without_backend_readback_stays_unknown",
     ),
+    "full_acceptance_from_http_status_only": (
+        "collector_trace_http.py",
+        "return classify(response.read(MAX_RESPONSE + 1))",
+        'return "accepted"',
+        "test_telemetry_http_receipt.TraceReceiptTests.test_http_path_uses_body_and_does_not_retry_or_follow_redirects",
+    ),
     "wrong_installed_attribution": (
         "development_bundle.py",
         '"manifest_sha256": digest,\n        "files": len(files),',
