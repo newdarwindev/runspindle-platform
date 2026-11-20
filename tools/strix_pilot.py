@@ -31,9 +31,15 @@ TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOWS = {
     "d2c9ff0ed291789922d2627ed43a9b03e68bc812",
     "b95cf4d906807224abb27891691a3e561c0338c2",
+}
+TETHER_UPSTREAM_WORKFLOWS = {
+    "836c1fad6aae67eed3fd61298d9ec723cfb892da",
+    "d86b2440139eea7bc522eb4dfc3920cd759bec7e",
+    "ad80e49b7eb14a02eb57bfc1e554b92f58c0203a",
+}
+TETHER_UPSTREAM_COMPONENT_WORKFLOWS = TETHER_UPSTREAM_WORKFLOWS - {
     "836c1fad6aae67eed3fd61298d9ec723cfb892da",
 }
-TETHER_UPSTREAM_WORKFLOW = "836c1fad6aae67eed3fd61298d9ec723cfb892da"
 TETHER_UPSTREAM_WHEELHOUSE = Path("/srv/builds/runspindle-quality/tether-upstream-wheels")
 TETHER_UPSTREAM_SUMS = "9a290a4b53d612536795e7167fe9ee5988f641159982d57a1e25c9445dc04396"
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
@@ -486,7 +492,8 @@ def run(args):
                 print("Guest online and isolation verified", flush=True)
 
                 if (
-                    repo == TETHER and workflow_blob in TETHER_VISUAL_WORKFLOWS
+                    repo == TETHER
+                    and workflow_blob in TETHER_VISUAL_WORKFLOWS | TETHER_UPSTREAM_WORKFLOWS
                     and job["name"] in {"validation / component", "validation / quality"}
                 ):
                     stage_wheelhouse(
@@ -494,8 +501,12 @@ def run(args):
                         TETHER_VISUAL_SUMS, "tether-visual",
                     )
                 if (
-                    repo == TETHER and workflow_blob == TETHER_UPSTREAM_WORKFLOW
-                    and job["name"] == "validation / quality"
+                    repo == TETHER and (
+                        (workflow_blob in TETHER_UPSTREAM_WORKFLOWS
+                         and job["name"] == "validation / quality")
+                        or (workflow_blob in TETHER_UPSTREAM_COMPONENT_WORKFLOWS
+                            and job["name"] == "validation / component")
+                    )
                 ):
                     stage_wheelhouse(
                         machine, resource, TETHER_UPSTREAM_WHEELHOUSE,
