@@ -1,19 +1,23 @@
+import hashlib
 import json
-from pathlib import Path
 import struct
 import subprocess
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from typing import Any
 
 from tools import streaming_bundle as b
 from tools.development_bundle import COMPONENTS, actual_target, canonical, sha
 
 PINS = {name: sha(name.encode())[:40] for name in COMPONENTS}
+UPGRADED_PINS = {**PINS, "core": "7" * 40}
 
 
-def make(root, label="first"):
+def make(
+    root: str | Path, label: str = "first", *, pins: dict[str, str] = PINS
+) -> tuple[Path, dict[str, Any], str]:
     root = Path(root)
     source = root / (label + ".source")
     source.write_bytes(
@@ -25,7 +29,7 @@ def make(root, label="first"):
     manifest, digest = b.build(
         archive,
         "a" * 40,
-        PINS,
+        pins,
         {"bin/smoke": source, "notices/test": notice},
         dependencies={"test": "sha256:" + sha(b"dependency")},
         toolchains={"test": "sha256:" + sha(b"toolchain")},
@@ -119,7 +123,9 @@ class InstalledStreamingTests(unittest.TestCase):
         self.target = b.StreamingTarget.create()
         self.addCleanup(self.target.cleanup)
 
-    def invoke(self, code, *args, expected=0):
+    def invoke(
+        self, code: str, *args: str | Path | int, expected: int = 0
+    ) -> subprocess.CompletedProcess[str]:
         script = (
             "import os,sys,json; sys.path.insert(0,'tests'); from test_streaming_bundle import PINS; from tools.streaming_bundle import StreamingTarget,VERSION; t=StreamingTarget(sys.argv[1]); "
             + code
@@ -243,6 +249,77 @@ class InstalledStreamingTests(unittest.TestCase):
         pointer.write_bytes(original)
         invoke("t.recover(VERSION,component_commits=PINS);t.close()")
         self.assertEqual(target.verify_installed(PINS)["manifest_sha256"], pending)
+    def test_cross_release_rollback_recovers_from_corrupt_install_in_fresh_processes(
+        self,
+    ) -> None:
+        first, first_manifest, previous = make(self.tmp.name)
+        second, _, active = make(self.tmp.name, "second", pins=UPGRADED_PINS)
+        self.target.install(
+            b.VERSION, first, component_commits=PINS, expected_generation=0
+        )
+        self.target.install(
+            b.VERSION, second, component_commits=UPGRADED_PINS, expected_generation=1
+        )
+        installed = self.target.root / "versions"
+        damaged = installed / active / "bin/smoke"
+        damaged.write_bytes(b"synthetic damaged bytes")
+        with self.assertRaisesRegex(ValueError, "installed byte or mode mismatch"):
+            self.target.verify_installed(UPGRADED_PINS)
+
+        pointer = self.target.root / "active.json"
+        before = pointer.read_bytes()
+        idle = {"active": active, "pending": None, "generation": 2}
+        checkpoints: list[str] = []
+        for current, predecessor in [(PINS, PINS), (UPGRADED_PINS, UPGRADED_PINS)]:
+            with self.assertRaisesRegex(ValueError, "composition pin mismatch"):
+                self.target.rollback(
+                    b.VERSION,
+                    component_commits=current,
+                    predecessor_component_commits=predecessor,
+                    expected_generation=2,
+                    checkpoint=checkpoints.append,
+                )
+            self.assertEqual(self.target.state(), idle)
+            self.assertEqual(pointer.read_bytes(), before)
+        self.assertEqual(checkpoints, [])
+
+        self.invoke(
+            "from test_streaming_bundle import UPGRADED_PINS;"
+            "t.rollback(VERSION,component_commits=UPGRADED_PINS,"
+            "predecessor_component_commits=PINS,expected_generation=2,"
+            "checkpoint=lambda p:os._exit(102) if p=='after_rollback_intent' else None)",
+            expected=102,
+        )
+        pending = {"active": active, "pending": previous, "generation": 3}
+        self.assertEqual(self.target.state(), pending)
+        self.assertEqual(pointer.read_bytes(), before)
+        with self.assertRaisesRegex(ValueError, "composition pin mismatch"):
+            self.target.recover(b.VERSION, component_commits=UPGRADED_PINS)
+        self.assertEqual(self.target.state(), pending)
+        self.assertEqual(pointer.read_bytes(), before)
+
+        self.invoke(
+            "t.recover(VERSION,component_commits=PINS,"
+            "checkpoint=lambda p:os._exit(103) if p=='after_installed_pointer' else None)",
+            expected=103,
+        )
+        self.assertEqual(self.target.state(), pending)
+        self.assertEqual(
+            json.loads(pointer.read_bytes()), {"manifest_sha256": previous}
+        )
+        self.invoke("t.recover(VERSION,component_commits=PINS);t.close()")
+        self.assertEqual(
+            self.target.state(), {"active": previous, "pending": None, "generation": 3}
+        )
+        restored = installed / previous / "bin/smoke"
+        self.assertEqual(
+            hashlib.sha256(restored.read_bytes()).hexdigest(),
+            first_manifest["files"]["bin/smoke"]["sha256"],
+        )
+        self.assertEqual(
+            subprocess.check_output([restored], text=True, timeout=5), "first"
+        )
+        self.assertEqual(damaged.read_bytes(), b"synthetic damaged bytes")
 
     def test_installed_corruption_and_unsafe_links(self):
         archive, _, digest = make(self.tmp.name)

@@ -123,6 +123,17 @@ unsafe links and failed rollback have negative tests. Bounded local Linux arm64
 containers use denied egress, disposable targets and executable temporary mounts;
 no persistent runner or production security configuration changes.
 
+Streaming rollback accepts `predecessor_component_commits` when the retained
+predecessor has different pins. `component_commits` still identifies the current
+release, and the generation and observed pointer must match that release. The
+current retained archive must verify against its journal entry. The predecessor
+must verify against its own archive, pins and installed bytes before the rollback
+intent commits. A damaged current installed payload is preserved and does not
+prevent restoration of that verified predecessor. After an interruption, call
+`recover` with the pending predecessor's pins. It rechecks the predecessor and
+completes the same journal generation. Existing same-pin callers can omit
+`predecessor_component_commits`.
+
 The official selected MinIO release source is now acquired at immutable revision
 `0d7408fc9969caf07de6a8c3a84f9fbb10a6739e`. The source record inventories 256
 module archive/mod hashes and exact notice evidence. Three Go-derived modules

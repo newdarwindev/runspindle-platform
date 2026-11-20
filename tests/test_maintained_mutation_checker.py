@@ -121,7 +121,10 @@ class MutationCheckerTests(unittest.TestCase):
                 self.assertEqual(checker.main(args), 0)
             report = json.loads(output.getvalue())
             self.assertEqual(report["evidence_class"], evidence)
-            self.assertEqual(len(report["results"]), len(checker.CASES))
+            expected = set(checker.CASES)
+            if suite == "installed":
+                expected.update(checker.INSTALLED_ONLY_CASES)
+            self.assertEqual({item["mutation"] for item in report["results"]}, expected)
             self.assertTrue(all(call.args[2] == suite for call in run.call_args_list))
             if suite == "portable":
                 self.assertEqual(report["native_acceptance"], "not_run")

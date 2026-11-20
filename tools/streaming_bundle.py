@@ -402,7 +402,9 @@ class StreamingTarget(DisposableTarget):
 
     JOURNAL_STATES = ("stream_intent", "stream_verified")
 
-    def _archive(self, digest, pins):
+    def _archive(
+        self, digest: str, pins: dict[str, str]
+    ) -> tuple[Path, dict[str, Any]]:
         check(
             type(digest) is str and re.fullmatch("[0-9a-f]{64}", digest),
             "invalid installation digest",
@@ -599,12 +601,19 @@ class StreamingTarget(DisposableTarget):
         *,
         component_commits,
         expected_generation,
+        predecessor_component_commits=None,
         checkpoint=lambda _: None,
     ):
+        """Restore the retained predecessor, with separate pins for a changed release."""
         check(api_version == VERSION, "unsupported streaming rollback version")
         check(
             type(expected_generation) is int and expected_generation >= 0,
             "invalid generation",
+        )
+        predecessor_pins = (
+            component_commits
+            if predecessor_component_commits is None
+            else predecessor_component_commits
         )
         self.db.execute("BEGIN IMMEDIATE")
         try:
@@ -615,13 +624,19 @@ class StreamingTarget(DisposableTarget):
                 and state["active"],
                 "rollback ownership conflict",
             )
-            self.verify_installed(component_commits)
+            active = state["active"]
+            read_pointer: Callable[[], str | None] = self._observed
+            _check(read_pointer() == active, "conflicting installation readback")
+            # Bind the current release identity without requiring its damaged
+            # installed tree to pass the same verification as the rollback target.
+            self._archive(active, component_commits)
             row = self.db.execute(
-                "SELECT predecessor FROM installs WHERE digest=?", (state["active"],)
+                "SELECT predecessor FROM installs WHERE digest=? AND state='stream_verified'",
+                (active,),
             ).fetchone()
             check(row and row[0], "predecessor unavailable")
             predecessor = row[0]
-            _, manifest = self._archive(predecessor, component_commits)
+            _, manifest = self._archive(predecessor, predecessor_pins)
             check(
                 self.db.execute(
                     "SELECT state FROM installs WHERE digest=?", (predecessor,)
@@ -640,5 +655,5 @@ class StreamingTarget(DisposableTarget):
             raise
         checkpoint("after_rollback_intent")
         return self.recover(
-            api_version, component_commits=component_commits, checkpoint=checkpoint
+            api_version, component_commits=predecessor_pins, checkpoint=checkpoint
         )
