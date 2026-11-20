@@ -40,6 +40,8 @@ ARTIFACTS = {
     "tests/test_telemetry_evidence.py",
     "tools/collector_privacy_check.py",
     "tools/collector_recovery_check.py",
+    "tools/collector_trace_http.py",
+    "tests/test_telemetry_http_receipt.py",
     "telemetry/collector.yaml",
     "telemetry/dependencies.json",
     "telemetry/langfuse-qualification.json",
@@ -47,6 +49,16 @@ ARTIFACTS = {
     "docs/native-monitoring-validation.json",
     "provenance.json",
     "STATUS.json",
+}
+COLLECTOR_HARNESS_TRANSITIONS = {
+    "tools/collector_privacy_check.py": (
+        "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4",
+        "dbedc1fa8f1da1ae3a55f24b7fc335c94a0532b84237b9e7ed27d011a4d2d28b",
+    ),
+    "tools/collector_recovery_check.py": (
+        "5eac86bd2f8abedb7ebe2ee2446d983fd3b7430c09c676b243f3a7359d716762",
+        "80bf60ffbbbef9007d743d4760c5906fd03602b718bfc01bf52777d1af1ebec2",
+    ),
 }
 MANIFEST_FIELDS: JsonObject = {
     "schema_version": 1,
@@ -376,25 +388,19 @@ def validate(root: Path = ROOT) -> JsonObject:
             )
     prior = read(root, string(manifest["prior_evidence"]))
     source_hashes = object_value(prior["source_hashes"])
-    for name in (
-        "tools/collector_privacy_check.py",
-        "tools/collector_recovery_check.py",
-        "tests/test_telemetry_evidence.py",
-        "telemetry/collector.yaml",
-    ):
-        if name == "tools/collector_privacy_check.py":
-            # Audited historical-to-current classifier transition, not a runtime
-            # requalification. Never rewrite the historical receipt or admit an
-            # arbitrary new harness merely because the manifest was rehashed.
-            require(
-                source_hashes[name]
-                == "1207ceac36733a3578a64665f95531eebdd465fe5a35439f5eb9393c1d5c58d4"
-                and hashes[name]
-                == "4ccd22cb3bd80727cafd7256963480a6aaa806f3d8dfddeca57e2e76c999efa5",
-                "prior source evidence drift",
-            )
-        else:
-            require(source_hashes[name] == hashes[name], "prior source evidence drift")
+    # Preserve both historical identities and the reviewed current harness.
+    for name, transition in COLLECTOR_HARNESS_TRANSITIONS.items():
+        require(
+            (source_hashes[name], hashes[name]) == transition,
+            "prior source evidence drift",
+        )
+    for name in ("tests/test_telemetry_evidence.py", "telemetry/collector.yaml"):
+        require(source_hashes[name] == hashes[name], "prior source evidence drift")
+    require(
+        hashes["tools/collector_trace_http.py"]
+        == "6eb8cc1d0556acb2c57768b817eac8ce5b63fc123cfbc10c4dd6925b674ebb9d",
+        "prior source evidence drift",
+    )
     for key in ("Collector_privacy", "Collector_queue_recovery"):
         observed = object_value(object_value(prior[key])["observed"])
         require(
@@ -416,7 +422,7 @@ def validate(root: Path = ROOT) -> JsonObject:
         "surfaces": len(rows),
         "runtime_execution": "not_run",
         "current_harness_runtime_qualification": "not_run",
-        "prior_runtime_evidence": "historical_only_classifier_changed",
+        "prior_runtime_evidence": "historical_only_harness_changed",
         "live_acceptance": "not_run",
     }
 
