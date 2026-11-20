@@ -4,27 +4,67 @@
 Acquisition is separate. This helper never builds or starts an unqualified store.
 Incomplete original notice evidence returns 78 and keeps Langfuse blocked.
 """
+
 import argparse
 import hashlib
 import json
-from pathlib import Path
 import subprocess
+from pathlib import Path
+from typing import Any
 
 REVISION = "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e"
 RELEASE = "RELEASE.2025-04-22T22-12-26Z"
 TOOLCHAIN = (
     "golang@sha256:79390b5e5af9ee6e7b1173ee3eac7fadf6751a545297672916b59bfa0ecf6f71"
 )
+LOCALEREADER = "github.com/mattn/go-localereader"
+LOCALEREADER_RELEASE = "6338b4c69507fb1f9edba3db33882a8e9ab9bfa8"
+LOCALEREADER_NOTICE_REVISION = "2491eb6c1c75720122ef321ed7acc3a8d9de95b1"
+LOCALEREADER_NOTICE = Path("telemetry/notices/go-localereader-MIT-LICENSE")
+LOCALEREADER_NOTICE_SHA256 = (
+    "dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3"
+)
+LOCALEREADER_README_SHA256 = (
+    "0c5c52517f13becd7a1e1234f1e8a5ba370f5a5078cee9ac058c2d534e267fcb"
+)
+LOCALEREADER_PIN = {
+    "module": LOCALEREADER,
+    "version": "v0.0.1",
+    "go_sum": "h1:ygSAOl7ZXTx4RdPYinUpg6W99U8jWvWi9Ye2JC/oIi4=",
+    "go_mod_sum": "h1:8fBrzywKY7BI3czFoHkuzRoWE9C+EiG4R1k4Cjx5p88=",
+    "archive_sha256": "aa67306797b071ce93188fe2834f63ffd7963faf623d49229d891ef52e595b35",
+    "go_mod_sha256": "f7e77590fe4e1f139df43931a85df4205026ea7110d9e0428c11653030fa5f64",
+}
+ROOT = Path(__file__).resolve().parents[1]
 
 
-def sha(path):
+def sha(path: str | Path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
-def qualify(source, prepared):
+def localereader_notice(entry: dict[str, Any], readme: Path) -> dict[str, str] | None:
+    notice = ROOT / LOCALEREADER_NOTICE
+    if (
+        any(entry.get(key) != value for key, value in LOCALEREADER_PIN.items())
+        or not readme.is_file()
+        or sha(readme) != LOCALEREADER_README_SHA256
+        or not notice.is_file()
+        or sha(notice) != LOCALEREADER_NOTICE_SHA256
+    ):
+        return None
+    return {
+        "basis": "upstream maintainer merged the complete MIT notice with no changes to the tagged source files",
+        "release_revision": LOCALEREADER_RELEASE,
+        "notice_revision": LOCALEREADER_NOTICE_REVISION,
+        "notice_path": str(LOCALEREADER_NOTICE),
+        "notice_sha256": LOCALEREADER_NOTICE_SHA256,
+    }
+
+
+def qualify(source: str | Path, prepared: str | Path) -> dict[str, Any]:
     source, prepared = Path(source), Path(prepared)
 
-    def git(*args):
+    def git(*args: str) -> str:
         return subprocess.check_output(["git", *args], cwd=source, text=True).strip()
 
     if (
@@ -50,7 +90,7 @@ def qualify(source, prepared):
             if p.is_file()
             and p.name.upper().startswith(("LICENSE", "COPYING", "NOTICE", "UNLICENSE"))
         }
-        inherited = None
+        inherited: dict[str, Any] | None = None
         if not notices and row["Path"] in (
             "github.com/minio/csvparser",
             "github.com/minio/colorjson",
@@ -68,30 +108,40 @@ def qualify(source, prepared):
                     "source_files": headers,
                     "notice_sha256": sha(prepared / "Go-LICENSE"),
                 }
+        archive = Path(row["Zip"].replace("/prepared", str(prepared)))
+        gomod = Path(row["GoMod"].replace("/prepared", str(prepared)))
+        entry = {
+            "module": row["Path"],
+            "version": row["Version"],
+            "go_sum": row["Sum"],
+            "go_mod_sum": row["GoModSum"],
+            "archive_sha256": sha(archive),
+            "go_mod_sha256": sha(gomod),
+        }
+        if row["Path"] == LOCALEREADER:
+            # This release has no in-archive notice. An extra file in the
+            # extracted cache cannot substitute for the reviewed upstream bytes.
+            notices = {}
+            inherited = localereader_notice(entry, base / "README.md")
         if not notices and not inherited:
             unresolved.append(
                 {
                     "module": row["Path"],
                     "version": row["Version"],
-                    "reason": "module README declares MIT, but original complete copyright/permission notice is absent; exact upstream tag LICENSE returned HTTP 404",
-                    "readme_sha256": sha(base / "README.md"),
+                    "reason": "missing or mismatched original module notice",
+                    "readme_sha256": sha(base / "README.md")
+                    if (base / "README.md").is_file()
+                    else None,
                 }
             )
-        archive = Path(row["Zip"].replace("/prepared", str(prepared)))
-        gomod = Path(row["GoMod"].replace("/prepared", str(prepared)))
         rows.append(
             {
-                "module": row["Path"],
-                "version": row["Version"],
-                "go_sum": row["Sum"],
-                "go_mod_sum": row["GoModSum"],
-                "archive_sha256": sha(archive),
-                "go_mod_sha256": sha(gomod),
+                **entry,
                 "notices": notices,
                 "inherited_notice": inherited,
             }
         )
-    if len(rows) != 256:
+    if len(rows) != 256 or sum(row["module"] == LOCALEREADER for row in rows) != 1:
         raise ValueError("incomplete module inventory")
     return {
         "schema_version": 1,
@@ -118,7 +168,7 @@ def qualify(source, prepared):
     }
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True)
     parser.add_argument("--prepared", required=True)

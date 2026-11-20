@@ -38,8 +38,7 @@
     }
   ],
   "remaining_preparation": [
-    "resolve complete original go-localereader v0.0.1 MIT notice; selected module archive omits it and versioned LICENSE URL returned 404",
-    "then build same official MinIO source release offline and qualify binary digest/source/notices",
+    "build the same official MinIO source release in the pinned Linux builder and qualify binary digest/source/notices",
     "complete worker, OS, database and storage dependency inventories before service execution",
     "actual Langfuse API readback after Collector export, outage and restart"
   ],
@@ -50,10 +49,25 @@
     "release": "RELEASE.2025-04-22T22-12-26Z",
     "revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
     "acquired_modules": 256,
-    "unresolved_original_notices": [
-      "github.com/mattn/go-localereader v0.0.1"
-    ],
-    "build": "blocked_before_execution",
+    "unresolved_original_notices": [],
+    "build": "pinned_linux_build_not_run",
+    "local_cross_build": {
+      "status": "passed_reproduced_binary_bytes",
+      "host": "darwin/arm64",
+      "target": "linux/arm64",
+      "toolchain": "go1.24.2 darwin/arm64",
+      "go_sha256": "b15151639227e44d8031d6b25d7075e268653c9467b0f56b9cb3da4af19cb6e2",
+      "compiler_sha256": "499b8d00edaea007f6332cbae2d83da17406f6d5cc8abfaa9737e71c72e6d132",
+      "linker_sha256": "5cc81a28009d8c5c3b6d1b367f4431870ec32784bfebadec3676bb48341d8c39",
+      "module_verification": "passed",
+      "independent_build_caches": 2,
+      "binary_sha256": "b4ef4e121dfcb709352de9cab022144ab67d2fa1510d338890aed516fb4d514c",
+      "binary_bytes": 113115320,
+      "binary_source_revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
+      "binary_source_modified": false,
+      "service_execution": "not_run",
+      "recipe": "specs/maintained-offline.md"
+    },
     "no_substitute_backend": true
   }
 }
