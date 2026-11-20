@@ -22,6 +22,10 @@ CANARY = "newdarwindev/runspindle-strix-ci-canary"
 HOST = "newdarwindev/runspindle-host"
 REPOS = {CANARY: 1463722751, HOST: 1456479612}
 HOST_WORKFLOW = 417698603
+HOST_OTEL_LOCK_BLOB = "888f92eb0a3ed872d4f56ac50568339b7939c92e"
+HOST_OTEL_VENDOR = Path("/srv/builds/cargo/host-otel-locked-888f92e/host-otel-vendor.tar.gz")
+HOST_OTEL_VENDOR_SHA256 = "36fb36c76a4d3ed482c41fc0c3222df25aa68c2cbcfef23dc81c88b9debacc10"
+BUILDS_UUID = "9ed2ab68-7a7c-4cf4-8c28-594742bcae0d"
 TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOWS = {
     "d2c9ff0ed291789922d2627ed43a9b03e68bc812",
@@ -350,6 +354,40 @@ def stage_console_ui(machine, resource, state_directory):
     print("Verified offline Console UI cache staged", flush=True)
 
 
+def stage_host_cargo(machine, resource, job):
+    """Install the pinned source replacement for the exact Host OTel lockfile."""
+    lock = api("GET", f"/repos/{HOST}/contents/Cargo.lock?ref={job['head_sha']}")
+    if lock.get("type") != "file" or lock.get("sha") != HOST_OTEL_LOCK_BLOB:
+        return
+    mounted = subprocess.check_output(
+        ["findmnt", "-rn", "-M", "/srv/builds", "-o", "UUID"], text=True,
+    )
+    if mounted.strip() != BUILDS_UUID:
+        raise RuntimeError("Host offline Cargo bundle requires the build volume")
+    with HOST_OTEL_VENDOR.open("rb") as stream:
+        if hashlib.file_digest(stream, "sha256").hexdigest() != HOST_OTEL_VENDOR_SHA256:
+            raise RuntimeError("Host offline Cargo bundle changed")
+    machine.copy_prepared(resource, HOST_OTEL_VENDOR, "host-otel/vendor.tar.gz")
+    machine.ssh(resource, f"""set -eu
+cd /home/runner/preparation/host-otel
+printf '%s  %s\\n' '{HOST_OTEL_VENDOR_SHA256}' vendor.tar.gz | sha256sum --check --status
+tar --extract --gzip --file vendor.tar.gz --no-same-owner --no-same-permissions
+mkdir -p /home/runner/.cargo
+test ! -e /home/runner/.cargo/config
+(
+    set -C
+    cat > /home/runner/.cargo/config.toml <<'EOF'
+[source.crates-io]
+replace-with = "host-otel-vendor"
+
+[source.host-otel-vendor]
+directory = "/home/runner/preparation/host-otel/vendor"
+EOF
+)
+""", timeout=90)
+    print("Verified offline Host Cargo inputs staged", flush=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -462,6 +500,11 @@ def run(args):
                     and job["name"] == "validation / quality"
                 ):
                     stage_console_ui(machine, resource, STATE_DIRECTORY)
+                if repo == HOST and (
+                    job["name"] == "validation / rust"
+                    or job["name"].startswith("validation / mutation_")
+                ):
+                    stage_host_cargo(machine, resource, job)
 
                 def verify_guest():
                     active = installed_helper("observe", slot)
