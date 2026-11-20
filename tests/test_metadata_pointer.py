@@ -1,8 +1,6 @@
 """Real scratch files/SQLite; synthetic target admission, not ARM64 qualification."""
 
 import json
-import subprocess
-import sys
 import unittest
 from typing import Any, cast
 from unittest.mock import Mock, patch
@@ -77,6 +75,9 @@ class MetadataPointerTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)
 
     def test_reopen_rejects_missing_or_weakened_immutable_schema(self) -> None:
+        import subprocess
+        import sys
+
         root = self.target.root
         b.DisposableTarget(root).close()
         trigger = self.target.db.execute(
