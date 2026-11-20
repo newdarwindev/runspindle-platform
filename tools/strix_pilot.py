@@ -35,7 +35,6 @@ TETHER_VISUAL_WORKFLOWS = {
 TETHER_VISUAL_WHEELHOUSE = "tether-visual-cp312-linux-x64-v1"
 TETHER_VISUAL_SUMS = "11ec4d2ecfa4c17ef0ab504940b45756916b9a8c1f6d279a1e6af35c229cf3a4"
 BROWSER = "newdarwindev/runspindle-browser"
-BROWSER_PROFILE_WORKFLOW = "02dc3ac029df03e593fb7e0a2a8efe8cd92f44d1"
 BROWSER_PROFILE_WHEELHOUSE = "browser-profile-wheels.rHUFxUbY"
 BROWSER_PROFILE_SUMS = "157cd92e4b14e91e7fc36fb16ed97a93598f385f7df06e2bbc850e95de2d7cac"
 CONSOLE = "newdarwindev/runspindle-console"
@@ -489,8 +488,8 @@ def run(args):
                         TETHER_VISUAL_SUMS, "tether-visual",
                     )
                 if (
-                    repo == BROWSER and route.workflow_blob == BROWSER_PROFILE_WORKFLOW
-                    and job["name"] == "validation / component"
+                    repo == BROWSER
+                    and job["name"] in {"validation / component", "validation / quality"}
                 ):
                     stage_wheelhouse(
                         machine, resource, STATE_DIRECTORY / BROWSER_PROFILE_WHEELHOUSE,
