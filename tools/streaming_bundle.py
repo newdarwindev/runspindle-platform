@@ -385,7 +385,7 @@ def verify_tree(folder: Path | str, manifest: dict[str, Any]) -> None:
         )
 
 
-def _sync_dir(path):
+def _sync_dir(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(descriptor)
