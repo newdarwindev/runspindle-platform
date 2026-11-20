@@ -1,5 +1,38 @@
 # Disposable runner fleet
 
+## Deferred: Linux ARM64 maintained mutations
+
+**Status (2026-11-20): parked, not waived.** Resume when a qualified Linux
+ARM64 lane is available. The existing test, evidence, and required aggregate
+remain intact; this record neither changes the CI contract nor marks it green.
+
+[Platform PR #59](https://github.com/newdarwindev/runspindle-platform/pull/59)
+at `b1f169c4698687847a1f9f4a5bb165b6107b15db` records the blocker.
+[Mutation partition 2](https://github.com/newdarwindev/runspindle-platform/actions/runs/44599436021/job/135826486536)
+stopped at `platform_contract/unqualified_platform`, before the installed suite
+ran: `linux/arm64` was unqualified and no guest image was pinned. The
+[required x64 aggregate](https://github.com/newdarwindev/runspindle-platform/actions/runs/44599436021/job/135982304950)
+then failed because that partition did not succeed. This is not a failed installed
+mutation assertion.
+
+To unpark the lane:
+
+1. Qualify a disposable Linux ARM64 guest and pin its exact image, controller,
+   recipe, source and tool closures under the versioned qualification contract.
+   Verify host reserve, isolation, repository-scoped ephemeral routing and
+   teardown before admitting real work.
+2. On a reviewed branch, bind `mutation_2` to that qualified guest; keep the
+   native installed mutation suite and all existing aggregate inputs intact.
+3. On an ordinary push, verify the installed checks and their image-bound
+   receipt for the same head and run, the existing required x64 aggregate, and
+   runner teardown. Do not substitute portable tests, Mac-host tests or a
+   standalone pilot receipt for this gate.
+
+The staged offline Mac Linux ARM64 pilot remains optional and deferred while
+host capacity cannot be verified. It is preparation evidence only, not a
+qualified Actions runner. This decision does not change the separate Mac
+Tart lane or its existing gates.
+
 Strix has a QEMU/KVM execution backend and a transactional manager. Live push,
 cleanup, recovery and unattended qualification must pass before startup is
 enabled or branch protections require `validation / strix-linux-x64`. Source
