@@ -30,6 +30,22 @@ UNSUPPORTED = [
     "provider",
     "production_services",
 ]
+_INSTALL_SCHEMA = {
+    ("table", "state"): (
+        "CREATE TABLE state(id INTEGER PRIMARY KEY CHECK(id=1), generation INTEGER, active TEXT, pending TEXT)"
+    ),
+    ("table", "installs"): (
+        "CREATE TABLE installs(digest TEXT PRIMARY KEY, bundle BLOB NOT NULL, predecessor TEXT, state TEXT NOT NULL)"
+    ),
+    ("trigger", "bundle_immutable"): (
+        "CREATE TRIGGER bundle_immutable BEFORE UPDATE OF digest,bundle,predecessor ON installs "
+        "BEGIN SELECT RAISE(ABORT,'immutable bundle'); END"
+    ),
+    ("trigger", "bundle_retained"): (
+        "CREATE TRIGGER bundle_retained BEFORE DELETE ON installs "
+        "BEGIN SELECT RAISE(ABORT,'retained bundle'); END"
+    ),
+}
 
 
 def sha(data: bytes) -> str:
@@ -285,28 +301,22 @@ class DisposableTarget:
             self.db.execute("BEGIN IMMEDIATE")
             schema = self.db.execute("PRAGMA user_version").fetchone()[0]
             check(schema in (0, 1), "unsupported installation journal schema")
+            objects = {
+                (kind, name): sql
+                for kind, name, sql in self.db.execute(
+                    "SELECT type,name,sql FROM sqlite_schema "
+                    "WHERE sql IS NOT NULL AND name NOT GLOB 'sqlite_*'"
+                )
+            }
             if schema == 0:
-                check(
-                    self.db.execute(
-                        "SELECT count(*) FROM sqlite_master WHERE type='table'"
-                    ).fetchone()[0]
-                    == 0,
-                    "unversioned nonempty installation journal",
-                )
-                self.db.execute(
-                    "CREATE TABLE state(id INTEGER PRIMARY KEY CHECK(id=1), generation INTEGER, active TEXT, pending TEXT)"
-                )
+                if objects:
+                    raise ValueError("unversioned nonempty installation journal")
+                for sql in _INSTALL_SCHEMA.values():
+                    self.db.execute(sql)
                 self.db.execute("INSERT INTO state VALUES(1,0,NULL,NULL)")
-                self.db.execute(
-                    "CREATE TABLE installs(digest TEXT PRIMARY KEY, bundle BLOB NOT NULL, predecessor TEXT, state TEXT NOT NULL)"
-                )
-                self.db.execute(
-                    "CREATE TRIGGER bundle_immutable BEFORE UPDATE OF digest,bundle,predecessor ON installs BEGIN SELECT RAISE(ABORT,'immutable bundle'); END"
-                )
-                self.db.execute(
-                    "CREATE TRIGGER bundle_retained BEFORE DELETE ON installs BEGIN SELECT RAISE(ABORT,'retained bundle'); END"
-                )
                 self.db.execute("PRAGMA user_version=1")
+            elif objects != _INSTALL_SCHEMA:
+                raise ValueError("incompatible installation journal schema")
             self._check_journal_kind()
             self.db.commit()
         except BaseException:
