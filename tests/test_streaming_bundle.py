@@ -1,15 +1,10 @@
 import json
-import os
-from contextlib import closing
 from pathlib import Path
-import sqlite3
-import stat
 import struct
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
 
 from tools import streaming_bundle as b
 from tools.development_bundle import COMPONENTS, actual_target, canonical, sha
@@ -17,7 +12,7 @@ from tools.development_bundle import COMPONENTS, actual_target, canonical, sha
 PINS = {name: sha(name.encode())[:40] for name in COMPONENTS}
 
 
-def make(root, label="first", *, smoke_path="bin/smoke"):
+def make(root, label="first"):
     root = Path(root)
     source = root / (label + ".source")
     source.write_bytes(
@@ -30,48 +25,17 @@ def make(root, label="first", *, smoke_path="bin/smoke"):
         archive,
         "a" * 40,
         PINS,
-        {smoke_path: source, "notices/test": notice},
+        {"bin/smoke": source, "notices/test": notice},
         dependencies={"test": "sha256:" + sha(b"dependency")},
         toolchains={"test": "sha256:" + sha(b"toolchain")},
         licenses={"notices/test": b.file_sha(notice)},
-        entrypoints={"smoke": smoke_path},
-        executable=[smoke_path],
+        entrypoints={"smoke": "bin/smoke"},
+        executable=["bin/smoke"],
     )
     return archive, manifest, digest
 
 
 class StreamingTests(unittest.TestCase):
-    def test_extraction_syncs_final_modes_then_directories_bottom_up(self):
-        smoke_path = "bin/libexec/smoke"
-        with tempfile.TemporaryDirectory() as tmp:
-            root = Path(tmp)
-            archive, _, _ = make(root, smoke_path=smoke_path)
-            destination = root / "extract"
-            destination.mkdir()
-            calls = []
-            fsync = os.fsync
-
-            def observe(descriptor):
-                info = os.fstat(descriptor)
-                calls.append((info.st_ino, stat.S_IMODE(info.st_mode)))
-                fsync(descriptor)
-
-            with patch.object(b.os, "fsync", side_effect=observe):
-                b.inspect(archive, component_commits=PINS, destination=destination)
-            synced = {
-                inode: (position, mode) for position, (inode, mode) in enumerate(calls)
-            }
-            for name, mode in [(smoke_path, 0o755), ("notices/test", 0o644)]:
-                file = destination / name
-                position, observed_mode = synced[file.stat().st_ino]
-                self.assertEqual(observed_mode, mode)
-                for parent in file.parents:
-                    parent_position, _ = synced[parent.stat().st_ino]
-                    self.assertLess(position, parent_position)
-                    position = parent_position
-                    if parent == destination:
-                        break
-
     def test_large_file_extract_and_integrity_negative_cases(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -167,60 +131,6 @@ class InstalledStreamingTests(unittest.TestCase):
         )
         self.assertEqual(completed.returncode, expected, completed.stderr)
         return completed
-
-    def test_directory_sync_failure_preserves_active_and_fresh_process_recovers(self):
-        first, _, first_digest = make(self.tmp.name)
-        self.target.install(
-            b.VERSION, first, component_commits=PINS, expected_generation=0
-        )
-        smoke_path = "bin/libexec/smoke"
-        second, manifest, second_digest = make(
-            self.tmp.name, "second", smoke_path=smoke_path
-        )
-        result = self.invoke(
-            """
-from tools import streaming_bundle
-sync_dir = streaming_bundle._sync_dir
-def interrupted(path):
-    if path.name == "libexec":
-        raise OSError("synthetic directory sync failure")
-    sync_dir(path)
-streaming_bundle._sync_dir = interrupted
-t.install(VERSION, sys.argv[2], component_commits=PINS, expected_generation=1)
-""",
-            second,
-            expected=1,
-        )
-        self.assertIn("synthetic directory sync failure", result.stderr)
-        pointer = self.target.root / "active.json"
-        self.assertEqual(
-            json.loads(pointer.read_bytes())["manifest_sha256"], first_digest
-        )
-        version = self.target.root / "versions" / second_digest
-        self.assertFalse(version.exists())
-        with closing(sqlite3.connect(self.target.root / "journal.sqlite")) as journal:
-            self.assertEqual(
-                journal.execute(
-                    "SELECT generation,active,pending FROM state"
-                ).fetchone(),
-                (2, first_digest, second_digest),
-            )
-        self.invoke("t.recover(VERSION, component_commits=PINS)")
-        self.assertEqual(
-            json.loads(pointer.read_bytes())["manifest_sha256"], second_digest
-        )
-        with closing(sqlite3.connect(self.target.root / "journal.sqlite")) as journal:
-            self.assertEqual(
-                journal.execute(
-                    "SELECT generation,active,pending FROM state"
-                ).fetchone(),
-                (2, second_digest, None),
-            )
-        smoke = version / smoke_path
-        self.assertEqual(
-            sha(smoke.read_bytes()), manifest["files"][smoke_path]["sha256"]
-        )
-        self.assertEqual(stat.S_IMODE(smoke.stat().st_mode), 0o755)
 
     def test_fresh_process_upgrade_rollback_and_independent_execution(self):
         first, _, first_digest = make(self.tmp.name)

@@ -61,6 +61,13 @@ def _regular_source(path: Path | str, limit: int) -> Iterator[tuple[BinaryIO, in
         os.close(fd)
 
 
+def _sync_extracted_directories(path: Path) -> None:
+    for child in path.iterdir():
+        if stat.S_ISDIR(child.lstat().st_mode):
+            _sync_extracted_directories(child)
+    _sync_dir(path)
+
+
 def _copy_exact(source: BinaryIO, output: BinaryIO, expected: int) -> None:
     remaining = expected
     while remaining:
@@ -361,13 +368,6 @@ def _sync_dir(path):
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
-
-
-def _sync_extracted_directories(path: Path) -> None:
-    for child in path.iterdir():
-        if stat.S_ISDIR(child.lstat().st_mode):
-            _sync_extracted_directories(child)
-    _sync_dir(path)
 
 
 class StreamingTarget(DisposableTarget):
