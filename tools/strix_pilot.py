@@ -57,6 +57,10 @@ class GitHubUnavailable(RuntimeError):
     """A transient GitHub API failure."""
 
 
+class GitHubRateLimited(RuntimeError):
+    """GitHub requested a pause before further API calls."""
+
+
 class GitHubRejected(RuntimeError):
     """An API response with an explicit failure status."""
 
@@ -95,7 +99,7 @@ def api_once(args, method):
             status == 403 and "rate limit" in result.stderr.lower()
         )
         if throttled:
-            raise RuntimeError(f"GitHub {method} rate-limited (HTTP {status})")
+            raise GitHubRateLimited(f"GitHub {method} rate-limited (HTTP {status})")
         if status is None or status == 408 or 500 <= status <= 599:
             raise GitHubUnavailable(f"GitHub {method} temporarily unavailable (HTTP {status})")
         raise GitHubRejected(method, status)
@@ -595,12 +599,14 @@ def load_routes(routes_path):
 def watch(routes_path):
     """Poll approved workflows and serve one direct job at a time."""
     cursor = 0
+    rate_limit_delay = 300
     while True:
         try:
             run(argparse.Namespace(lane="cleanup"))
             routes = load_routes(routes_path)
             candidate = next_queued_job(routes, cursor)
             if candidate is None:
+                rate_limit_delay = 300
                 time.sleep(60)
                 continue
             index, run_id, job_id = candidate
@@ -608,11 +614,17 @@ def watch(routes_path):
                 lane="direct", route=routes[index], run_id=run_id, job_id=job_id, name=None,
                 routes_path=routes_path,
             ))
+        except GitHubRateLimited as error:
+            print(f"{error}. Retrying in {rate_limit_delay} seconds.", flush=True)
+            time.sleep(rate_limit_delay)
+            rate_limit_delay = min(rate_limit_delay * 2, 3600)
+            continue
         except (BlockingIOError, CapacityUnavailable, RoutingError,
                 RunnerCleanupPending, GitHubUnavailable) as error:
             print(str(error), flush=True)
             time.sleep(60)
             continue
+        rate_limit_delay = 300
         cursor = (index + 1) % len(routes)
         if status == 2:
             time.sleep(60)
