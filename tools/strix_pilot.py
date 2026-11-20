@@ -11,6 +11,7 @@ import socket
 import stat
 import subprocess
 import sys
+from threading import Event
 import time
 
 from tools.runner_fleet.direct_routing import enroll_job, queued_jobs
@@ -639,18 +640,20 @@ def load_routes(routes_path):
     return routes
 
 
-def watch(routes_path):
+def watch(routes_path, stopping):
     """Poll approved workflows and serve one direct job at a time."""
     cursor = 0
     rate_limit_delay = 300
-    while True:
+    while not stopping.is_set():
         try:
             run(argparse.Namespace(lane="cleanup"))
             routes = load_routes(routes_path)
             candidate = next_queued_job(routes, cursor)
+            if stopping.is_set():
+                break
             if candidate is None:
                 rate_limit_delay = 300
-                time.sleep(60)
+                stopping.wait(60)
                 continue
             index, run_id, job_id = candidate
             status = run(argparse.Namespace(
@@ -659,18 +662,19 @@ def watch(routes_path):
             ))
         except GitHubRateLimited as error:
             print(f"{error}. Retrying in {rate_limit_delay} seconds.", flush=True)
-            time.sleep(rate_limit_delay)
+            stopping.wait(rate_limit_delay)
             rate_limit_delay = min(rate_limit_delay * 2, 3600)
             continue
         except (BlockingIOError, CapacityUnavailable, RoutingError,
                 RunnerCleanupPending, GitHubUnavailable) as error:
             print(str(error), flush=True)
-            time.sleep(60)
+            stopping.wait(60)
             continue
         rate_limit_delay = 300
         cursor = (index + 1) % len(routes)
         if status == 2:
-            time.sleep(60)
+            stopping.wait(60)
+    return 0
 
 
 def main():
@@ -696,9 +700,11 @@ def main():
         # Exit through the cleanup blocks even if SIGTERM arrives during I/O.
         raise SystemExit(0)
 
-    signal.signal(signal.SIGTERM, interrupted)
     if args.lane == "watch":
-        return watch(args.routes)
+        stopping = Event()
+        signal.signal(signal.SIGTERM, lambda *_: stopping.set())
+        return watch(args.routes, stopping)
+    signal.signal(signal.SIGTERM, interrupted)
     return drain_host(args) if args.job_id is None else run(args)
 
 
