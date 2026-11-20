@@ -1,6 +1,8 @@
 """Real scratch files/SQLite; synthetic target admission, not ARM64 qualification."""
 
 import json
+import subprocess
+import sys
 import unittest
 from typing import Any, cast
 from unittest.mock import Mock, patch
@@ -73,6 +75,51 @@ class MetadataPointerTests(unittest.TestCase):
             )
         checkpoint.assert_not_called()
         self.assertEqual(self.snapshot(), before)
+
+    def test_reopen_rejects_missing_or_weakened_immutable_schema(self) -> None:
+        root = self.target.root
+        b.DisposableTarget(root).close()
+        trigger = self.target.db.execute(
+            "SELECT sql FROM sqlite_schema WHERE name='bundle_immutable'"
+        ).fetchone()[0]
+        program = """
+import sys
+from unittest.mock import patch
+from tools import development_bundle
+
+with patch.object(development_bundle, "actual_target", return_value="linux/arm64"):
+    try:
+        target = development_bundle.DisposableTarget(sys.argv[1])
+    except ValueError as error:
+        if "incompatible installation journal schema" not in str(error):
+            raise
+    else:
+        target.close()
+        raise AssertionError("damaged journal opened")
+"""
+        for replacement in (
+            "",
+            "CREATE TRIGGER bundle_immutable BEFORE UPDATE ON installs "
+            "BEGIN SELECT 1; END",
+        ):
+            with self.subTest(replacement=replacement):
+                self.target.db.execute("DROP TRIGGER bundle_immutable")
+                if replacement:
+                    self.target.db.execute(replacement)
+                before = self.snapshot()
+                try:
+                    result = subprocess.run(
+                        [sys.executable, "-B", "-c", program, str(root)],
+                        text=True,
+                        capture_output=True,
+                        timeout=10,
+                    )
+                    self.assertEqual(result.returncode, 0, result.stderr)
+                    self.assertEqual(self.snapshot(), before)
+                finally:
+                    if replacement:
+                        self.target.db.execute("DROP TRIGGER bundle_immutable")
+                    self.target.db.execute(trigger)
 
     def test_unrelated_retained_pointer_rejected_during_pending(self) -> None:
         self.target.db.execute("UPDATE state SET pending=?", (self.ids[1],))
