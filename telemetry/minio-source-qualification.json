@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "status": "blocked",
+  "status": "prepared_source_only",
   "evidence_class": "read_only_dependency_preparation",
   "release": "RELEASE.2025-04-22T22-12-26Z",
   "source_revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e",
@@ -2349,7 +2349,13 @@
       "archive_sha256": "aa67306797b071ce93188fe2834f63ffd7963faf623d49229d891ef52e595b35",
       "go_mod_sha256": "f7e77590fe4e1f139df43931a85df4205026ea7110d9e0428c11653030fa5f64",
       "notices": {},
-      "inherited_notice": null
+      "inherited_notice": {
+        "basis": "upstream maintainer merged the complete MIT notice with no changes to the tagged source files",
+        "release_revision": "6338b4c69507fb1f9edba3db33882a8e9ab9bfa8",
+        "notice_revision": "2491eb6c1c75720122ef321ed7acc3a8d9de95b1",
+        "notice_path": "telemetry/notices/go-localereader-MIT-LICENSE",
+        "notice_sha256": "dceede03550621e65ec7b79fcba87cf6dbb9d31132a8ae71a8fe8ceec0af7da3"
+      }
     },
     {
       "module": "github.com/mattn/go-runewidth",
@@ -3142,14 +3148,7 @@
       "inherited_notice": null
     }
   ],
-  "unresolved_notices": [
-    {
-      "module": "github.com/mattn/go-localereader",
-      "version": "v0.0.1",
-      "reason": "module README declares MIT, but original complete copyright/permission notice is absent; exact upstream tag LICENSE returned HTTP 404",
-      "readme_sha256": "0c5c52517f13becd7a1e1234f1e8a5ba370f5a5078cee9ac058c2d534e267fcb"
-    }
-  ],
+  "unresolved_notices": [],
   "build": "not_run",
   "service_execution": "not_run",
   "Langfuse_readback": "not_run",
