@@ -1,6 +1,7 @@
 """Run one exact GitHub job in a disposable Strix VM under the fleet lock."""
 
 import argparse
+from contextlib import closing
 import hashlib
 import json
 import os
@@ -8,6 +9,7 @@ from pathlib import Path
 import re
 import signal
 import socket
+import sqlite3
 import stat
 import subprocess
 import sys
@@ -717,14 +719,38 @@ def load_routes(routes_path):
     return routes
 
 
+def last_direct_repository(routes_path):
+    """Resume round-robin ordering after the most recent reconciled guest."""
+    database = routes_path.parent / "fleet.sqlite"
+    try:
+        with closing(sqlite3.connect(database.resolve().as_uri() + "?mode=ro", uri=True)) as connection:
+            row = connection.execute(
+                "SELECT repository FROM resources WHERE phase = 'destroyed' "
+                "AND json_extract(details, '$.isolated_direct_pilot') = 1 "
+                "ORDER BY updated DESC, id DESC LIMIT 1"
+            ).fetchone()
+    except sqlite3.OperationalError as error:
+        raise RoutingError("fleet ledger unavailable for queue rotation") from error
+    return f"newdarwindev/{row[0]}" if row else None
+
+
 def watch(routes_path, stopping):
     """Poll approved workflows and serve one direct job at a time."""
-    cursor = 0
+    previous_repository = None
+    needs_cursor = True
     rate_limit_delay = 300
     while not stopping.is_set():
         try:
             run(argparse.Namespace(lane="cleanup"))
             routes = load_routes(routes_path)
+            if needs_cursor:
+                previous_repository = last_direct_repository(routes_path)
+                needs_cursor = False
+            cursor = next(
+                ((index + 1) % len(routes) for index, route in enumerate(routes)
+                 if route.repository == previous_repository),
+                0,
+            )
             candidate = next_queued_job(routes, cursor)
             if stopping.is_set():
                 break
@@ -748,7 +774,7 @@ def watch(routes_path, stopping):
             stopping.wait(60)
             continue
         rate_limit_delay = 300
-        cursor = (index + 1) % len(routes)
+        previous_repository = routes[index].repository
         if status == 2:
             stopping.wait(60)
     return 0
