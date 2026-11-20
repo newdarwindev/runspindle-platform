@@ -13,7 +13,6 @@ from typing import Any, Callable
 from .automatic_catalog import QualifiedRecord, load_catalog
 from .automatic_policy import capacity_one
 from .backend import Backend
-from .manager import trusted
 
 
 class AutomaticAdmission:
@@ -48,11 +47,17 @@ class AutomaticAdmission:
             if self.state.get("drained", True) or self.state.get("error"):
                 return None
             repository = job.get("repository")
+            branch = job.get("head_branch")
             if (
                 job.get("status") != "queued"
                 or type(job.get("id")) is not int
                 or job["id"] <= 0
-                or not trusted(job, "newdarwindev/" + str(repository))
+                # Manager.inventory normalizes run.head_repository to a string.
+                # Do not reuse the raw GitHub run predicate on this job shape.
+                or job.get("head_repository") != "newdarwindev/" + str(repository)
+                or job.get("event") not in ("push", "workflow_dispatch")
+                or type(branch) is not str
+                or not (branch == "main" or branch.startswith("ci/"))
             ):
                 raise ValueError("Untrusted requested job")
             matches = [
