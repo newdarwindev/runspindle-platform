@@ -101,7 +101,15 @@ pins/target/inventories/notices reject before installation.
 `tools/streaming_bundle.py` retains the exact archive separately from the SQLite
 journal, avoiding executable-size BLOBs. A generation-owned immutable manifest
 intent commits before staging. Recovery checks archived, extracted and installed
-bytes and modes before switching the version pointer. A rollback intent records
+bytes and modes before switching the version pointer. Extraction applies the
+manifest's final file mode before syncing each file, then syncs the staging
+directories from the leaves to the root. A directory sync failure leaves the
+active pointer in place and keeps the generation's pending intent for recovery
+from the retained archive. The streaming tests record syscall order and inject
+a staging-directory failure before retrying in a fresh process. These tests
+cover the local filesystem interface and process recovery.
+
+A rollback intent records
 the exact verified predecessor; missing/corrupt predecessor files are not
 regenerated. Fresh processes test interruption after intent, staging, pointer and
 rollback intent. Competing owners, stale generations, conflicting readback,
