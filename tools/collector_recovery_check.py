@@ -4,6 +4,7 @@
 This tests actual Collector persistence/retry, not Langfuse compatibility. No
 custom receiver, native uploader or replacement product backend is introduced.
 """
+
 import argparse
 import json
 from pathlib import Path
@@ -20,6 +21,7 @@ from collector_privacy_check import (
     outcome,
     check,
     command,
+    require_trace_acceptance,
     sha,
     verified_dependencies,
 )
@@ -152,11 +154,7 @@ def run():
             )
             spawn(primary, "primary", root / "primary.yaml", root / "primary")
             ready("primary")
-            post = "import sys,urllib.request; r=urllib.request.urlopen(urllib.request.Request('http://primary:4318/v1/traces',data=sys.argv[1].encode(),headers={'Content-Type':'application/json'}),timeout=5);print(r.status)"
-            check(
-                client(post, json.dumps(fixture())) == "200",
-                "synthetic event not accepted",
-            )
+            require_trace_acceptance(client, "primary", json.dumps(fixture()))
             check(not readback(), "unavailable backend fabricated persistence")
             storage = root / "primary/queue"
             check(
