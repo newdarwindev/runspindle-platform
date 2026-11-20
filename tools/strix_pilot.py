@@ -453,6 +453,8 @@ def run(args):
             routes_path = getattr(args, "routes_path", None)
             if routes_path is not None and route not in load_routes(routes_path):
                 raise RoutingError("repository route changed before guest admission")
+            if IMAGE.lstat().st_nlink != 1:
+                raise RoutingError("guest backing image must have one link for original retention")
             try:
                 budget = capacity(STATE_DIRECTORY)
             except ValueError as error:
