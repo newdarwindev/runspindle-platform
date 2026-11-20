@@ -1,5 +1,7 @@
 """Synthetic Mac fleet ledger tests; no VM or Actions execution."""
 
+import json
+import subprocess
 import tempfile
 import unittest
 from datetime import datetime, timezone
@@ -193,14 +195,123 @@ class MacLifecycleTests(unittest.TestCase):
 
     def test_lima_inventory_empty_running_stopped_and_malformed(self) -> None:
         commands = MacCommands()
-        with patch.object(commands, "run", return_value=""):
+        empty = json.dumps(
+            {
+                "level": "warning",
+                "msg": "No instance found. Run `limactl create` to create an instance.",
+            }
+        )
+        with patch(
+            "subprocess.run", return_value=subprocess.CompletedProcess([], 0, "", empty)
+        ) as call:
             self.assertEqual(commands.names("lima"), {})
-        output = '[{"Name":"one","Status":"Running"},{"Name":"two","Status":"Stopped"}]'
-        with patch.object(commands, "run", return_value=output):
+            self.assertEqual(
+                call.call_args.args[0],
+                [
+                    "limactl",
+                    "--log-level",
+                    "warn",
+                    "--log-format",
+                    "json",
+                    "list",
+                    "--format",
+                    "json",
+                ],
+            )
+        output = (
+            '{"name":"one","status":"Running"}\n{"name":"two","status":"Stopped"}\n'
+        )
+        with patch(
+            "subprocess.run",
+            return_value=subprocess.CompletedProcess([], 0, output, ""),
+        ):
             self.assertEqual(commands.names("lima"), {"one": True, "two": False})
-        with patch.object(commands, "run", return_value="{broken"):
-            with self.assertRaises(ValueError):
+        for bad, stderr in (
+            ("{broken", ""),
+            ('[{"Name":"one","Status":"Running"}]', ""),
+            ('{"name":"one","status":"Broken"}', ""),
+            ('{"name":"one","status":"Running","status":"Stopped"}', ""),
+            (output + '{"name":"one","status":"Stopped"}\n', ""),
+            ("", '{"level":"warning","msg":"Skipping an instance"}'),
+            (output, '{"level":"warning","msg":"Skipping an instance"}'),
+        ):
+            with (
+                self.subTest(output=bad, stderr=stderr),
+                patch(
+                    "subprocess.run",
+                    return_value=subprocess.CompletedProcess([], 0, bad, stderr),
+                ),
+                self.assertRaises(MacBlocked),
+            ):
                 commands.names("lima")
+
+    def test_tart_inventory_requires_unambiguous_local_state(self) -> None:
+        commands = MacCommands()
+        running = {
+            "Name": "one",
+            "Source": "local",
+            "Running": True,
+            "State": "running",
+        }
+        suspended = {
+            "Name": "two",
+            "Source": "local",
+            "Running": False,
+            "State": "suspended",
+        }
+        with patch(
+            "subprocess.run",
+            return_value=subprocess.CompletedProcess(
+                [], 0, json.dumps([running, suspended]), ""
+            ),
+        ) as call:
+            self.assertEqual(commands.names("tart"), {"one": True, "two": False})
+            self.assertEqual(
+                call.call_args.args[0],
+                ["tart", "list", "--source", "local", "--format", "json"],
+            )
+        for rows in (
+            [running | {"Running": "false"}],
+            [running | {"Running": False}],
+            [running | {"State": "unknown"}],
+            [running | {"Source": "OCI"}],
+            [running, running | {"Running": False, "State": "stopped"}],
+        ):
+            with (
+                self.subTest(rows=rows),
+                patch(
+                    "subprocess.run",
+                    return_value=subprocess.CompletedProcess(
+                        [], 0, json.dumps(rows), ""
+                    ),
+                ),
+                self.assertRaises(MacBlocked),
+            ):
+                commands.names("tart")
+
+    def test_incomplete_inventory_keeps_the_reserved_slot_after_reopen(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manager, _ = self.manager(directory)
+            resource = manager.reserve_candidate(self.job, self.image)
+            reopened, _ = self.manager(directory)
+            reopened.backend = MacBackend(reopened.state, MacCommands())
+            warning = '{"level":"warning","msg":"Skipping an instance"}'
+
+            def observe(
+                argv: list[str], **_options: Any
+            ) -> subprocess.CompletedProcess[str]:
+                self.assertIn("list", argv)
+                if argv[0] == "limactl":
+                    return subprocess.CompletedProcess(argv, 0, "", warning)
+                return subprocess.CompletedProcess(argv, 0, "[]", "")
+
+            with patch("subprocess.run", side_effect=observe) as call:
+                with self.assertRaisesRegex(MacBlocked, "Lima inventory incomplete"):
+                    reopened.reconcile()
+                self.assertEqual(call.call_count, 1)
+            self.assertEqual(
+                [row["id"] for row in reopened.state.active()], [resource["id"]]
+            )
 
     def test_stale_resource_cannot_mutate_new_lease(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
