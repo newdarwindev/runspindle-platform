@@ -13,6 +13,7 @@ import platform
 import re
 import shutil
 import sqlite3
+import stat
 import tempfile
 from pathlib import Path, PurePosixPath
 from typing import Any
@@ -21,6 +22,7 @@ VERSION = "runspindle.maintained-evidence.v1"
 COMPONENTS = {"core", "host", "browser", "console", "refinery", "platform", "tether"}
 MAX_BYTES = 16 * 1024 * 1024
 MAX_FILES = 128
+MAX_POINTER_BYTES = 256
 UNSUPPORTED = [
     "full_product",
     "native",
@@ -408,19 +410,39 @@ class DisposableTarget:
             api_version, component_commits=component_commits, checkpoint=checkpoint
         )
 
-    def _observed(self):
+    def _observed(self) -> str | None:
         pointer = self.root / "active.json"
-        if not pointer.exists():
+        try:
+            fd = os.open(pointer, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        except FileNotFoundError:
             return None
-        check(not pointer.is_symlink(), "unsafe active pointer")
-        value = json.loads(pointer.read_bytes())
-        check(
-            type(value) is dict
-            and set(value) == {"manifest_sha256"}
-            and re.fullmatch(r"[0-9a-f]{64}", value["manifest_sha256"]),
-            "invalid active pointer",
-        )
-        return value["manifest_sha256"]
+        except OSError:
+            raise ValueError("unsafe active pointer") from None
+        try:
+            info = os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode):
+                raise ValueError("unsafe active pointer")
+            if info.st_size > MAX_POINTER_BYTES:
+                raise ValueError("oversized active pointer")
+            data = os.read(fd, MAX_POINTER_BYTES + 1)
+            if len(data) != info.st_size:
+                raise ValueError("active pointer changed during read")
+        finally:
+            os.close(fd)
+        try:
+            fields = json.loads(data, object_pairs_hook=tuple)
+        except ValueError:
+            raise ValueError("invalid active pointer") from None
+        if (
+            type(fields) is not tuple
+            or len(fields) != 1
+            or fields[0][0] != "manifest_sha256"
+        ):
+            raise ValueError("invalid active pointer")
+        digest = fields[0][1]
+        if type(digest) is not str or not re.fullmatch(r"[0-9a-f]{64}", digest):
+            raise ValueError("invalid active pointer")
+        return digest
 
     def verify_installed(self: Any, component_commits: Any) -> dict[str, Any]:
         state = self.state()
