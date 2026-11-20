@@ -14,6 +14,7 @@ import re
 import shutil
 import stat
 import struct
+import tempfile
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, Callable, Iterator
@@ -84,7 +85,7 @@ def file_sha(path):
     return h.hexdigest()
 
 
-def stream_path(name):
+def stream_path(name: str) -> str:
     check(type(name) is str and 1 <= len(name) <= 512, "unsafe bundle path")
     path = PurePosixPath(name)
     check(
@@ -106,7 +107,9 @@ def _unique(pairs):
     return value
 
 
-def validate_manifest(manifest, *, component_commits, target="linux/arm64"):
+def validate_manifest(
+    manifest: dict[str, Any], *, component_commits: Any, target: str = "linux/arm64"
+) -> dict[str, Any]:
     check(
         type(manifest) is dict
         and set(manifest)
@@ -205,7 +208,9 @@ def validate_manifest(manifest, *, component_commits, target="linux/arm64"):
     return manifest
 
 
-def _header(stream, *, component_commits, target):
+def _header(
+    stream: BinaryIO, *, component_commits: Any, target: str
+) -> tuple[dict[str, Any], str]:
     check(stream.read(len(MAGIC)) == MAGIC, "unsupported streaming bundle version")
     raw_size = stream.read(8)
     check(len(raw_size) == 8, "incomplete bundle header")
@@ -219,7 +224,13 @@ def _header(stream, *, component_commits, target):
     return manifest, sha(data)
 
 
-def inspect(bundle, *, component_commits, target="linux/arm64", destination=None):
+def inspect(
+    bundle: Path | str,
+    *,
+    component_commits: Any,
+    target: str = "linux/arm64",
+    destination: Path | str | None = None,
+) -> tuple[dict[str, Any], str]:
     """Stream verification; optional extraction only to an owned empty directory."""
     root = Path(destination) if destination is not None else None
     if root is not None:
@@ -314,8 +325,13 @@ def build(
     check(len(data) <= MAX_MANIFEST, "manifest size limit")
     destination = Path(destination)
     check(not destination.exists(), "bundle destination already exists")
-    try:
-        with destination.open("xb") as output:
+    # Verify privately before publishing the complete file. A no-replace link
+    # is atomic on the same filesystem, including when another builder wins.
+    with tempfile.TemporaryDirectory(
+        prefix=".runspindle-bundle-", dir=destination.parent
+    ) as stage:
+        candidate = Path(stage) / "bundle"
+        with candidate.open("xb") as output:
             output.write(MAGIC + struct.pack(">Q", len(data)) + data)
             for name in sorted(files):
                 with _regular_source(files[name], MAX_BYTES) as (source, size):
@@ -323,10 +339,12 @@ def build(
                     _copy_exact(source, output, size)
             output.flush()
             os.fsync(output.fileno())
-        inspect(destination, component_commits=component_commits)
-    except BaseException:
-        destination.unlink(missing_ok=True)
-        raise
+        inspect(candidate, component_commits=component_commits)
+        try:
+            os.link(candidate, destination, follow_symlinks=False)
+        except FileExistsError:
+            raise ValueError("bundle destination already exists") from None
+    _sync_dir(destination.parent)
     return manifest, sha(data)
 
 
@@ -353,12 +371,83 @@ def verify_tree(folder, manifest):
     check(actual == manifest["files"], "installed byte or mode mismatch")
 
 
-def _sync_dir(path):
+def _sync_dir(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def _known_archive_path(path: Path) -> bool:
+    """Admit an existing owned regular archive path without opening it."""
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return False
+    _check(
+        stat.S_ISREG(info.st_mode)
+        and info.st_uid == os.geteuid()
+        and info.st_nlink == 1,
+        "unsafe retained archive path",
+    )
+    return True
+
+
+def _retain_archive(
+    bundle: Path | str,
+    archives: Path,
+    manifest: dict[str, Any],
+    digest: str,
+    *,
+    component_commits: Any,
+    target: str,
+) -> None:
+    """Stage verified archive bytes while the caller holds the installation lock."""
+    saved = archives / digest
+    temporary = archives / (digest + ".next")
+    has_saved = _known_archive_path(saved)
+    # An earlier interrupted acquisition may leave a private partial file. Never
+    # open it for writing because its type/ownership may have changed.
+    if _known_archive_path(temporary):
+        temporary.unlink()
+    if has_saved:
+        observed, found = inspect(
+            saved, component_commits=component_commits, target=target
+        )
+        check(
+            found == digest and observed == manifest,
+            "retained payload identity mismatch",
+        )
+        _sync_dir(archives)
+        return
+    expected_size = (
+        len(MAGIC)
+        + 8
+        + len(_canonical(manifest))
+        + sum(item["size"] for item in manifest["files"].values())
+    )
+    acquired = False
+    try:
+        with _regular_source(bundle, expected_size) as (source, size):
+            _check(size == expected_size, "bundle size changed")
+            with temporary.open("xb") as output:
+                acquired = True
+                _copy_exact(source, output, expected_size)
+                output.flush()
+                os.fsync(output.fileno())
+        observed, found = inspect(
+            temporary, component_commits=component_commits, target=target
+        )
+        check(
+            found == digest and observed == manifest,
+            "payload changed during acquisition",
+        )
+        temporary.replace(saved)
+        _sync_dir(archives)
+    finally:
+        if acquired:
+            temporary.unlink(missing_ok=True)
 
 
 class StreamingTarget(DisposableTarget):
@@ -436,32 +525,15 @@ class StreamingTarget(DisposableTarget):
                 not any(p.is_symlink() for p in self.root.rglob("*")),
                 "unsafe installation target",
             )
-            saved = archives / digest
-            # A crash during acquisition leaves an unreferenced file, safe to replace.
-            temporary = archives / (digest + ".next")
-            expected_size = (
-                len(MAGIC)
-                + 8
-                + len(_canonical(manifest))
-                + sum(item["size"] for item in manifest["files"].values())
+            _retain_archive(
+                bundle,
+                archives,
+                manifest,
+                digest,
+                component_commits=component_commits,
+                target=actual_target(),
             )
-            with (
-                _regular_source(bundle, expected_size) as (source, size),
-                temporary.open("wb") as output,
-            ):
-                _check(size == expected_size, "bundle size changed")
-                _copy_exact(source, output, expected_size)
-                output.flush()
-                os.fsync(output.fileno())
-            observed, found = inspect(
-                temporary, component_commits=component_commits, target=actual_target()
-            )
-            check(
-                found == digest and observed == manifest,
-                "payload changed during acquisition",
-            )
-            temporary.replace(saved)
-            _sync_dir(archives)
+            _sync_dir(self.root)
             self.db.execute(
                 "INSERT INTO installs VALUES(?,?,?,'stream_intent')",
                 (digest, canonical(manifest), state["active"]),
