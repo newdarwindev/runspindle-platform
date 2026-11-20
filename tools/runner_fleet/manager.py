@@ -35,7 +35,7 @@ def pages(path: str, key: str) -> list[dict[str, Any]]:
     raise RuntimeError("Pagination limit reached; inventory uncertain")
 
 
-def trusted(run, repository):
+def trusted(run: dict[str, Any], repository: str) -> bool:
     return (
         run.get("event") in ("push", "workflow_dispatch")
         and (
@@ -136,7 +136,12 @@ class Manager:
             raise RuntimeError("Runner registration still present")
 
     def cleanup(self, resource: dict[str, Any], reason: str) -> None:
-        if resource.get("details", {}).get("unregistered_probe") is True:
+        if (
+            resource.get("details", {}).get("unregistered_probe") is True
+            or resource.get("details", {}).get("manual_registered_probe") is True
+            or resource.get("details", {}).get("automatic_fleet_v1") is True
+            or resource.get("details", {}).get("offline_browser_inventory_v1") is True
+        ):
             # Probe metadata/image are deliberately separate from manager defaults.
             # Explicit reviewed single_probe recovery owns this reservation.
             self.state.update(
@@ -221,6 +226,14 @@ class Manager:
         )
 
     def advance(self, resource, jobs):
+        if (
+            resource.get("details", {}).get("automatic_fleet_v1") is True
+            or resource.get("details", {}).get("offline_browser_inventory_v1") is True
+        ):
+            self.state.update(
+                resource, "uncertain", cleanup_error="explicit automatic owner required"
+            )
+            return
         now = time.time()
         try:
             if resource["phase"] in ("reserved", "uncertain", "cleaning"):
@@ -339,7 +352,15 @@ class Manager:
         return cast(dict[str, Any], self.state.reserve(job))
 
     def can_admit(self) -> bool:
-        return not self.state.get("drained", True) and not self.state.get("error")
+        return (
+            not self.state.get("drained", True)
+            and not self.state.get("error")
+            and not any(
+                r.get("details", {}).get("automatic_fleet_v1") is True
+                or r.get("details", {}).get("offline_browser_inventory_v1") is True
+                for r in self.state.active()
+            )
+        )
 
     def tick(self, poll=True):
         if poll:

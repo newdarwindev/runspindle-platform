@@ -208,10 +208,14 @@ class Backend:
         image: str | os.PathLike[str] | None = None,
         *,
         preparation_source_sha: str | None = None,
+        image_manifest: str | os.PathLike[str] | None = None,
     ) -> None:
         self.state = state
         self.image = Path(image or ROOT / "images/qualified.qcow2")
         self.preparation_source_sha = preparation_source_sha
+        self.image_manifest = (
+            Path(image_manifest) if image_manifest is not None else None
+        )
 
     def directory(self, resource: dict[str, Any]) -> Path:
         path = self.state.directory / "resources" / resource["id"]
@@ -306,7 +310,15 @@ class Backend:
         if result.returncode:
             raise RuntimeError("verified preparation transfer failed")
 
-    def create(self, resource, prepare=False):
+    def create(
+        self: Any,
+        resource: dict[str, Any],
+        prepare: bool = False,
+        *,
+        network_mode: str = "provision",
+    ) -> None:
+        if network_mode not in ("provision", "verify"):
+            raise ValueError("Unsupported network lifecycle")
         if prepare and (
             not isinstance(self.preparation_source_sha, str)
             or not re.fullmatch(r"[0-9a-f]{40}", self.preparation_source_sha)
@@ -317,6 +329,10 @@ class Backend:
         directory = self.directory(resource)
         slot = self.slot(resource)
         image_sha = digest(self.image)
+        if resource.get("details", {}).get(
+            "automatic_fleet_v1"
+        ) is True and image_sha != resource["details"].get("image_sha256"):
+            raise RuntimeError("Automatic image differs from reserved qualification")
         instance = {
             "resource": resource["id"],
             "slot": resource["slot"],
@@ -337,6 +353,7 @@ class Backend:
                 if self.image == qualified
                 else self.state.directory / "candidate.json"
             )
+            path = getattr(self, "image_manifest", None) or path
             instance.update(
                 image_binding(
                     self.image, path, image_sha, candidate=self.image != qualified
@@ -348,7 +365,9 @@ class Backend:
             image_sha256=image_sha,
             boot_deadline=time.time() + 240,
         )
-        helper("network")  # Firewall applied before any guest process exists.
+        # Automatic callers must opt into read-only verification; legacy explicit
+        # provisioning remains separate until independently reviewed deployment.
+        helper("verify-network" if network_mode == "verify" else "network")
         observed = helper("observe", resource["slot"])
         if observed.get("ActiveState") in ("active", "activating", "deactivating"):
             raise RuntimeError("Unreconciled occupied slot")
@@ -522,7 +541,18 @@ GUEST
             checks["guest_docker_builder"] = True
         self.state.update(resource, "isolated", isolation=checks)
 
-    def register(self, resource, repository, token, labels):
+    def register(
+        self: Any,
+        resource: dict[str, Any],
+        repository: str,
+        token: str,
+        labels: list[str],
+        *,
+        no_default_labels: bool = False,
+    ) -> None:
+        if type(no_default_labels) is not bool:
+            raise ValueError("Invalid default-label policy")
+        label_mode = " --no-default-labels" if no_default_labels else ""
         # Host account token stays in gh. Only repository registration token
         # crosses SSH stdin; neither command arguments nor diagnostic logs carry it.
         script = f"""set -e
@@ -531,7 +561,7 @@ set -a
 . /etc/environment
 set +a
 export PATH=/opt/runspindle-quality/bin:$PATH
-./config.sh --unattended --ephemeral --disableupdate --url https://github.com/{repository} --token {shlex.quote(token)} --name {resource["runner_name"]} --labels {shlex.quote(",".join(labels))} --work _work
+./config.sh --unattended --ephemeral --disableupdate --url https://github.com/{repository} --token {shlex.quote(token)} --name {resource["runner_name"]}{label_mode} --labels {shlex.quote(",".join(labels))} --work _work
 nohup env -u SSH_AUTH_SOCK ./run.sh > /home/runner/job.log 2>&1 < /dev/null &
 echo $! > /home/runner/runner.pid
 """

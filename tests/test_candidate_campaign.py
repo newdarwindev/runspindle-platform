@@ -49,6 +49,23 @@ def plan() -> dict[str, Any]:
     }
 
 
+class CandidateNetworkModeTests(unittest.TestCase):
+    def test_explicit_verify_mode_reaches_base_without_provision_fallback(self) -> None:
+        instance = object.__new__(CandidateBackend)
+        instance.plan = plan()
+        instance.state = Mock(directory=Path("/synthetic/state"))
+        resource: dict[str, Any] = {"id": "a" * 32}
+        with (
+            patch("tools.runner_fleet.candidate.verify_executor") as executor,
+            patch("tools.runner_fleet.candidate.verify_image") as image,
+            patch("tools.runner_fleet.backend.Backend.create") as create,
+        ):
+            instance.create(resource, network_mode="verify")
+        executor.assert_called_once_with(instance.plan)
+        image.assert_called_once_with(instance.plan, instance.state.directory)
+        create.assert_called_once_with(resource, network_mode="verify")
+
+
 class PlanTests(unittest.TestCase):
     def test_candidate_backend_refuses_preparation_before_effects(self) -> None:
         backend = CandidateBackend(Mock(), plan(), "synthetic-campaign")

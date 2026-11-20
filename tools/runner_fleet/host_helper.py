@@ -128,6 +128,127 @@ def network() -> None:
     )
 
 
+def expected_network_table() -> str:
+    """Exact stateless numeric nft rendering; formatting differences fail closed."""
+    lines = [
+        "table inet runspindle_fleet {",
+        "chain input {",
+        "type filter hook input priority -20; policy accept;",
+    ]
+    for slot in range(2):
+        name, subnet = f"rsvm{slot}", f"10.231.{slot}"
+        lines.extend(
+            [
+                f'iifname "{name}" meta nfproto 10 drop',
+                f'iifname "{name}" ip saddr != {subnet}.2 drop',
+                f'iifname "{name}" ct state 0x2,0x4 accept',
+                f'iifname "{name}" ip daddr {subnet}.1 tcp dport 3128 accept',
+                f'iifname "{name}" counter drop',
+            ]
+        )
+    lines.extend(
+        [
+            "}",
+            "chain forward {",
+            "type filter hook forward priority -20; policy accept;",
+            'iifname { "rsvm0", "rsvm1" } counter drop',
+            'oifname { "rsvm0", "rsvm1" } counter drop',
+            "}",
+            "}",
+        ]
+    )
+    return " ".join(lines)
+
+
+def verify_network() -> dict[str, str]:
+    """Observe only; never repair settings or start services on a job's behalf.
+
+    This is a preflight, not an atomic host-security attestation. Installed code,
+    proxy configuration and existing per-guest isolation probes remain required.
+    """
+    table = run("nft", "-s", "-nn", "list", "table", "inet", "runspindle_fleet").stdout
+    if " ".join(table.split()) != expected_network_table():
+        raise RuntimeError("Fleet firewall differs; explicit provisioning required")
+
+    def interface(name: str, address: str, namespace: bool = False) -> dict[str, Any]:
+        prefix = (
+            ("ip", "-j", "-n", "runspindle-canary", "-d")
+            if namespace
+            else ("ip", "-j", "-d")
+        )
+        rows = json.loads(run(*prefix, "addr", "show", "dev", name).stdout)
+        if (
+            not isinstance(rows, list)
+            or len(rows) != 1
+            or not isinstance(rows[0], dict)
+        ):
+            raise RuntimeError("Unexpected network interface inventory")
+        row = rows[0]
+        addresses = row.get("addr_info", [])
+        ipv4 = [a for a in addresses if a.get("family") == "inet"]
+        if (
+            row.get("ifname") != name
+            or "UP" not in row.get("flags", [])
+            or "master" in row
+            or len(ipv4) != 1
+            or ipv4[0].get("local") != address
+            or ipv4[0].get("prefixlen") != 30
+            or ipv4[0].get("scope") != "global"
+            or any(
+                a.get("family") != "inet"
+                and not (a.get("family") == "inet6" and a.get("scope") == "link")
+                for a in addresses
+            )
+        ):
+            raise RuntimeError("Fleet interface differs")
+        return row
+
+    for slot in range(2):
+        row = interface(f"rsvm{slot}", f"10.231.{slot}.1")
+        link = row.get("linkinfo", {})
+        data = link.get("info_data", {})
+        if (
+            link.get("info_kind") != "tun"
+            or data.get("type") != "tap"
+            or data.get("user") != f"runspindle-vm{slot}"
+            or data.get("persist") is not True
+            or data.get("multi_queue") is not False
+        ):
+            raise RuntimeError("Fleet TAP ownership differs")
+    host = interface("rscan0", "198.18.231.1")
+    peer = interface("rscan1", "198.18.231.2", True)
+    if (
+        host.get("linkinfo", {}).get("info_kind") != "veth"
+        or peer.get("linkinfo", {}).get("info_kind") != "veth"
+        or type(host.get("ifindex")) is not int
+        or type(peer.get("ifindex")) is not int
+        or host.get("link_index") != peer["ifindex"]
+        or peer.get("link_index") != host["ifindex"]
+    ):
+        raise RuntimeError("Canary peer identity differs")
+    routes = json.loads(
+        run("ip", "-j", "-n", "runspindle-canary", "route", "show").stdout
+    )
+    if routes != [
+        {"dst": "default", "gateway": "198.18.231.1", "dev": "rscan1", "flags": []},
+        {
+            "dst": "198.18.231.0/30",
+            "dev": "rscan1",
+            "protocol": "kernel",
+            "scope": "link",
+            "prefsrc": "198.18.231.2",
+            "flags": [],
+        },
+    ]:
+        raise RuntimeError("Canary routes differ")
+    services = [f"runspindle-proxy-{slot}.service" for slot in range(2)]
+    services += ["runspindle-host-canary.service", "runspindle-lan-canary.service"]
+    for service in services:
+        if run("systemctl", "is-active", service).stdout.strip() != "active":
+            raise RuntimeError("Fleet network service inactive")
+    return {"status": "verified", "network_changed": "false"}
+
+
 def observe(slot: int) -> dict[str, Any]:
     result = run(
         "systemctl",
@@ -309,6 +430,8 @@ def stop(slot: int, identity: str) -> None:
             os.chown(path, operator.pw_uid, pwd.getpwnam(f"runspindle-vm{slot}").pw_gid)
             os.chmod(path, 0o600)
     os.chown(directory, operator.pw_uid, pwd.getpwnam(f"runspindle-vm{slot}").pw_gid)
+    # Stopped original files become operator-private before no-copy retention.
+    os.chmod(directory, 0o700)
 
 
 def teardown() -> None:
@@ -351,6 +474,9 @@ def main() -> None:
                 }
             )
         )
+        return
+    if command == "verify-network" and len(sys.argv) == 2:
+        print(json.dumps(verify_network()))
         return
     if command == "network" and len(sys.argv) == 2:
         network()
