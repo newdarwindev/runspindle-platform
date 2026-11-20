@@ -180,6 +180,13 @@ unrelated retained version. `tests/test_metadata_pointer.py` exercises actual
 scratch SQLite/files with synthetic architecture admission; it does not qualify
 ARM64 installation, product binaries or installed services.
 
+Both installers read the active pointer through the same bounded regular-file
+reader. It accepts one `manifest_sha256` field containing a lowercase SHA-256
+digest, with a 256-byte file limit. Duplicate fields, malformed identities and
+oversized files reject before recovery can act on the pointer. A missing path
+represents absence. A dangling link or a special file rejects, and the reader
+opens without waiting for a FIFO writer.
+
 Pointer-fence verification against base `9d9c09a531205829ad2ca9dc831575b45b5d4692`:
 CPython 3.12.16; exact `requirements-quality.txt` tools; six focused tests passed
 in normal and optimized modes. Direct discovery ran 208 tests: 195 passed and

@@ -137,10 +137,87 @@ with patch.object(development_bundle, "actual_target", return_value="linux/arm64
     def test_active_and_pending_pointers_remain_valid(self) -> None:
         self.target.db.execute("UPDATE state SET pending=?", (self.ids[1],))
         for digest in (self.ids[2], self.ids[1]):
-            self.point(digest)
+            (self.target.root / "active.json").write_text(
+                json.dumps({"manifest_sha256": digest}) + "\n"
+            )
             self.assertEqual(
                 self.target.verify_installed(PINS)["manifest_sha256"], digest
             )
+
+    def test_ambiguous_and_oversized_pointers_deny_before_recovery(self) -> None:
+        def interrupt(point: str) -> None:
+            self.assertEqual(point, "after_install_intent")
+            raise RuntimeError("synthetic interruption")
+
+        with self.assertRaisesRegex(RuntimeError, "synthetic interruption"):
+            self.target.install(
+                b.VERSION,
+                bundle("pending upgrade"),
+                component_commits=PINS,
+                expected_generation=3,
+                checkpoint=interrupt,
+            )
+        digest = self.ids[2]
+        pointer = self.target.root / "active.json"
+        for payload in (
+            f'{{"manifest_sha256":"{self.ids[0]}","manifest_sha256":"{digest}"}}'.encode(),
+            b" " * 512 + b.canonical({"manifest_sha256": digest}),
+            b'{"manifest_sha256":7}',
+            b'[["manifest_sha256","' + digest.encode() + b'"]]',
+        ):
+            with self.subTest(size=len(payload)):
+                pointer.write_bytes(payload)
+                before = self.snapshot()
+                checkpoint = Mock()
+                with self.assertRaisesRegex(ValueError, "active pointer"):
+                    self.target.recover(
+                        b.VERSION, component_commits=PINS, checkpoint=checkpoint
+                    )
+                checkpoint.assert_not_called()
+                self.assertEqual(self.snapshot(), before)
+
+    def test_dangling_symlink_is_not_absence(self) -> None:
+        pointer = self.target.root / "active.json"
+        pointer.unlink()
+        self.assertIsNone(self.target._observed())
+        pointer.symlink_to(self.target.root / "missing-pointer")
+        with self.assertRaisesRegex(ValueError, "active pointer"):
+            self.target._observed()
+        self.assertTrue(pointer.is_symlink())
+
+    def test_fifo_pointer_is_rejected_without_waiting_for_a_writer(self) -> None:
+        pointer = self.target.root / "active.json"
+        pointer.unlink()
+        os.mkfifo(pointer)
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-O" if sys.flags.optimize else "-B",
+                "-c",
+                """
+import sys
+from unittest.mock import patch
+from tools import development_bundle as b
+with patch.object(b, "actual_target", return_value="linux/arm64"):
+    target = b.DisposableTarget(sys.argv[1])
+try:
+    target._observed()
+except ValueError as error:
+    if "active pointer" not in str(error):
+        raise
+else:
+    raise AssertionError("FIFO pointer accepted")
+finally:
+    target.close()
+""",
+                str(self.target.root),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=8,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertTrue(pointer.is_fifo())
 
     def test_null_and_unrecognized_pointers_rejected(self) -> None:
         self.target.db.execute("UPDATE state SET active=NULL,pending=NULL")
