@@ -79,6 +79,9 @@ class MetadataPointerTests(unittest.TestCase):
         self.assertEqual(self.snapshot(), before)
 
     def test_reopen_rejects_missing_or_weakened_immutable_schema(self) -> None:
+        import subprocess
+        import sys
+
         root = self.target.root
         b.DisposableTarget(root).close()
         trigger = self.target.db.execute(
