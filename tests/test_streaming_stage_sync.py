@@ -1,14 +1,14 @@
 import hashlib
 import json
 import os
-from contextlib import closing
-from pathlib import Path
 import sqlite3
 import stat
 import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import closing
+from pathlib import Path
 from typing import Any
 from unittest.mock import patch
 
