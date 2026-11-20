@@ -1,7 +1,11 @@
 """Real scratch files/SQLite; synthetic target admission, not ARM64 qualification."""
 
 import json
+import os
+import subprocess
+import sys
 import unittest
+from pathlib import Path
 from typing import Any, cast
 from unittest.mock import Mock, patch
 
@@ -133,8 +137,7 @@ class MetadataPointerTests(unittest.TestCase):
                 expected,
             )
 
-    def test_rollback_predecessor_valid_after_recorded_intent(self) -> None:
-        original = self.target.recover
+    def interrupt_rollback(self) -> None:
         with patch.object(
             self.target, "recover", side_effect=RuntimeError("after intent")
         ):
@@ -142,13 +145,99 @@ class MetadataPointerTests(unittest.TestCase):
                 self.target.rollback(
                     b.VERSION, component_commits=PINS, expected_generation=3
                 )
+
+    def test_rollback_predecessor_valid_after_recorded_intent(self) -> None:
+        self.interrupt_rollback()
+        path = self.target.root / "versions" / self.ids[1] / "payload.txt"
+        os.utime(path, ns=(1_000_000_000, 1_000_000_000))
+        previous_mtime = path.stat().st_mtime_ns
         self.assertEqual(self.target.state()["pending"], self.ids[1])
         self.assertEqual(
             self.target.verify_installed(PINS)["manifest_sha256"], self.ids[2]
         )
         self.assertEqual(
-            original(b.VERSION, component_commits=PINS)["manifest_sha256"], self.ids[1]
+            self.target.recover(b.VERSION, component_commits=PINS)["manifest_sha256"],
+            self.ids[1],
         )
+        self.assertEqual(path.stat().st_mtime_ns, previous_mtime)
+
+    def test_interrupted_rollback_does_not_recreate_verified_predecessor(self) -> None:
+        self.interrupt_rollback()
+        predecessor = self.target.root / "versions" / self.ids[1] / "payload.txt"
+        predecessor.unlink()
+        before = self.snapshot()
+        probe = """
+import sys
+from contextlib import closing
+from unittest.mock import patch
+
+from tools import development_bundle as bundle
+from test_metadata_pointer import PINS
+
+with patch.object(bundle, "actual_target", return_value="linux/arm64"):
+    with closing(bundle.DisposableTarget(sys.argv[1])) as target:
+        try:
+            target.recover(bundle.VERSION, component_commits=PINS)
+        except ValueError as error:
+            if str(error) != "installed byte mismatch":
+                raise
+            sys.exit(73)
+"""
+        root = Path(__file__).resolve().parents[1]
+        process = subprocess.run(
+            [
+                sys.executable,
+                *(["-" + "O" * sys.flags.optimize] if sys.flags.optimize else []),
+                "-B",
+                "-c",
+                probe,
+                str(self.target.root),
+            ],
+            cwd=root,
+            capture_output=True,
+            text=True,
+            timeout=15,
+            env={**os.environ, "PYTHONPATH": os.pathsep.join((".", "tests"))},
+        )
+        self.assertEqual(process.returncode, 73, process.stderr)
+        self.assertEqual(self.snapshot(), before)
+        self.assertFalse(predecessor.exists())
+        self.assertEqual(self.target.state()["active"], self.ids[2])
+        self.assertEqual(self.target.state()["pending"], self.ids[1])
+
+    def test_wrong_archive_identity_cannot_change_the_pointer(self) -> None:
+        self.interrupt_rollback()
+        db = self.target.db
+        trigger = db.execute(
+            "SELECT sql FROM sqlite_master WHERE name='bundle_immutable'"
+        ).fetchone()[0]
+        db.execute("DROP TRIGGER bundle_immutable")
+        db.execute(
+            "UPDATE installs SET bundle=? WHERE digest=?",
+            (bundle("first"), self.ids[1]),
+        )
+        db.execute(trigger)
+        before = self.snapshot()
+        checkpoint = Mock()
+        with self.assertRaisesRegex(ValueError, "pending manifest identity mismatch"):
+            self.target.recover(
+                b.VERSION, component_commits=PINS, checkpoint=checkpoint
+            )
+        checkpoint.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
+
+    def test_symlinked_predecessor_rejected_before_rollback_intent(self) -> None:
+        versions = self.target.root / "versions"
+        predecessor = versions / self.ids[1]
+        moved = versions / "retained-synthetic-files"
+        predecessor.rename(moved)
+        predecessor.symlink_to(moved, target_is_directory=True)
+        before = self.snapshot()
+        with self.assertRaisesRegex(ValueError, "rollback bytes unavailable"):
+            self.target.rollback(
+                b.VERSION, component_commits=PINS, expected_generation=3
+            )
+        self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == "__main__":
