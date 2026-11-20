@@ -32,11 +32,11 @@ UNSUPPORTED = [
 ]
 
 
-def sha(data):
+def sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
-def canonical(value):
+def canonical(value: object) -> bytes:
     return json.dumps(
         value, sort_keys=True, separators=(",", ":"), allow_nan=False
     ).encode()
@@ -47,7 +47,7 @@ def check(condition: object, message: str) -> None:
         raise ValueError(message)
 
 
-def path_name(name):
+def path_name(name: str) -> str:
     path = PurePosixPath(name)
     check(
         type(name) is str
@@ -64,15 +64,15 @@ def path_name(name):
 
 
 def build(
-    api_version,
-    composition_commit,
-    component_commits,
-    files,
+    api_version: str,
+    composition_commit: str,
+    component_commits: dict[str, str],
+    files: dict[str, bytes],
     *,
-    dependencies,
-    toolchains,
-    licenses,
-):
+    dependencies: dict[str, str],
+    toolchains: dict[str, str],
+    licenses: dict[str, str],
+) -> bytes:
     check(api_version == VERSION, "unsupported bundle interface")
     check(
         re.fullmatch(r"[0-9a-f]{40}", composition_commit) is not None,
@@ -146,7 +146,9 @@ def build(
     )
 
 
-def verify(bundle, *, component_commits, target="linux/arm64"):
+def verify(
+    bundle: bytes, *, component_commits: dict[str, str], target: str = "linux/arm64"
+) -> tuple[dict[str, Any], dict[str, bytes], str]:
     check(type(bundle) is bytes and len(bundle) <= 2 * MAX_BYTES, "unbounded bundle")
     value = json.loads(bundle)
     check(
@@ -217,17 +219,20 @@ def _metadata_tree_readback(
     This read-only helper does not install, construct a target, or qualify its
     architecture. The installer must first verify the bundle for actual_target().
     """
+    check(expected == digest, "installed manifest identity mismatch")
+    check(
+        folder.is_dir()
+        and not folder.is_symlink()
+        and not folder.parent.is_symlink()
+        and not any(p.is_symlink() for p in folder.rglob("*")),
+        "installed byte mismatch",
+    )
     actual = {
         str(p.relative_to(folder)): sha(p.read_bytes())
         for p in folder.rglob("*")
         if p.is_file()
     }
-    check(
-        not any(p.is_symlink() for p in folder.rglob("*"))
-        and actual == manifest["files"],
-        "installed byte mismatch",
-    )
-    check(expected == digest, "installed manifest identity mismatch")
+    check(actual == manifest["files"], "installed byte mismatch")
     return {
         "manifest_sha256": digest,
         "files": len(files),
@@ -454,18 +459,23 @@ class DisposableTarget:
                 result = self.verify_installed(component_commits)
             else:
                 row = self.db.execute(
-                    "SELECT bundle,predecessor FROM installs WHERE digest=?", (pending,)
+                    "SELECT bundle,state FROM installs WHERE digest=?", (pending,)
                 ).fetchone()
+                check(row is not None, "pending installation unavailable")
                 manifest, files, digest = verify(
                     row[0], component_commits=component_commits, target=actual_target()
                 )
+                check(digest == pending, "pending manifest identity mismatch")
                 observed = self._observed()
                 check(
                     observed in (state["active"], pending),
                     "conflicting installation readback",
                 )
-                if observed != pending:
-                    folder = self.root / "versions" / digest
+                folder = self.root / "versions" / digest
+                if row[1] == "verified":
+                    # A retained predecessor is readback-only, even after a crash.
+                    _metadata_tree_readback(folder, manifest, files, digest, pending)
+                elif observed != pending:
                     folder.mkdir(parents=True, exist_ok=True)
                     for index, (name, data) in enumerate(sorted(files.items())):
                         path = folder / name
@@ -489,6 +499,7 @@ class DisposableTarget:
                         == manifest["files"],
                         "staging byte mismatch",
                     )
+                if observed != pending:
                     temporary = self.root / "active.next"
                     with temporary.open("wb") as stream:
                         stream.write(canonical({"manifest_sha256": digest}))
@@ -532,19 +543,14 @@ class DisposableTarget:
                 (predecessor,),
             ).fetchone()
             check(stored is not None, "predecessor unavailable")
-            manifest, files, _ = verify(
+            manifest, files, digest = verify(
                 stored[0], component_commits=component_commits, target=actual_target()
             )
             folder = self.root / "versions" / predecessor
-            check(
-                {
-                    str(p.relative_to(folder)): sha(p.read_bytes())
-                    for p in folder.rglob("*")
-                    if p.is_file()
-                }
-                == manifest["files"],
-                "rollback bytes unavailable",
-            )
+            try:
+                _metadata_tree_readback(folder, manifest, files, digest, predecessor)
+            except ValueError as error:
+                raise ValueError("rollback bytes unavailable") from error
             # Journal first; recovery can finish the exact pointer change after interruption.
             self.db.execute(
                 "UPDATE state SET generation=generation+1,pending=? WHERE id=1",
