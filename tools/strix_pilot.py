@@ -454,6 +454,19 @@ ffprobe -version >/dev/null
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
+# AppArmor matches the executable's resolved path. Keep its installation
+# outside the runner's writable directories and retain the workflow's cache path.
+sudo -n install -d -o root -g root -m 0755 /opt/runspindle-demo
+sudo -n mv browsers /opt/runspindle-demo/browsers
+sudo -n chown -R root:root /opt/runspindle-demo/browsers
+ln -s /opt/runspindle-demo/browsers browsers
+sudo -n tee /etc/apparmor.d/runspindle-demo-chromium >/dev/null <<'APPARMOR'
+abi <abi/4.0>,
+profile runspindle-demo-chromium /opt/runspindle-demo/browsers/chromium_headless_shell-1194/chrome-linux/headless_shell flags=(unconfined) {{
+  userns,
+}}
+APPARMOR
+sudo -n apparmor_parser --replace /etc/apparmor.d/runspindle-demo-chromium
     support_sha = subprocess.check_output(
         ["git", "-C", str(SUPPORT), "rev-parse", "HEAD"], text=True,
     ).strip()
