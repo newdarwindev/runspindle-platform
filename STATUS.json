@@ -15,7 +15,7 @@
   "legacy_archival": "not_started",
   "live_acceptance": "not_run",
   "offline_finish": {
-    "Langfuse": "blocked_source_notice_closure",
+    "Langfuse": "blocked_pinned_linux_minio_build_and_service_dependency_qualification",
     "evidence": "docs/offline-finish-tests.json",
     "independent_review": "user_waived_no_review_performed",
     "streaming_bundle": "locally_tested_disposable_Linux_arm64"
