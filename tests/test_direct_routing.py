@@ -1,4 +1,6 @@
 import unittest
+from pathlib import Path
+from threading import Event
 from unittest.mock import Mock, patch
 
 from tools import strix_pilot
@@ -69,6 +71,26 @@ class DirectRoutingTest(unittest.TestCase):
         self.assertEqual(jobs, [self.job])
         with self.assertRaisesRegex(RoutingError, "approved revision"):
             direct_routing.queued_jobs(read, self.route, 300, actor_ids={42})
+
+    def test_watch_after_restart_resumes_after_last_reconciled_repository(self):
+        path = Path("routes.json")
+        routes = [self.route, Route(LAB, 101, 201, "c" * 40)]
+        stopping = Event()
+
+        def observe(approved, cursor):
+            self.assertEqual(approved, routes)
+            self.assertEqual(cursor, 1)
+            stopping.set()
+            return None
+
+        with (
+            patch.object(strix_pilot, "run"),
+            patch.object(strix_pilot, "load_routes", return_value=routes),
+            patch.object(strix_pilot, "last_direct_repository", return_value=self.route.repository),
+            patch.object(strix_pilot, "next_queued_job", side_effect=observe) as next_job,
+        ):
+            self.assertEqual(strix_pilot.watch(path, stopping), 0)
+            next_job.assert_called_once()
 
     def test_pending_run_admits_only_materialized_queued_jobs(self):
         self.run["status"] = "pending"
