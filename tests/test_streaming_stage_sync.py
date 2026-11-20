@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 from contextlib import closing
@@ -8,18 +9,24 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from typing import Any
 from unittest.mock import patch
 
-from tools import streaming_bundle as b
-from tools.development_bundle import COMPONENTS, actual_target, sha
+from tools import development_bundle, streaming_bundle
 
-PINS = {name: sha(name.encode())[:40] for name in COMPONENTS}
+development: Any = development_bundle
+b: Any = streaming_bundle
+
+PINS = {
+    name: hashlib.sha256(name.encode()).hexdigest()[:40]
+    for name in development.COMPONENTS
+}
 
 
 SMOKE = "bin/libexec/smoke"
 
 
-def build_bundle(root, label):
+def build_bundle(root: Path, label: str) -> tuple[Path, dict[str, Any], str]:
     source = root / (label + ".source")
     source.write_bytes(label.encode())
     notice = root / "notice"
@@ -30,9 +37,9 @@ def build_bundle(root, label):
         "a" * 40,
         PINS,
         {SMOKE: source, "notices/test": notice},
-        dependencies={"test": "sha256:" + sha(b"dependency")},
-        toolchains={"test": "sha256:" + sha(b"toolchain")},
-        licenses={"notices/test": b.file_sha(notice)},
+        dependencies={"test": "sha256:" + hashlib.sha256(b"dependency").hexdigest()},
+        toolchains={"test": "sha256:" + hashlib.sha256(b"toolchain").hexdigest()},
+        licenses={"notices/test": hashlib.sha256(notice.read_bytes()).hexdigest()},
         entrypoints={"smoke": SMOKE},
         executable=[SMOKE],
     )
@@ -40,21 +47,21 @@ def build_bundle(root, label):
 
 
 class ExtractionSyncTests(unittest.TestCase):
-    def test_extraction_syncs_final_modes_then_directories_bottom_up(self):
+    def test_extraction_syncs_final_modes_then_directories_bottom_up(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             archive, _, _ = build_bundle(root, "first")
             destination = root / "extract"
             destination.mkdir()
-            calls = []
+            calls: list[tuple[int, int]] = []
             fsync = os.fsync
 
-            def observe(descriptor):
+            def observe(descriptor: int) -> None:
                 info = os.fstat(descriptor)
                 calls.append((info.st_ino, stat.S_IMODE(info.st_mode)))
                 fsync(descriptor)
 
-            with patch.object(b.os, "fsync", side_effect=observe):
+            with patch.object(os, "fsync", side_effect=observe):
                 b.inspect(archive, component_commits=PINS, destination=destination)
             synced = {
                 inode: (position, mode) for position, (inode, mode) in enumerate(calls)
@@ -72,16 +79,18 @@ class ExtractionSyncTests(unittest.TestCase):
 
 
 @unittest.skipUnless(
-    actual_target() == "linux/arm64", "disposable Linux arm64 required"
+    development.actual_target() == "linux/arm64", "disposable Linux arm64 required"
 )
 class InstalledStageSyncTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.target = b.StreamingTarget.create()
         self.addCleanup(self.target.cleanup)
 
-    def invoke(self, code, *args, expected=0):
+    def invoke(
+        self, code: str, *args: str | Path, expected: int = 0
+    ) -> subprocess.CompletedProcess[str]:
         script = (
             "import os,sys,json; sys.path.insert(0,'tests'); from test_streaming_stage_sync import PINS; from tools.streaming_bundle import StreamingTarget,VERSION; t=StreamingTarget(sys.argv[1]); "
             + code
@@ -95,7 +104,9 @@ class InstalledStageSyncTests(unittest.TestCase):
         self.assertEqual(completed.returncode, expected, completed.stderr)
         return completed
 
-    def test_directory_sync_failure_preserves_active_and_fresh_process_recovers(self):
+    def test_directory_sync_failure_preserves_active_and_fresh_process_recovers(
+        self,
+    ) -> None:
         first, _, first_digest = build_bundle(Path(self.tmp.name), "first")
         self.target.install(
             b.VERSION, first, component_commits=PINS, expected_generation=0
@@ -141,5 +152,8 @@ t.install(VERSION, sys.argv[2], component_commits=PINS, expected_generation=1)
                 (2, second_digest, None),
             )
         smoke = version / SMOKE
-        self.assertEqual(sha(smoke.read_bytes()), manifest["files"][SMOKE]["sha256"])
+        self.assertEqual(
+            hashlib.sha256(smoke.read_bytes()).hexdigest(),
+            manifest["files"][SMOKE]["sha256"],
+        )
         self.assertEqual(stat.S_IMODE(smoke.stat().st_mode), 0o755)

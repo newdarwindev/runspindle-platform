@@ -362,7 +362,7 @@ def verify_tree(folder, manifest):
     check(actual == manifest["files"], "installed byte or mode mismatch")
 
 
-def _sync_dir(path):
+def _sync_dir(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(descriptor)
