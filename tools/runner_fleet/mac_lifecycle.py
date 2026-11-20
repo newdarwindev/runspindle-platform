@@ -22,6 +22,7 @@ from .state import State
 _ID = re.compile(r"[0-9a-f]{32}\Z")
 _SHA = re.compile(r"[0-9a-f]{64}\Z")
 _BACKENDS = {"macbook-linux-arm64": "lima", "macbook-macos-arm64": "tart"}
+_LIMA_EMPTY = "No instance found. Run `limactl create` to create an instance."
 
 
 # Configurations and persisted/API records follow the existing dynamic JSON contract.
@@ -145,33 +146,56 @@ class MacCommands:
     dedicated account and prove the real network and credential context.
     """
 
-    def run(self, argv: list[str]) -> str:
-        result = subprocess.run(
-            argv, text=True, capture_output=True, timeout=30, check=False
-        )
+    def run(self, argv: list[str]) -> subprocess.CompletedProcess[str]:
+        try:
+            result = subprocess.run(
+                argv, text=True, capture_output=True, timeout=30, check=False
+            )
+        except (OSError, subprocess.TimeoutExpired, UnicodeError):
+            raise MacBlocked(f"{Path(argv[0]).name} observation unavailable") from None
         if result.returncode:
             raise MacBlocked(
                 f"{Path(argv[0]).name} operation failed ({result.returncode})"
             )
-        return result.stdout
+        return result
 
     def names(self, backend: str) -> dict[str, bool]:
         if backend == "tart":
-            rows = json.loads(self.run(["tart", "list", "--format", "json"]))
+            result = self.run(["tart", "list", "--source", "local", "--format", "json"])
+            if result.stderr.strip():
+                raise MacBlocked("Tart inventory incomplete")
+            rows = _inventory_json(result.stdout)
             if not isinstance(rows, list):
                 raise MacBlocked("Tart inventory malformed")
-            return {
-                row["Name"]: bool(row["Running"])
-                for row in rows
-                if row.get("Source") == "local"
-            }
+            return _guest_names(rows, backend)
         if backend == "lima":
-            output = self.run(["limactl", "list", "--format", "json"])
-            # Lima emits empty stdout when no instance exists on this host.
-            rows = json.loads(output) if output.strip() else []
-            if not isinstance(rows, list):
-                raise MacBlocked("Lima inventory malformed")
-            return {row["Name"]: row["Status"] == "Running" for row in rows}
+            result = self.run(
+                [
+                    "limactl",
+                    "--log-level",
+                    "warn",
+                    "--log-format",
+                    "json",
+                    "list",
+                    "--format",
+                    "json",
+                ]
+            )
+            if result.stderr.strip():
+                message = _inventory_json(result.stderr)
+                if (
+                    result.stdout.strip()
+                    or not isinstance(message, dict)
+                    or message.get("level") != "warning"
+                    or message.get("msg") != _LIMA_EMPTY
+                ):
+                    raise MacBlocked("Lima inventory incomplete")
+            rows = [
+                _inventory_json(line)
+                for line in result.stdout.split("\n")
+                if line.strip()
+            ]
+            return _guest_names(rows, backend)
         raise MacBlocked("Unknown Mac backend")
 
     def stop(self, backend: str, name: str) -> None:
@@ -189,6 +213,54 @@ class MacCommands:
             self.run(["limactl", "delete", name])
         else:
             raise MacBlocked("Unknown Mac backend")
+
+
+def _unique_inventory_fields(pairs: list[tuple[str, Any]]) -> Record:
+    fields = dict(pairs)
+    if len(fields) != len(pairs):
+        raise MacBlocked("Guest inventory contains duplicate fields")
+    return fields
+
+
+def _inventory_json(text: str) -> Any:
+    try:
+        return json.loads(text, object_pairs_hook=_unique_inventory_fields)
+    except (ValueError, RecursionError):
+        raise MacBlocked("Guest inventory malformed") from None
+
+
+def _guest_names(rows: list[Any], backend: str) -> dict[str, bool]:
+    observed: dict[str, bool] = {}
+    for row in rows:
+        if not isinstance(row, dict):
+            raise MacBlocked("Guest inventory row malformed")
+        if backend == "lima":
+            name, status = row.get("name"), row.get("status")
+            if status not in ("Running", "Stopped"):
+                raise MacBlocked("Lima guest state unavailable")
+            running = status == "Running"
+        else:
+            name, status, running = (
+                row.get("Name"),
+                row.get("State"),
+                row.get("Running"),
+            )
+            if (
+                row.get("Source") != "local"
+                or type(running) is not bool
+                or status not in ("running", "stopped", "suspended")
+                or running != (status == "running")
+            ):
+                raise MacBlocked("Tart guest state unavailable")
+        if (
+            not isinstance(name, str)
+            or not name
+            or not name.isprintable()
+            or name in observed
+        ):
+            raise MacBlocked("Guest inventory identity ambiguous")
+        observed[name] = running
+    return observed
 
 
 class MacBackend:
