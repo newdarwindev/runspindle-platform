@@ -255,12 +255,14 @@ def inspect(bundle, *, component_commits, target="linux/arm64", destination=None
                 check(h.hexdigest() == item["sha256"], "bundle checksum mismatch")
                 if output:
                     output.flush()
-                    os.fsync(output.fileno())
                     os.fchmod(output.fileno(), item["mode"])
+                    os.fsync(output.fileno())
             finally:
                 if output:
                     output.close()
         check(not stream.read(1), "unexpected trailing bundle payload")
+    if root is not None:
+        _sync_extracted_directories(root)
     return manifest, digest
 
 
@@ -382,6 +384,13 @@ def _sync_dir(path):
         os.fsync(descriptor)
     finally:
         os.close(descriptor)
+
+
+def _sync_extracted_directories(path: Path) -> None:
+    for child in path.iterdir():
+        if stat.S_ISDIR(child.lstat().st_mode):
+            _sync_extracted_directories(child)
+    _sync_dir(path)
 
 
 class StreamingTarget(DisposableTarget):
