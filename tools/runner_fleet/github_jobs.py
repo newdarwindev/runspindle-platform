@@ -6,9 +6,10 @@ from urllib.parse import urlencode
 
 PUBLIC_REPOSITORIES = frozenset(
     f"newdarwindev/runspindle{suffix}" for suffix in
-    ("", "-platform", "-core", "-host", "-browser", "-tether", "-refinery", "-console", "-lab")
+    ("", "-platform", "-core", "-host", "-browser", "-tether", "-refinery", "-console", "-lab", "-demo-suite")
 )
 LAB = "newdarwindev/runspindle-lab"
+DEMO = "newdarwindev/runspindle-demo-suite"
 NEXT = "newdarwindev/runspindle-next-experiment"
 DIRECT_REPOSITORIES = PUBLIC_REPOSITORIES | {NEXT}
 PARTITIONS = ("quality", "component", "rust", "mutation_1", "mutation_2", "mutation_3", "mutation_4")
@@ -73,6 +74,8 @@ class Route:
 
     @property
     def workflow_path(self):
+        if self.repository == DEMO:
+            return ".github/workflows/fixtures.yml"
         return ".github/workflows/local-ci.yml" if self.repository == LAB else SOURCE_PATH
 
     @property

@@ -16,7 +16,7 @@ import time
 
 from tools.runner_fleet.direct_routing import enroll_job, queued_jobs
 from tools.runner_fleet.ephemeral_registration import LABEL, configure, start_listener
-from tools.runner_fleet.github_jobs import DIRECT_REPOSITORIES, Route, RoutingError, inventory
+from tools.runner_fleet.github_jobs import DEMO, DIRECT_REPOSITORIES, Route, RoutingError, inventory
 
 SUPPORT = Path("/home/standard/Projects/runspindle-platform-automatic-fleet-20261118")
 CANARY = "newdarwindev/runspindle-strix-ci-canary"
@@ -27,6 +27,13 @@ HOST_OTEL_LOCK_BLOB = "888f92eb0a3ed872d4f56ac50568339b7939c92e"
 HOST_OTEL_VENDOR = Path("/srv/builds/cargo/host-otel-locked-888f92e/host-otel-vendor.tar.gz")
 HOST_OTEL_VENDOR_SHA256 = "36fb36c76a4d3ed482c41fc0c3222df25aa68c2cbcfef23dc81c88b9debacc10"
 BUILDS_UUID = "9ed2ab68-7a7c-4cf4-8c28-594742bcae0d"
+DEMO_INPUTS = Path("/srv/builds/runspindle-quality/demo-guest-20261120")
+DEMO_VERIFY_DIGESTS = {
+    "noble-demo-media.tar": "f44877a21d3ae640c9b2acb8953e90b3e8c279f3688a36fd5cbec7e2d56e3fdb",
+    "npm-playwright-1.56.1.tar.gz": "ea36ca31468469077ffd123b8da410a622eace55fedf60e5f594b843f65b6f8f",
+    "playwright-chromium-1194.tar.gz": "969e2b67e4ef830f7cc5af47e16d2a77a026cfea339da9b27a861b68874cd6e0",
+}
+DEMO_GH_SHA256 = "540cffbf2146101a713284bc06427efbf370a40756c0356e3a0f8d1e038e7122"
 TETHER = "newdarwindev/runspindle-tether"
 TETHER_VISUAL_WORKFLOWS = {
     "d2c9ff0ed291789922d2627ed43a9b03e68bc812",
@@ -398,6 +405,50 @@ EOF
     print("Verified offline Host Cargo inputs staged", flush=True)
 
 
+def stage_demo(machine, resource, job):
+    """Provision only the verified inputs for an admitted Demo Suite job."""
+    if job["name"] == "publish-presentation":
+        source = Path("/usr/bin/gh")
+        with source.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != DEMO_GH_SHA256:
+                raise RuntimeError("Demo Suite release CLI changed")
+        machine.copy_prepared(resource, source, "demo/gh")
+        machine.ssh(resource, f"""set -eu
+cd /home/runner/preparation/demo
+printf '%s  gh\\n' '{DEMO_GH_SHA256}' | sha256sum -c --status
+sudo -n install -m 0755 gh /usr/local/bin/gh
+""")
+        return
+
+    mounted = subprocess.check_output(
+        ["findmnt", "-rn", "-M", "/srv/builds", "-o", "UUID"], text=True,
+    )
+    if mounted.strip() != BUILDS_UUID:
+        raise RuntimeError("Demo Suite inputs require the build volume")
+    for filename, expected in DEMO_VERIFY_DIGESTS.items():
+        source = DEMO_INPUTS / filename
+        with source.open("rb") as stream:
+            if hashlib.file_digest(stream, "sha256").hexdigest() != expected:
+                raise RuntimeError("Demo Suite preparation input changed")
+        machine.copy_prepared(resource, source, f"demo/{filename}")
+    checksums = "\n".join(f"{digest}  {name}" for name, digest in DEMO_VERIFY_DIGESTS.items())
+    machine.ssh(resource, f"""set -eu
+cd /home/runner/preparation/demo
+sha256sum -c --status <<'SHA256SUMS'
+{checksums}
+SHA256SUMS
+mkdir debs browsers npm
+tar -xf noble-demo-media.tar -C debs
+tar -xzf playwright-chromium-1194.tar.gz -C browsers
+tar -xzf npm-playwright-1.56.1.tar.gz -C npm
+sudo -n env DEBIAN_FRONTEND=noninteractive dpkg --skip-same-version --force-confold --unpack debs/*.deb
+sudo -n env DEBIAN_FRONTEND=noninteractive dpkg --configure -a
+ffmpeg -version >/dev/null
+ffprobe -version >/dev/null
+""", timeout=180)
+    print("Verified offline Demo Suite inputs staged", flush=True)
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -530,6 +581,8 @@ def run(args):
                     or job["name"].startswith("validation / mutation_")
                 ):
                     stage_host_cargo(machine, resource, job)
+                if repo == DEMO:
+                    stage_demo(machine, resource, job)
 
                 def verify_guest():
                     active = installed_helper("observe", slot)

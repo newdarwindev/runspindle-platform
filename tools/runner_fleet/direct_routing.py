@@ -1,6 +1,6 @@
 """Admission checks for a repository's disposable Strix runner."""
 
-from .github_jobs import LAB, NEXT, PARTITIONS, RoutingError, inventory, observe_push, positive
+from .github_jobs import DEMO, LAB, NEXT, PARTITIONS, RoutingError, inventory, observe_push, positive
 from .ephemeral_registration import configure, start_listener
 
 JOB_NAMES = {
@@ -25,6 +25,8 @@ def queued_jobs(api, route, run_id, *, actor_ids):
         expected_names = JOB_NAMES | CORE_SHARD_NAMES
     elif route.repository in {LAB, NEXT}:
         expected_names = {"verify": "verify"}
+    elif route.repository == DEMO:
+        expected_names = {"verify": "verify", "publish-presentation": "publish-presentation"}
     names = {job.get("name") for job in jobs}
     if len(names) != len(jobs) or not names.issubset(expected_names):
         raise RoutingError("unexpected direct job inventory")
