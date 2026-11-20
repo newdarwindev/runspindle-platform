@@ -54,6 +54,14 @@ PORTABLE_TESTS = {
     "stream_installed_modes_ignored": "test_portable_install_invariants.PortableInstallInvariants.test_tree_corruption_and_modes",
     "wrong_installed_attribution": "test_portable_install_invariants.PortableInstallInvariants.test_attribution_readback",
 }
+INSTALLED_ONLY_CASES = {
+    "stream_predecessor_pins_ignored": (
+        "streaming_bundle.py",
+        "self._archive(predecessor, predecessor_pins)",
+        "self._archive(predecessor, component_commits)",
+        "test_streaming_bundle.InstalledStreamingTests.test_cross_release_rollback_recovers_from_corrupt_install_in_fresh_processes",
+    ),
+}
 
 
 def run_test(root: Path, test: str) -> subprocess.CompletedProcess[str]:
@@ -137,9 +145,10 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         return 2
+    cases = CASES if args.suite == "portable" else CASES | INSTALLED_ONLY_CASES
     results = [
         {"mutation": name, "detected": run_case(name, case, args.suite)}
-        for name, case in CASES.items()
+        for name, case in cases.items()
     ]
     if args.suite == "portable":
         print(
@@ -152,7 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
     else:
-        # Preserve the existing default report and installed test selection.
+        # Keep the installed report distinct from the portable evidence.
         print(
             json.dumps(
                 {"evidence_class": "component_mutation_detection", "results": results}
