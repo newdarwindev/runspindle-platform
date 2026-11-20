@@ -26,6 +26,9 @@ A pinned Linux arm64 Temporal development lane now has real readiness, killed-se
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).
 
 [Bounded maintained-workflow qualification](maintained-offline.md) covers separate synthetic standard-Collector diagnostics and disposable development-metadata installation. Langfuse/native/full-product gates remain blocked.
+
+[Pinned Langfuse image metadata](langfuse-image-inventory.md) records the verified Linux arm64 manifests, configurations and layer descriptors for the five registry images.
+
 ## Engineering direction
 
 [Desired intent](desired-intent.md) connects this component to scoped access,
