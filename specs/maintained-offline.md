@@ -76,6 +76,12 @@ replacement, then recover in another process. There is no production target,
 host enrollment, daemon, service manager, backup or cloud adapter. Power loss,
 hostile filesystem races and concurrent external modification are unqualified.
 
+A retained historical digest cannot acquire a new installation intent. It stays
+reachable only through verified predecessor rollback. Repeating the exact
+active bundle checks the installed bytes and returns the current receipt
+without allocating another generation or rewriting the pointer. A damaged
+active copy returns an error and leaves its files and journal unchanged.
+
 Run `python3.13 tools/collector_privacy_check.py --report local/privacy.json` and
 `python3.13 tools/collector_recovery_check.py --report local/queue.json` after
 explicit preparation of the immutable images in the dependency/toolchain

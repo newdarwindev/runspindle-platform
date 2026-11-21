@@ -186,6 +186,51 @@ class InstalledTests(unittest.TestCase):
         self.assertEqual(self.target.verify_installed(PINS), second)
         self.assertIsNone(self.target.state()["pending"])
 
+    def test_fresh_process_install_replay_preserves_predecessor(self) -> None:
+        receipts = [
+            self.target.install(
+                VERSION,
+                bundle(label),
+                component_commits=PINS,
+                expected_generation=generation,
+            )
+            for generation, label in enumerate((b"first", b"second", b"third"))
+        ]
+        before = self.target.state()
+        script = """
+import sys
+sys.path.insert(0, 'tests')
+from test_development_bundle import PINS, VERSION, DisposableTarget, bundle
+target = DisposableTarget(sys.argv[1])
+try:
+    for label in (b'first', b'second'):
+        try:
+            target.install(VERSION, bundle(label), component_commits=PINS, expected_generation=3)
+        except ValueError as error:
+            if str(error) != 'retained installation requires rollback':
+                raise
+        else:
+            raise RuntimeError('historical install replay changed the active release')
+    target.install(VERSION, bundle(b'third'), component_commits=PINS, expected_generation=3)
+finally:
+    target.close()
+"""
+        result = subprocess.run(
+            [sys.executable, "-c", script, str(self.target.root)],
+            timeout=20,
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(self.target.state(), before)
+        self.assertEqual(self.target.verify_installed(PINS), receipts[2])
+        self.assertEqual(
+            self.target.rollback(
+                VERSION, component_commits=PINS, expected_generation=3
+            ),
+            receipts[1],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
