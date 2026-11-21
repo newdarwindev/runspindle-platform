@@ -296,11 +296,12 @@ def valid_etag(value):
     return isinstance(value, str) and re.fullmatch(r'(?:W/)?"[0-9a-zA-Z._-]{1,128}"', value)
 
 
-def observe_result(repo, run_id, job, runner, name, seconds):
+def observe_result(repo, run_id, job, runner, name, seconds, *, report_status=None):
     path = f"/repos/{repo}/actions/jobs/{job['id']}"
     started = time.monotonic()
     deadline = started + seconds
     etag = None
+    last_status = None
     while time.monotonic() < deadline:
         try:
             row, received_etag = api("GET", path, include=True, etag=etag)
@@ -324,15 +325,27 @@ def observe_result(repo, run_id, job, runner, name, seconds):
             "head_sha": job["head_sha"], "labels": job["labels"], "name": job["name"],
         }.items()):
             raise RuntimeError("GitHub job identity changed")
-        if row.get("status") == "completed":
+        status = row.get("status")
+        if status == "completed":
             if row.get("runner_id") != runner or row.get("runner_name") != name:
                 raise RuntimeError("terminal job was assigned to a different runner")
+            if report_status is not None:
+                report_status(status, row.get("conclusion"))
             return {key: row.get(key) for key in (
                 "id", "run_id", "head_sha", "runner_id", "runner_name",
                 "conclusion", "started_at", "completed_at", "html_url",
             )}
         if row.get("runner_id") not in (None, 0, runner):
             raise RuntimeError("job was assigned to a different runner")
+        if (
+            report_status is not None and status != last_status
+            and (status == "queued" or (
+                status == "in_progress"
+                and row.get("runner_id") == runner and row.get("runner_name") == name
+            ))
+        ):
+            report_status(status, None)
+            last_status = status
         # Check short jobs more often when GitHub supports conditional reads.
         interval = 5 if etag and time.monotonic() - started < 90 else 15
         time.sleep(min(interval, max(0, deadline - time.monotonic())))
@@ -1300,7 +1313,7 @@ def run(args):
                 def record_runner(value):
                     nonlocal runner_id
                     runner_id = value
-                    state.update(resource, "registered", runner_id=value)
+                    state.update(resource, "registered", runner_id=value, job_observation={})
                     print(f"GitHub runner {value} registered for job {args.job_id} in slot {slot}", flush=True)
 
                 def ssh(script):
@@ -1329,8 +1342,17 @@ def run(args):
                     )
                 elapsed("enrollment")
                 admission.close()
+                def report_status(status, conclusion):
+                    try:
+                        state.update(resource, "registered", job_observation={
+                            "status": status, "conclusion": conclusion, "observed_at": time.time(),
+                        })
+                    except sqlite3.Error:
+                        print("Unable to record dashboard job status", flush=True)
+
                 report["job"] = observe_result(
                     repo, args.run_id, job, runner_id, name, 210 if repo == CANARY else 960,
+                    report_status=report_status,
                 )
                 elapsed("job_observation")
                 print(json.dumps(report["job"]), flush=True)
