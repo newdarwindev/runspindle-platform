@@ -175,6 +175,7 @@ class QueueTests(unittest.TestCase):
         m.state.update(
             r,
             phase,
+            runner_id=1,
             candidate_campaign="campaign",
             candidate_sha256=plan()["image_sha256"],
         )
@@ -260,6 +261,8 @@ class QueueTests(unittest.TestCase):
                 "run_attempt": 2,
                 "head_sha": "f" * 40,
                 "runner_name": r["runner_name"],
+                "repository": r["repository"],
+                "runner_id": 1,
                 "source_trusted": False,
                 "status": "in_progress",
             }
@@ -271,6 +274,25 @@ class QueueTests(unittest.TestCase):
             self.assertEqual(saved["details"]["claimed_job"]["id"], 999)
             report = receipts(m.state, "campaign")[0]
             self.assertEqual(report["actual_claim"]["head_sha"], "f" * 40)
+
+    def test_assignment_with_wrong_runner_identity_fences_candidate(self) -> None:
+        with tempfile.TemporaryDirectory() as d:
+            manager = self.manager(d)
+            resource = self.resource(manager)
+            claim = {
+                "id": 999,
+                "repository": resource["repository"],
+                "runner_name": resource["runner_name"],
+                "runner_id": 42,
+                "source_trusted": True,
+            }
+            with patch("tools.runner_fleet.manager.helper") as helper:
+                manager.advance(resource, [claim])
+            helper.assert_not_called()
+            saved = manager.state.active()[0]
+            self.assertTrue(manager.stopping)
+            self.assertEqual(saved["phase"], "uncertain")
+            self.assertNotIn("claimed_job", saved["details"])
 
     def test_inventory_preserves_trust_for_admission_but_observes_other_runs(
         self,
@@ -380,6 +402,8 @@ class QueueTests(unittest.TestCase):
                     "head_sha": "a" * 40,
                     "source_trusted": True,
                     "runner_name": r["runner_name"],
+                    "repository": r["repository"],
+                    "runner_id": 1,
                     "status": "in_progress",
                     "started_at": "2000-01-01T00:00:00Z",
                 }
@@ -437,6 +461,9 @@ class QueueTests(unittest.TestCase):
                 claimed_job={
                     "id": 999,
                     "run_id": 88,
+                    "repository": r["repository"],
+                    "runner_name": r["runner_name"],
+                    "runner_id": 1,
                     "run_attempt": 2,
                     "head_sha": "a" * 40,
                     "status": "in_progress",
@@ -468,6 +495,9 @@ class QueueTests(unittest.TestCase):
                 claimed_job={
                     "id": 999,
                     "run_id": 88,
+                    "repository": r["repository"],
+                    "runner_name": r["runner_name"],
+                    "runner_id": 1,
                     "run_attempt": 2,
                     "head_sha": "a" * 40,
                     "status": "in_progress",

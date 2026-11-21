@@ -110,6 +110,12 @@ ID are persisted independently from the triggering queue reservation. Runners
 register repository-scoped, ephemeral, with updates disabled against the pinned
 image. Every runner executes at most one job.
 
+Job claims must match the resource's repository, runner name and retained numeric
+registration ID. A same-name claim from another repository is unrelated. A
+contradictory or malformed runner ID keeps the slot uncertain. Before handling
+completion after restart, the manager checks the retained claim against the same
+binding before collecting logs or cleaning up the finished job.
+
 Boot is bounded to 240 seconds, registration to 90 seconds, waiting for a claim
 to 180 seconds, job execution to 900 seconds and guest lifetime to 1500 seconds.
 Cleanup operations have bounded subprocess deadlines. Timeouts record failed

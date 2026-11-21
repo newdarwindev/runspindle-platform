@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import signal
@@ -231,7 +232,13 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "manager.py"
             path.write_text("old controller")
-            with patch.object(probe, "DEPLOYED_MANAGER", path):
+            expected = hashlib.sha256(
+                Path(probe.__file__).with_name("manager.py").read_bytes()
+            ).hexdigest()
+            with (
+                patch.object(probe, "DEPLOYED_MANAGER", path),
+                patch.object(probe, "EXPECTED_MANAGER_SHA256", expected),
+            ):
                 with self.assertRaises(ValueError):
                     probe.verify_deployed_guard()
                 path.write_bytes(
