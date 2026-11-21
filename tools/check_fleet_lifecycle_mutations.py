@@ -18,6 +18,10 @@ MUTATIONS = {
         'occupied = {r["slot"] for r in resources}',
         "occupied = set()",
     ),
+    "active_guest_without_pid": (
+        'elif (phase == "active" and pid == 0) or (',
+        "elif (",
+    ),
 }
 
 
