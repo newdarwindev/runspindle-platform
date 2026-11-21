@@ -995,6 +995,17 @@ def parallel_capacity(directory, storage_identity):
     }
 
 
+def admission_budget(directory, occupied_slots, capacity, storage_identity):
+    """Measure headroom for the next guest under the admission lock."""
+    try:
+        if occupied_slots:
+            return parallel_capacity(directory, storage_identity)
+        return capacity(directory)
+    except (OSError, ValueError, KeyError, IndexError, TypeError, StopIteration,
+            subprocess.SubprocessError) as error:
+        raise CapacityUnavailable("runner capacity is temporarily unavailable") from error
+
+
 def run(args):
     if socket.gethostname().split(".")[0] != "kali-strix1":
         raise RuntimeError("expected kali-strix1")
@@ -1121,18 +1132,14 @@ def run(args):
             slot = next((choice for choice in eligible_slots if choice not in used_slots), None)
             if slot is None:
                 raise CapacityUnavailable("no eligible guest slot is available")
-            try:
-                budget = (
-                    parallel_capacity(STATE_DIRECTORY, storage_identity) if batch
-                    else capacity(STATE_DIRECTORY)
-                )
-            except (ValueError, subprocess.SubprocessError) as error:
-                raise CapacityUnavailable("runner capacity is temporarily unavailable") from error
+            budget = admission_budget(STATE_DIRECTORY, used_slots, capacity, storage_identity)
             disk_free = min(budget["pool_free"], budget["filesystem_free"]) if batch else 0
             extra_disk = CORE_SEED_DISK_EXTRA * sum(
                 peer["details"].get("guest_disk_gib") == CORE_SEED_DISK_GIB for peer in active
             )
-            if batch:
+            # Keep the existing disk threshold for the optional larger Core seed.
+            disk_reserve = PARALLEL_DISK_RESERVE
+            if used_slots:
                 disk_reserve = reserve_guest_disk(used_slots, disk_free, extra_disk)
             core_seed = (
                 compact_enabled and batch

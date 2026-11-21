@@ -1,5 +1,6 @@
 import hashlib
 import fcntl
+import json
 import time
 import unittest
 from pathlib import Path
@@ -743,6 +744,53 @@ class DirectRoutingTest(unittest.TestCase):
                     root / "routes.json", [self.route], first, Event(),
                 )
             self.assertEqual(statuses, {0, 1})
+
+    def test_admission_uses_single_slot_policy_only_without_an_owner(self):
+        gib = 1024**3
+        directory = Path("/synthetic/state")
+        for free_gib, occupied, admitted in (
+            (79, set(), True),
+            (82, set(), True),
+            (78, set(), False),
+            (81, {0}, False),
+            (81, {2}, False),
+            (82, {0}, True),
+        ):
+            with self.subTest(free_gib=free_gib, occupied=occupied):
+                def single_slot_capacity(path):
+                    self.assertEqual(path, directory)
+                    if free_gib < 79:
+                        raise ValueError("insufficient one-slot headroom")
+                    return {"pool_free": free_gib * gib}
+
+                single = Mock(side_effect=single_slot_capacity)
+                storage = Mock(return_value={"state": 90 * gib})
+                lvs = Mock(stdout=json.dumps({"report": [{"lv": [{
+                    "lv_size": free_gib * gib, "data_percent": "0", "metadata_percent": "4",
+                }]}]}))
+                with (
+                    patch.object(strix_pilot.subprocess, "run", return_value=lvs),
+                    patch.object(Path, "read_text", return_value="MemAvailable: 25000000 kB"),
+                ):
+                    if admitted:
+                        budget = strix_pilot.admission_budget(directory, occupied, single, storage)
+                        self.assertEqual(budget["pool_free"], free_gib * gib)
+                    else:
+                        with self.assertRaises(strix_pilot.CapacityUnavailable):
+                            strix_pilot.admission_budget(directory, occupied, single, storage)
+                self.assertEqual(single.call_count, int(not occupied))
+                self.assertEqual(storage.call_count, int(bool(occupied)))
+
+    def test_missing_capacity_measurements_defer_at_either_occupancy(self):
+        directory = Path("/synthetic/state")
+        for occupied in (set(), {0}):
+            with self.subTest(occupied=occupied):
+                single = Mock(side_effect=OSError("measurement unavailable"))
+                storage = Mock(return_value={"state": 90 * 1024**3})
+                with patch.object(strix_pilot.subprocess, "run", return_value=Mock(stdout="{}")):
+                    with self.assertRaises(strix_pilot.CapacityUnavailable):
+                        strix_pilot.admission_budget(directory, occupied, single, storage)
+                self.assertEqual(single.call_count, int(not occupied))
 
     def test_light_slot_uses_two_guest_reserve_until_admitting_a_third(self):
         reserve = strix_pilot.reserve_guest_disk
