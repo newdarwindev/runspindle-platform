@@ -14,6 +14,7 @@ import re
 import shutil
 import stat
 import struct
+from bisect import bisect_left
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from typing import Any, BinaryIO, Callable, Iterator
@@ -71,9 +72,10 @@ def _copy_exact(source: BinaryIO, output: BinaryIO, expected: int) -> None:
     _check(not source.read(1), "source grew during acquisition")
 
 
-def file_sha(path):
+def file_sha(path: Path | str, *, limit: int | None = None) -> str:
     h = hashlib.sha256()
-    with _regular_source(path, MAX_BYTES) as (source, size):
+    bound = MAX_BYTES if limit is None else min(MAX_BYTES, limit)
+    with _regular_source(path, bound) as (source, size):
         remaining = size
         while remaining:
             block = source.read(min(CHUNK, remaining))
@@ -330,27 +332,48 @@ def build(
     return manifest, sha(data)
 
 
-def verify_tree(folder, manifest):
+def verify_tree(folder: Path | str, manifest: dict[str, Any]) -> None:
     folder = Path(folder)
-    check(folder.is_dir() and not folder.is_symlink(), "installed version unavailable")
-    check(not any(p.is_symlink() for p in folder.rglob("*")), "unsafe installed link")
-    _check(
-        all(
-            stat.S_ISREG(p.lstat().st_mode) or stat.S_ISDIR(p.lstat().st_mode)
-            for p in folder.rglob("*")
-        ),
-        "unsafe installed special file",
-    )
-    actual = {
-        str(p.relative_to(folder)): {
-            "sha256": file_sha(p),
-            "size": p.stat().st_size,
-            "mode": p.stat().st_mode & 0o7777,
-        }
-        for p in folder.rglob("*")
-        if p.is_file()
-    }
-    check(actual == manifest["files"], "installed byte or mode mismatch")
+    _check(folder.is_dir() and not folder.is_symlink(), "installed version unavailable")
+    files = manifest["files"]
+    names = sorted(files)
+    pending = [(folder, "")]
+    observed = 0
+    # Reject unexpected branches without descending into or hashing them.
+    # Sorted names establish directory prefixes without materializing the trie.
+    while pending:
+        directory, prefix = pending.pop()
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                name = prefix + entry.name
+                info = entry.stat(follow_symlinks=False)
+                mode = info.st_mode
+                _check(not stat.S_ISLNK(mode), "unsafe installed link")
+                if stat.S_ISDIR(mode):
+                    child = name + "/"
+                    index = bisect_left(names, child)
+                    _check(
+                        index < len(names) and names[index].startswith(child),
+                        "unexpected installed directory",
+                    )
+                    pending.append((Path(entry.path), child))
+                    continue
+                _check(stat.S_ISREG(mode), "unsafe installed special file")
+                _check(info.st_nlink == 1, "unsafe installed link")
+                expected = files.get(name)
+                _check(expected is not None, "unexpected installed file")
+                _check(
+                    info.st_size == expected["size"]
+                    and stat.S_IMODE(mode) == expected["mode"],
+                    "installed byte or mode mismatch",
+                )
+                observed += 1
+    _check(observed == len(files), "installed byte or mode mismatch")
+    for name, expected in files.items():
+        _check(
+            file_sha(folder / name, limit=expected["size"]) == expected["sha256"],
+            "installed byte or mode mismatch",
+        )
 
 
 def _sync_dir(path):
