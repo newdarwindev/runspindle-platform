@@ -156,8 +156,8 @@ CORE_SEED_ARCHIVE_SHA = "9cb7f555b10c2ddb5779eb887e1c178746ca5027c7cbc0afdfa2897
 
 LAYER_SUPPORT = Path("/home/standard/Projects/runspindle-platform-strix-layer-retention-20261120")
 LAYER_SUPPORT_SHA = "d19c429abf78605be5aed1c07cf8877befdbf126"
-COMPACT_SUPPORT = Path("/home/standard/Projects/runspindle-platform-strix-boot-digest-20261120")
-COMPACT_SUPPORT_SHA = "8c7dfc4f9cb258a46de8fd17c9dd1b543707c8b3"
+COMPACT_SUPPORT = Path("/home/standard/Projects/runspindle-platform-strix-retention-digest-reuse-20261120")
+COMPACT_SUPPORT_SHA = "55c70f12821db0c6fe061e6fbcc976d98a2fe104"
 CANARY_HEAD = "722739a047f320d029180b0322a3f2429e14924a"
 CANARY_BRANCH = "ci/strix-canary-exclusive-label-20261119"
 CANARY_WORKFLOW = 423463385
@@ -355,7 +355,7 @@ def network_read(*args):
     return subprocess.run(("sudo", "-n", *args), capture_output=True, text=True, check=True, timeout=8)
 
 
-def retain_stopped(state, resource, slot_path, backend, inspect_disk):
+def retain_stopped(state, resource, slot_path, backend, inspect_disk, *, verified_base=None):
     """Preserve the original overlay, serial log, and seed on their own mount."""
     archive = backend.ROOT / "retained" / resource["id"] / "slot-originals"
     archive.mkdir(mode=0o700, exist_ok=True)
@@ -378,11 +378,11 @@ def retain_stopped(state, resource, slot_path, backend, inspect_disk):
         ):
             raise RuntimeError("unsafe stopped guest file")
         if name == "disk.qcow2":
+            options = {"verified_base": verified_base} if verified_base is not None else {}
             if resource.get("details", {}).get("image_sha256") == DEMO_LAYER_SHA:
                 binding = inspect_disk(source, DEMO_LAYER, DEMO_LAYER_SHA, backend.execute,
-                                       ancestor=(IMAGE, IMAGE_SHA))
+                                       ancestor=(IMAGE, IMAGE_SHA), **options)
             else:
-                options = {}
                 if resource.get("details", {}).get("guest_disk_gib") == CORE_SEED_DISK_GIB:
                     options["overlay_limit"] = CORE_SEED_DISK_GIB * GIB
                 binding = inspect_disk(source, IMAGE, IMAGE_SHA, backend.execute, **options)
@@ -1352,6 +1352,7 @@ def run(args):
                         if current.get("resource_id") == identity:
                             retain_stopped(
                                 state, resource, machine.slot(resource), backend, inspect_linked_disk,
+                                verified_base=getattr(args, "verified_image", None) if compact_enabled else None,
                             )
                         elif any(machine.slot(resource).iterdir()):
                             raise RuntimeError("unowned files remain in slot")
