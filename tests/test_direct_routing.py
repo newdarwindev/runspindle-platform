@@ -789,6 +789,39 @@ class DirectRoutingTest(unittest.TestCase):
             self.assertTrue(alternative_started.exists())
             self.assertEqual(statuses, {0, strix_pilot.CAPACITY_DEFERRED})
 
+    def test_light_peer_gets_one_compact_alternative_after_ram_deferral(self):
+        light = Route(strix_pilot.NEXT, 101, 201, strix_pilot.LIGHT_WORKFLOWS[strix_pilot.NEXT])
+        first, deferred, compact = (0, 700, 900), (1, 701, 901), (1, 701, 902)
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            compact_started = root / "compact-started"
+
+            def worker(args):
+                if args.job_id == deferred[2]:
+                    raise strix_pilot.InsufficientMemory("test headroom")
+                if args.job_id == compact[2]:
+                    compact_started.touch()
+                    return 0
+                deadline = time.monotonic() + 8
+                while not compact_started.exists() and time.monotonic() < deadline:
+                    time.sleep(0.02)
+                return 0 if compact_started.exists() else 2
+
+            with (
+                patch.object(strix_pilot, "FLEET_STATE", root),
+                patch.object(strix_pilot, "light_slot_enabled", return_value=True),
+                patch.object(strix_pilot, "enabled_flag", return_value=True),
+                patch.object(strix_pilot, "run", side_effect=worker),
+                patch.object(strix_pilot, "next_queued_job", side_effect=[deferred, compact, None]) as queue,
+            ):
+                statuses, _ = strix_pilot.run_parallel(
+                    root / "routes.json", [light, self.route], first, Event(),
+                )
+
+        self.assertEqual(statuses, {0, strix_pilot.CAPACITY_DEFERRED})
+        self.assertTrue(queue.call_args_list[1].kwargs["compact_only"])
+        self.assertIn(deferred, queue.call_args_list[1].kwargs["exclude"])
+
     def test_capacity_deferred_job_is_retried_while_peer_remains_live(self):
         with TemporaryDirectory() as directory:
             root = Path(directory)

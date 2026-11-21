@@ -1752,7 +1752,8 @@ def run_parallel(routes_path, routes, first, stopping, *, verified_image=None):
                             now = time.monotonic()
                             if (
                                 code == MEMORY_DEFERRED and capacity == 3
-                                and len(workers) == 2 and not memory_alternative_tried
+                                and not memory_alternative_tried
+                                and (len(workers) == 2 or (len(workers) == 1 and light_workers))
                             ):
                                 # A different workload can fit the same free slot.
                                 # Try one alternative before returning to normal polling.
