@@ -46,6 +46,33 @@ def trusted(run, repository):
     )
 
 
+def require_runner_claim(resource: dict[str, Any], job: dict[str, Any]) -> None:
+    runner_id = resource["details"].get("runner_id")
+    if (
+        type(runner_id) is not int
+        or runner_id <= 0
+        or type(job.get("runner_id")) is not int
+        or job["runner_id"] != runner_id
+        or job.get("runner_name") != resource["runner_name"]
+        or job.get("repository") != resource["repository"]
+    ):
+        raise RuntimeError("Runner claim does not match retained registration")
+
+
+def runner_claims(
+    resource: dict[str, Any], jobs: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    claims = [
+        job
+        for job in jobs
+        if job.get("repository") == resource["repository"]
+        and job.get("runner_name") == resource["runner_name"]
+    ]
+    for claim in claims:
+        require_runner_claim(resource, claim)
+    return claims
+
+
 class Manager:
     def __init__(self, cfg, directory, backend=None):
         self.cfg = cfg
@@ -215,6 +242,7 @@ class Manager:
         self.state.set("reconciled_at", time.time())
 
     def cancel_claim(self, resource: dict[str, Any], job: dict[str, Any]) -> Any:
+        require_runner_claim(resource, job)
         return cast(Callable[..., Any], gh)(
             f"repos/{self.cfg['owner']}/{resource['repository']}/actions/runs/{job['run_id']}/cancel",
             "POST",
@@ -251,7 +279,11 @@ class Manager:
                         ),
                         None,
                     )
-                    if not registration:
+                    if (
+                        not registration
+                        or type(registration.get("id")) is not int
+                        or registration["id"] <= 0
+                    ):
                         raise RuntimeError("Registration not observed")
                     self.state.update(
                         resource,
@@ -261,6 +293,7 @@ class Manager:
                     )
             elif resource["phase"] == "finishing":
                 job = resource["details"]["claimed_job"]
+                require_runner_claim(resource, job)
                 exited = self.backend.runner_exited(resource)
                 if exited or now > resource["details"]["finish_deadline"]:
                     try:
@@ -284,9 +317,7 @@ class Manager:
                         + ("" if exited else "; runner exit deadline exceeded"),
                     )
             elif resource["phase"] == "running":
-                claimed = [
-                    j for j in jobs if j.get("runner_name") == resource["runner_name"]
-                ]
+                claimed = runner_claims(resource, jobs)
                 if len(claimed) > 1:
                     raise RuntimeError("Ephemeral runner claimed multiple jobs")
                 if claimed:
