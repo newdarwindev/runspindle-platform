@@ -32,8 +32,8 @@ CASES = {
     ),
     "stream_installed_modes_ignored": (
         "streaming_bundle.py",
-        'check(actual == manifest["files"], "installed byte or mode mismatch")',
-        'check(True, "installed byte or mode mismatch")',
+        'and stat.S_IMODE(mode) == expected["mode"]',
+        "and True",
         "test_streaming_bundle.InstalledStreamingTests.test_installed_corruption_and_unsafe_links",
     ),
     "fabricated_persistence": (
