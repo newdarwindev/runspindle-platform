@@ -42,7 +42,7 @@ def canonical(value):
     ).encode()
 
 
-def check(condition, message):
+def check(condition: object, message: str) -> None:
     if not condition:
         raise ValueError(message)
 
@@ -373,28 +373,34 @@ class DisposableTarget:
                 state["generation"] == expected_generation and state["pending"] is None,
                 "installation ownership conflict",
             )
+            prior = self.db.execute(
+                "SELECT bundle,state FROM installs WHERE digest=?", (digest,)
+            ).fetchone()
+            if prior is not None:
+                check(prior[0] == bundle, "immutable install bundle conflict")
+                check(
+                    digest == state["active"], "retained installation requires rollback"
+                )
+                check(prior[1] == "verified", "active installation is unverified")
+                result = self.verify_installed(component_commits)
+                self.db.commit()
+                return result
             check(
                 self.db.execute("SELECT count(*) FROM installs").fetchone()[0] < 1000,
                 "installation journal capacity",
             )
-            prior = self.db.execute(
-                "SELECT bundle FROM installs WHERE digest=?", (digest,)
-            ).fetchone()
             check(
                 self.db.execute(
                     "SELECT coalesce(sum(length(bundle)),0) FROM installs"
                 ).fetchone()[0]
-                + (0 if prior else len(bundle))
+                + len(bundle)
                 <= 67108864,
                 "bundle storage capacity",
             )
-            if prior:
-                check(prior[0] == bundle, "immutable install bundle conflict")
-            else:
-                self.db.execute(
-                    "INSERT INTO installs VALUES(?,?,?,'intent')",
-                    (digest, bundle, state["active"]),
-                )
+            self.db.execute(
+                "INSERT INTO installs VALUES(?,?,?,'intent')",
+                (digest, bundle, state["active"]),
+            )
             self.db.execute(
                 "UPDATE state SET generation=generation+1,pending=? WHERE id=1",
                 (digest,),
