@@ -298,7 +298,8 @@ def valid_etag(value):
 
 def observe_result(repo, run_id, job, runner, name, seconds):
     path = f"/repos/{repo}/actions/jobs/{job['id']}"
-    deadline = time.monotonic() + seconds
+    started = time.monotonic()
+    deadline = started + seconds
     etag = None
     while time.monotonic() < deadline:
         try:
@@ -314,7 +315,8 @@ def observe_result(repo, run_id, job, runner, name, seconds):
             time.sleep(5)
             continue
         if row is None:
-            time.sleep(min(15, max(0, deadline - time.monotonic())))
+            interval = 5 if time.monotonic() - started < 90 else 15
+            time.sleep(min(interval, max(0, deadline - time.monotonic())))
             continue
         etag = received_etag if valid_etag(received_etag) else None
         if any(row.get(key) != value for key, value in {
@@ -331,8 +333,9 @@ def observe_result(repo, run_id, job, runner, name, seconds):
             )}
         if row.get("runner_id") not in (None, 0, runner):
             raise RuntimeError("job was assigned to a different runner")
-        # Leave REST capacity for discovery and runner cleanup.
-        time.sleep(min(15, max(0, deadline - time.monotonic())))
+        # Check short jobs more often when GitHub supports conditional reads.
+        interval = 5 if etag and time.monotonic() - started < 90 else 15
+        time.sleep(min(interval, max(0, deadline - time.monotonic())))
     raise TimeoutError("GitHub job observation timed out")
 
 

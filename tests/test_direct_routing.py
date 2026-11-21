@@ -123,11 +123,12 @@ class DirectRoutingTest(unittest.TestCase):
             patch.object(strix_pilot, "api", side_effect=[
                 (running, '"job-v1"'), (None, None), (terminal, '"job-v2"'),
             ]) as github,
-            patch.object(strix_pilot.time, "sleep"),
+            patch.object(strix_pilot.time, "sleep") as pause,
         ):
             result = strix_pilot.observe_result(self.route.repository, 300, self.job, 52, "runner", 120)
         self.assertEqual(result["conclusion"], "success")
         self.assertEqual([call.kwargs["etag"] for call in github.call_args_list], [None, '"job-v1"', '"job-v1"'])
+        self.assertEqual([call.args[0] for call in pause.call_args_list], [5, 5])
 
     def test_listener_stays_offline_if_identity_cannot_be_saved(self):
         record = Mock(side_effect=OSError("ledger unavailable"))
