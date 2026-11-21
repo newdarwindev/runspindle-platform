@@ -863,6 +863,13 @@ def compact_profile_job(repository, job, workflow_blob):
         )
     if repository == CONSOLE and workflow_blob == "dcd890f5ade00e4c9a77cf511d6cedac38303597":
         head = job.get("head_sha")
+        # Both commits share a Git tree. Component, quality, and mutation_1
+        # passed on the first commit with peaks of at most 2013 MiB.
+        if head in {
+            "f64720f147b3e494349bf6962755218b461fa801",
+            "57e3ef3ee4c72e4e6f543d40f906df6f167e05e2",
+        }:
+            return name in {"validation / component", "validation / quality", "validation / mutation_1"}
         if head == "fd2a24dd38fd7d01646b710ae263ddc9e3ef42a1":
             return name in {"validation / component", "validation / quality"}
         if head in {"d076276e632b0d76aedb21717bc4d02899a410f4", "487a16b2e1bf4d5305bcee551a0aec995d1b3159"}:
