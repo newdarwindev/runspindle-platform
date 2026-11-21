@@ -8,7 +8,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from typing import Any, Callable, cast
+from unittest.mock import patch
 
+from tools.runner_fleet import service
 from tools.runner_fleet.lifecycle import capacity_snapshot, image_matrix
 from tools.runner_fleet.model import config
 from tools.runner_fleet.state import State
@@ -37,7 +39,7 @@ class LifecycleTests(unittest.TestCase):
         return capacity_snapshot(
             state,
             guests if guests is not None else self.guests(),
-            {"ActiveState": "active"},
+            {"ActiveState": "active", "MainPID": "12"},
             now,
         )
 
@@ -85,7 +87,7 @@ class LifecycleTests(unittest.TestCase):
 from tools.runner_fleet.state import State
 from tools.runner_fleet.lifecycle import capacity_snapshot
 s=State(sys.argv[1])
-print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot':i,'ActiveState':'inactive','MainPID':'0'} for i in range(2)],{'ActiveState':'active'},101)}))
+print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot':i,'ActiveState':'inactive','MainPID':'0'} for i in range(2)],{'ActiveState':'active','MainPID':'12'},101)}))
 """
             import os
 
@@ -120,7 +122,7 @@ print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot
             state.update(resource, "running")
             guests = self.guests()
             self.assertEqual(self.snapshot(state)["status"], "blocked")
-            guests[0].update(ActiveState="active", resource_id="foreign")
+            guests[0].update(ActiveState="active", resource_id="foreign", MainPID="98")
             self.assertEqual(self.snapshot(state, guests)["available_slots"], 0)
             guests[0]["resource_id"] = resource["id"]
             self.assertEqual(self.snapshot(state, guests)["available_slots"], 1)
@@ -134,9 +136,9 @@ print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot
                 [guests[0], {"slot": 1}],
             ):
                 self.assertEqual(
-                    capacity_snapshot(state, observed, {"ActiveState": "active"}, 101)[
-                        "available_slots"
-                    ],
+                    capacity_snapshot(
+                        state, observed, {"ActiveState": "active", "MainPID": "12"}, 101
+                    )["available_slots"],
                     0,
                 )
             guests[1]["MainPID"] = "99"
@@ -144,6 +146,62 @@ print(json.dumps({'resources':s.active(), 'capacity':capacity_snapshot(s,[{'slot
             guests[1]["MainPID"] = "0"
             state.set("error", "inventory unavailable")
             self.assertEqual(self.snapshot(state, guests)["available_slots"], 0)
+
+    def test_owned_active_guest_requires_live_process_observation(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.state(directory)
+            resource = state.reserve({"repository": "synthetic", "id": 1})
+            state.update(resource, "running")
+            guests = self.guests()
+            guests[0].update(ActiveState="active", resource_id=resource["id"])
+            for invalid in ("0", "01", " 98", "9_8", True, 98.5, None):
+                with self.subTest(pid=invalid):
+                    guests[0]["MainPID"] = invalid
+                    self.assertEqual(self.snapshot(state, guests)["available_slots"], 0)
+            guests[0]["MainPID"] = "98"
+            self.assertEqual(self.snapshot(state, guests)["available_slots"], 1)
+
+    def test_manager_status_requires_live_successful_process_observation(self) -> None:
+        observed = cast(Callable[[str], dict[str, Any]], service.observed)
+        with tempfile.TemporaryDirectory() as directory:
+            state = self.state(directory)
+            state.db.close()
+            for code, pid, slots in (
+                (0, "12", 2),
+                (0, "0", 0),
+                (1, "12", 0),
+                (None, "12", 0),
+            ):
+                with (
+                    self.subTest(exit_code=code, pid=pid),
+                    patch("tools.runner_fleet.service.time.time", return_value=101),
+                    patch.object(
+                        service,
+                        "execute",
+                        side_effect=subprocess.TimeoutExpired("systemctl", 60)
+                        if code is None
+                        else None,
+                        return_value=subprocess.CompletedProcess(
+                            ["systemctl", "show"],
+                            code or 0,
+                            f"ActiveState=active\nMainPID={pid}\n",
+                            "",
+                        ),
+                    ) as command,
+                    patch.object(
+                        service, "helper", side_effect=self.guests()
+                    ) as guests,
+                ):
+                    result = observed(directory)
+                    self.assertEqual(result["capacity"]["available_slots"], slots)
+                    self.assertEqual(result["status"], "passed" if slots else "blocked")
+                    self.assertEqual(
+                        command.call_args.args[0][:2], ["systemctl", "show"]
+                    )
+                    self.assertEqual(
+                        [call.args for call in guests.call_args_list],
+                        [("observe", 0), ("observe", 1)],
+                    )
 
     def test_exact_image_and_recipe_are_identity_only_and_mutations_block(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
