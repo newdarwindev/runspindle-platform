@@ -1,5 +1,7 @@
 """Admission checks for a repository's disposable Strix runner."""
 
+import re
+
 from .github_jobs import DEMO, LAB, NEXT, PARTITIONS, RoutingError, inventory, observe_push, positive
 from .ephemeral_registration import configure, start_listener
 
@@ -9,7 +11,7 @@ JOB_NAMES = {
 CORE_SHARD_NAMES = {f"validation / auth_{index}": f"auth_{index}" for index in range(1, 6)}
 
 
-def queued_jobs(api, route, run_id, *, actor_ids):
+def queued_jobs(api, route, run_id, *, actor_ids, confirm_attempt=True):
     """Return exact queued jobs with dedicated labels for an approved push."""
     if not actor_ids or any(not positive(actor_id) for actor_id in actor_ids):
         raise RoutingError("direct routing requires approved GitHub actor IDs")
@@ -33,19 +35,30 @@ def queued_jobs(api, route, run_id, *, actor_ids):
     queued = []
     for job in jobs:
         suffix = expected_names[job["name"]]
-        label = f"runspindle-strix-direct-{run_id}-{attempt.attempt}-{suffix}"
+        prefix = f"runspindle-strix-direct-{run_id}-"
+        label = f"{prefix}{attempt.attempt}-{suffix}"
         if (
             job.get("run_id") != run_id
             or job.get("run_attempt") != attempt.attempt
             or job.get("head_sha") != attempt.sha
-            or job.get("labels") != [label]
         ):
             raise RoutingError("unexpected direct job identity or label")
+        labels = job.get("labels")
+        if labels != [label]:
+            previous = None
+            if (job.get("status") == "completed" and isinstance(labels, list)
+                    and len(labels) == 1 and isinstance(labels[0], str)):
+                previous = re.fullmatch(
+                    rf"{re.escape(prefix)}([1-9][0-9]{{0,8}})-{re.escape(suffix)}", labels[0],
+                )
+            if previous is None or int(previous[1]) >= attempt.attempt:
+                raise RoutingError("unexpected direct job identity or label")
+            continue
         if job.get("status") == "queued":
             if job.get("runner_id") not in (None, 0) or job.get("runner_name"):
                 raise RoutingError("queued direct job already has a runner")
             queued.append(job)
-    if observe_push(api, route, run_id, **options) != attempt:
+    if confirm_attempt and observe_push(api, route, run_id, **options) != attempt:
         raise RoutingError("run attempt changed during job admission")
     return attempt, queued
 
