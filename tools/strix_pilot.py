@@ -1495,7 +1495,9 @@ def queue_listing_api(method, path, *, field="workflow_runs"):
     return revalidate_discovery(method, path, project)
 
 
-def next_queued_job(routes, cursor, exclude=(), *, light_only=False, active_single_runs=()):
+def next_queued_job(
+    routes, cursor, exclude=(), *, light_only=False, active_single_runs=(), compact_only=False,
+):
     """Poll one rotation, preserving FIFO order within each repository."""
     # Leave capacity for terminal observations and runner removal.
     quota_reset_delay = github_rate_limit_delay(0, reserve=320)
@@ -1538,6 +1540,11 @@ def next_queued_job(routes, cursor, exclude=(), *, light_only=False, active_sing
                 job["id"] for job in jobs
                 if (index, run_id, job["id"]) not in exclude
                 and (not light_only or light_profile_job(route, job, attempt.workflow_blob))
+                and (
+                    not compact_only
+                    or light_profile_job(route, job, attempt.workflow_blob)
+                    or compact_profile_job(route.repository, job, attempt.workflow_blob)
+                )
             ]
             return (index, run_id, min(eligible)) if eligible else None
 
@@ -1559,6 +1566,10 @@ def next_queued_job(routes, cursor, exclude=(), *, light_only=False, active_sing
                 } - run_ids
             ordered = (run_id for run_id in sorted(candidates) if (index, run_id) not in active_single_runs)
             if not light_only:
+                # Limit an opportunistic compact scan to the first few runs
+                # in each listing. Normal discovery still scans the full queue.
+                if compact_only:
+                    ordered = islice(ordered, 3)
                 for run_id in ordered:
                     if candidate := candidate_for_run(run_id):
                         return candidate
@@ -1743,6 +1754,8 @@ def run_parallel(routes_path, routes, first, stopping, *, verified_image=None):
                     excluded = attempted
                     if deferred_memory_candidate is not None:
                         excluded = attempted | {deferred_memory_candidate}
+                        if not light_only and enabled_flag(COMPACT_PROFILE_FLAG):
+                            queue_options["compact_only"] = True
                         deferred_memory_candidate = None
                     candidate = next_queued_job(
                         routes, (cursor + 1) % len(routes), exclude=excluded, **queue_options,

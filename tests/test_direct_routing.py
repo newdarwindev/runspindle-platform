@@ -343,6 +343,19 @@ class DirectRoutingTest(unittest.TestCase):
             )
 
 
+    def test_compact_fallback_skips_an_earlier_standard_job(self):
+        jobs = [{"id": 900, "name": "standard"}, {"id": 901, "name": "compact"}]
+        with (
+            patch.object(strix_pilot, "inventory", return_value=[{"id": 700}]),
+            patch.object(strix_pilot, "queued_jobs", return_value=(self.attempt, jobs)),
+            patch.object(strix_pilot, "compact_profile_job",
+                         side_effect=lambda _repo, job, _blob: job["name"] == "compact"),
+        ):
+            self.assertEqual(strix_pilot.next_queued_job([self.route], 0), (0, 700, 900))
+            self.assertEqual(
+                strix_pilot.next_queued_job([self.route], 0, compact_only=True), (0, 700, 901),
+            )
+
     def test_parallel_light_scan_uses_oldest_candidate_despite_response_order(self):
         route = Route(strix_pilot.NEXT, 101, 201, strix_pilot.LIGHT_WORKFLOWS[strix_pilot.NEXT])
         newer_evaluated = Event()
