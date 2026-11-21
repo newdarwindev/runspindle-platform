@@ -1,10 +1,10 @@
 """Independent failure injection at VM/registration/cleanup boundaries."""
 
-from pathlib import Path
-import tempfile
 import sys
+import tempfile
 import time
 import unittest
+from pathlib import Path
 from typing import Any, Callable, cast
 from unittest.mock import Mock, patch
 
@@ -62,6 +62,130 @@ class ManagerTests(unittest.TestCase):
             ):
                 manager.cleanup(manager.state.active()[0], "reconcile")
             self.assertEqual(manager.state.active(), [])
+
+    def test_cleanup_after_reopen_keeps_unbound_registrations(self) -> None:
+        for retained_id, observed_id, name_matches in (
+            (41, 42, True),
+            (None, 42, True),
+            (41, 41, False),
+        ):
+            with (
+                self.subTest(
+                    retained_id=retained_id,
+                    observed_id=observed_id,
+                    name_matches=name_matches,
+                ),
+                tempfile.TemporaryDirectory() as directory,
+            ):
+                manager, _ = self.manager(directory)
+                resource = self.resource(manager, "cleaning", runner_id=retained_id)
+                reopened, backend = self.manager(directory)
+                observed = {
+                    "name": resource["runner_name"]
+                    if name_matches
+                    else "replacement-name",
+                    "id": observed_id,
+                }
+                with (
+                    patch.object(reopened, "registrations", return_value=[observed]),
+                    patch("runner_fleet.manager.gh") as api,
+                    patch(
+                        "runner_fleet.manager.helper",
+                        return_value={"ActiveState": "inactive"},
+                    ),
+                ):
+                    reopened.cleanup(
+                        reopened.state.active()[0], "restart reconciliation"
+                    )
+                api.assert_not_called()
+                backend.destroy.assert_called_once()
+                (saved,) = reopened.state.active()
+                self.assertEqual(saved["phase"], "uncertain")
+                self.assertFalse(saved["details"].get("cleanup_verified", False))
+
+    def test_cleanup_only_deletes_exact_registration_and_checks_readback(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manager, _ = self.manager(directory)
+            resource = self.resource(manager, "cleaning", runner_id=41)
+            exact = {"name": resource["runner_name"], "id": 41}
+            replacement = exact | {"id": 42}
+            path = f"repos/{config()['owner']}/runspindle-platform/actions/runners/41"
+            with (
+                patch.object(
+                    manager, "registrations", side_effect=[[exact], [replacement], []]
+                ),
+                patch("runner_fleet.manager.gh", return_value=None) as api,
+                patch(
+                    "runner_fleet.manager.helper",
+                    return_value={"ActiveState": "inactive"},
+                ),
+            ):
+                manager.cleanup(resource, "first cleanup")
+                (saved,) = manager.state.active()
+                self.assertEqual(saved["phase"], "uncertain")
+                manager.cleanup(saved, "reconcile absence")
+            api.assert_called_once_with(path, "DELETE")
+            self.assertEqual(manager.state.active(), [])
+
+    def test_startup_blocks_on_untracked_registration_without_delete(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manager, backend = self.manager(directory)
+            orphan = {"name": "runspindle-fleet-untracked", "id": 42}
+            with (
+                patch.object(
+                    manager,
+                    "registrations",
+                    side_effect=lambda repo: [orphan]
+                    if repo == "runspindle-platform"
+                    else [],
+                ),
+                patch("runner_fleet.manager.gh") as api,
+                patch(
+                    "runner_fleet.manager.helper",
+                    return_value={"ActiveState": "inactive"},
+                ),
+            ):
+                with self.assertRaisesRegex(
+                    RuntimeError, "untracked fleet runner registration"
+                ):
+                    manager.reconcile()
+            api.assert_not_called()
+            backend.destroy.assert_not_called()
+            self.assertIn(
+                "untracked fleet runner registration", manager.state.get("error")
+            )
+            self.assertIsNone(manager.state.get("reconciled_at"))
+
+    def test_cleanup_reconciles_a_lost_delete_reply_after_restart(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            manager, _ = self.manager(directory)
+            resource = self.resource(manager, "cleaning", runner_id=41)
+            observed = [{"name": resource["runner_name"], "id": 41}]
+
+            def delete_then_lose_reply(path: str, method: str) -> None:
+                self.assertTrue(path.endswith("/actions/runners/41"))
+                self.assertEqual(method, "DELETE")
+                observed.clear()
+                raise TimeoutError("synthetic lost reply")
+
+            reopened, _ = self.manager(directory)
+            with (
+                patch.object(manager, "registrations", return_value=observed),
+                patch.object(reopened, "registrations", return_value=observed),
+                patch(
+                    "runner_fleet.manager.gh", side_effect=delete_then_lose_reply
+                ) as api,
+                patch(
+                    "runner_fleet.manager.helper",
+                    return_value={"ActiveState": "inactive"},
+                ),
+            ):
+                manager.cleanup(resource, "first cleanup")
+                (saved,) = reopened.state.active()
+                self.assertEqual(saved["phase"], "uncertain")
+                reopened.cleanup(saved, "restart reconciliation")
+            self.assertEqual(api.call_count, 1)
+            self.assertEqual(reopened.state.active(), [])
 
     def test_actual_claimed_job_not_requested_job_is_recorded(self):
         with tempfile.TemporaryDirectory() as directory:
