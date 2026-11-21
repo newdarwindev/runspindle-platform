@@ -296,10 +296,12 @@ def valid_etag(value):
     return isinstance(value, str) and re.fullmatch(r'(?:W/)?"[0-9a-zA-Z._-]{1,128}"', value)
 
 
-def observe_result(repo, run_id, job, runner, name, seconds, *, report_status=None):
+def observe_result(
+    repo, run_id, job, runner, name, seconds, *, report_status=None, quota_deadline=None,
+):
     path = f"/repos/{repo}/actions/jobs/{job['id']}"
     started = time.monotonic()
-    deadline = started + seconds
+    deadline = normal_deadline = started + seconds
     etag = None
     last_status = None
     while time.monotonic() < deadline:
@@ -308,6 +310,8 @@ def observe_result(repo, run_id, job, runner, name, seconds, *, report_status=No
             if row is None and etag is None:
                 raise GitHubUnavailable("GitHub returned no initial job status")
         except GitHubRateLimited as error:
+            if quota_deadline is not None:
+                deadline = max(normal_deadline, quota_deadline)
             print(f"{error}. Keeping the registered guest until the next observation.", flush=True)
             time.sleep(min(60, max(0, deadline - time.monotonic())))
             continue
@@ -315,6 +319,7 @@ def observe_result(repo, run_id, job, runner, name, seconds, *, report_status=No
             print(str(error), flush=True)
             time.sleep(5)
             continue
+        deadline = normal_deadline
         if row is None:
             interval = 5 if time.monotonic() - started < 90 else 15
             time.sleep(min(interval, max(0, deadline - time.monotonic())))
@@ -1353,6 +1358,8 @@ def run(args):
                 report["job"] = observe_result(
                     repo, args.run_id, job, runner_id, name, 210 if repo == CANARY else 960,
                     report_status=report_status,
+                    # Leave two minutes under the verified 25-minute guest lifetime.
+                    quota_deadline=started + 23 * 60 if batch else None,
                 )
                 elapsed("job_observation")
                 print(json.dumps(report["job"]), flush=True)

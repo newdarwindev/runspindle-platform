@@ -116,6 +116,42 @@ class DirectRoutingTest(unittest.TestCase):
         self.assertEqual(result["conclusion"], "success")
         pause.assert_called_once_with(60)
 
+    def test_quota_pause_can_recover_after_the_normal_observation_deadline(self):
+        terminal = self.job | {
+            "status": "completed", "conclusion": "success",
+            "runner_id": 52, "runner_name": "runner",
+        }
+        clock = [100]
+        def sleep(seconds):
+            clock[0] += seconds
+        with (
+            patch.object(strix_pilot, "api", side_effect=[
+                strix_pilot.GitHubRateLimited("limited"), (terminal, None),
+            ]),
+            patch.object(strix_pilot.time, "monotonic", side_effect=lambda: clock[0]),
+            patch.object(strix_pilot.time, "sleep", side_effect=sleep),
+        ):
+            report = strix_pilot.observe_result(
+                self.route.repository, 300, self.job, 52, "runner", 30, quota_deadline=180,
+            )
+        self.assertEqual(report["conclusion"], "success")
+        self.assertEqual(clock[0], 160)
+
+    def test_quota_pause_stops_at_the_guest_observation_deadline(self):
+        clock = [100]
+        def sleep(seconds):
+            clock[0] += seconds
+        with (
+            patch.object(strix_pilot, "api", side_effect=strix_pilot.GitHubRateLimited("limited")),
+            patch.object(strix_pilot.time, "monotonic", side_effect=lambda: clock[0]),
+            patch.object(strix_pilot.time, "sleep", side_effect=sleep),
+            self.assertRaises(TimeoutError),
+        ):
+            strix_pilot.observe_result(
+                self.route.repository, 300, self.job, 52, "runner", 30, quota_deadline=170,
+            )
+        self.assertEqual(clock[0], 170)
+
     def test_registered_job_observation_revalidates_unchanged_status(self):
         running = self.job | {"status": "in_progress", "runner_id": 52}
         terminal = running | {"status": "completed", "conclusion": "success", "runner_name": "runner"}
