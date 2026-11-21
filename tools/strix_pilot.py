@@ -1508,13 +1508,8 @@ def next_queued_job(
             flush=True,
         )
         return None
-    for offset in range(len(routes)):
-        index = (cursor + offset) % len(routes)
+    def candidate_for_route(index):
         route = routes[index]
-        if light_only and not (
-            light_workflow(route) or light_aggregate_workflow(route, route.workflow_blob)
-        ):
-            continue
         path = f"/repos/{route.repository}/actions/workflows/{route.workflow_id}/runs"
         run_ids = set()
         def runs_with_status(status):
@@ -1585,6 +1580,27 @@ def next_queued_job(
                             if candidate:
                                 return candidate
                         batch = tuple(islice(ordered, 3))
+        return None
+
+    indexes = ((cursor + offset) % len(routes) for offset in range(len(routes)))
+    if not light_only:
+        for index in indexes:
+            if candidate := candidate_for_route(index):
+                return candidate
+        return None
+
+    eligible_indexes = (
+        index for index in indexes
+        if light_workflow(routes[index])
+        or light_aggregate_workflow(routes[index], routes[index].workflow_blob)
+    )
+    # Check two repositories at once while keeping their round-robin order.
+    # Join the readers before returning to the scheduler's fork boundary.
+    with ThreadPoolExecutor(max_workers=2) as readers:
+        while batch := tuple(islice(eligible_indexes, 2)):
+            for candidate in readers.map(candidate_for_route, batch):
+                if candidate:
+                    return candidate
     return None
 
 
