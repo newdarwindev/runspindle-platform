@@ -37,18 +37,26 @@ CODE = Path("/opt/runspindle-fleet")
 
 def observed(directory):
     state = State(directory)
-    service = execute(
-        [
-            "systemctl",
-            "show",
-            UNIT,
-            "--property=ActiveState,SubState,UnitFileState,MainPID",
-        ],
-        check=False,
-    )
-    fields = dict(
-        line.split("=", 1) for line in service.stdout.splitlines() if "=" in line
-    )
+    fields = {}
+    try:
+        service = execute(
+            [
+                "systemctl",
+                "show",
+                UNIT,
+                "--property=ActiveState,SubState,UnitFileState,MainPID",
+            ],
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    else:
+        if service.returncode == 0:
+            fields = dict(
+                line.split("=", 1)
+                for line in service.stdout.splitlines()
+                if "=" in line
+            )
     heartbeat = state.get("heartbeat")
     guests = [helper("observe", slot) for slot in range(2)]
     capacity = capacity_snapshot(state, guests, fields, time.time())

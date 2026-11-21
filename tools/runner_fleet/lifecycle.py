@@ -2,10 +2,17 @@
 
 import hashlib
 import json
+import re
 from pathlib import Path
 from typing import Any, Callable, cast
 
 from .backend import digest
+
+
+def _main_pid(value: Any) -> int | None:
+    if not isinstance(value, str) or not re.fullmatch(r"0|[1-9][0-9]{0,9}", value):
+        return None
+    return int(value)
 
 
 def capacity_snapshot(
@@ -21,7 +28,7 @@ def capacity_snapshot(
         at = state.get(key)
         if type(at) not in (int, float) or not 0 <= now - at < freshness_seconds:
             reasons.append("stale or unavailable " + key)
-    if service.get("ActiveState") != "active":
+    if service.get("ActiveState") != "active" or not _main_pid(service.get("MainPID")):
         reasons.append("manager service unavailable")
     if state.get("error"):
         reasons.append("manager inventory error")
@@ -68,12 +75,13 @@ def capacity_snapshot(
         phase = guest.get("ActiveState")
         if phase not in ("active", "activating", "deactivating", "inactive", "failed"):
             reasons.append("unavailable guest observation")
-        try:
-            pid = int(guest["MainPID"])
-            if pid < 0 or phase in ("inactive", "failed") and pid != 0:
-                reasons.append("unreconciled guest process")
-        except (KeyError, TypeError, ValueError):
+        pid = _main_pid(guest.get("MainPID"))
+        if pid is None:
             reasons.append("unavailable guest process observation")
+        elif (phase == "active" and pid == 0) or (
+            phase in ("inactive", "failed") and pid != 0
+        ):
+            reasons.append("unreconciled guest process")
         if phase in ("active", "activating", "deactivating"):
             occupied.add(slot)
             owners = [r for r in resources if r["slot"] == slot]
