@@ -12,6 +12,13 @@ unchanged. This change closes two concrete portable implementation gaps:
   length, not unbounded `copyfileobj`. Installed-tree verification rejects extra
   special nodes instead of silently ignoring them as non-files.
 
+Installed-payload readback now checks the exact file and directory inventory
+before hashing any installed file. Expected directories follow from the
+manifest's file paths. Missing paths, unexpected paths, links, special nodes,
+and size or mode mismatches deny readback. Each accepted path is hashed within
+its declared size and compared with its manifest digest. The same check protects
+fresh staging, retained upgrades and rollback through their existing callers.
+
 Checksums, canonical manifests, exact component pins, retained generation fencing,
 source licenses, normal install/recovery checks and unsupported-product labels
 are preserved. Same-size substitution still fails checksum verification. Failed
@@ -36,6 +43,7 @@ Reproduce the portable checks:
 python -m unittest discover -s tests -p test_streaming_acquisition_bounds.py
 python -O -m unittest discover -s tests -p test_streaming_acquisition_bounds.py
 python -m unittest discover -s tests -p test_streaming_bundle.py
+python -m unittest discover -s tests -p test_installed_stream_inventory.py
 python -m unittest discover -s tests -p test_portable_install_invariants.py
 python tools/validate.py
 ```
