@@ -122,6 +122,12 @@ Cleanup operations have bounded subprocess deadlines. Timeouts record failed
 or blocked reasons. Diagnostics, GitHub logs and the ownership ledger remain
 outside guests under the private state directory. Cleanup must confirm stopped
 VMs, absent disks/seeds and absent runner registrations before releasing a slot.
+Registration cleanup matches the repository, stored runner name and numeric ID
+before asking GitHub to delete anything. A same-name replacement, a renamed
+retained ID, or a matching name without a durably observed ID leaves cleanup
+uncertain and the slot reserved. After deleting an exact match, the manager
+verifies absence. Restart reconciliation blocks on an untracked fleet registration
+until its ownership is resolved. The name prefix alone grants no cleanup authority.
 A lost reply preserves uncertain ownership. On restart, interrupted boot or
 cleanup is reconciled before replacements; live running guests can continue.
 Untracked fleet services are stopped and their disks archived before allocation.
