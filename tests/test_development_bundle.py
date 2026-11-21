@@ -3,11 +3,12 @@ import json
 import subprocess
 import sys
 import unittest
+from collections.abc import Callable
 
 from tools.development_bundle import (
-    VERSION,
     COMPONENTS,
     UNSUPPORTED,
+    VERSION,
     DisposableTarget,
     actual_target,
     build,
@@ -187,10 +188,11 @@ class InstalledTests(unittest.TestCase):
         self.assertIsNone(self.target.state()["pending"])
 
     def test_fresh_process_install_replay_preserves_predecessor(self) -> None:
+        make_bundle: Callable[[bytes], bytes] = bundle
         receipts = [
             self.target.install(
                 VERSION,
-                bundle(label),
+                make_bundle(label),
                 component_commits=PINS,
                 expected_generation=generation,
             )

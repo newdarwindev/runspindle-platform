@@ -90,63 +90,6 @@ class MetadataPointerTests(unittest.TestCase):
                 self.target.verify_installed(PINS)["manifest_sha256"], digest
             )
 
-    def test_install_rejects_a_retained_historical_release(self) -> None:
-        before = self.snapshot()
-        reopened = b.DisposableTarget(self.target.root)
-        self.addCleanup(reopened.close)
-        checkpoint = Mock()
-        with patch.object(reopened, "recover", wraps=reopened.recover) as recover:
-            for label in ("first", "second"):
-                with (
-                    self.subTest(label=label),
-                    self.assertRaisesRegex(
-                        ValueError, "retained installation requires rollback"
-                    ),
-                ):
-                    reopened.install(
-                        b.VERSION,
-                        bundle(label),
-                        component_commits=PINS,
-                        expected_generation=3,
-                        checkpoint=checkpoint,
-                    )
-            recover.assert_not_called()
-        checkpoint.assert_not_called()
-        self.assertEqual(self.snapshot(), before)
-        receipt = reopened.rollback(
-            b.VERSION, component_commits=PINS, expected_generation=3
-        )
-        self.assertEqual(receipt["manifest_sha256"], self.ids[1])
-
-    def test_repeated_active_install_only_verifies_installed_bytes(self) -> None:
-        checkpoint = Mock()
-        before = self.snapshot()
-        with patch.object(self.target, "recover", wraps=self.target.recover) as recover:
-            receipt = self.target.install(
-                b.VERSION,
-                bundle("third"),
-                component_commits=PINS,
-                expected_generation=3,
-                checkpoint=checkpoint,
-            )
-            self.assertEqual(receipt["manifest_sha256"], self.ids[2])
-            self.assertEqual(self.snapshot(), before)
-
-            payload = self.target.root / "versions" / self.ids[2] / "payload.txt"
-            payload.write_bytes(b"damaged")
-            before = self.snapshot()
-            with self.assertRaisesRegex(ValueError, "installed byte mismatch"):
-                self.target.install(
-                    b.VERSION,
-                    bundle("third"),
-                    component_commits=PINS,
-                    expected_generation=3,
-                    checkpoint=checkpoint,
-                )
-            recover.assert_not_called()
-        checkpoint.assert_not_called()
-        self.assertEqual(self.snapshot(), before)
-
     def test_null_and_unrecognized_pointers_rejected(self) -> None:
         self.target.db.execute("UPDATE state SET active=NULL,pending=NULL")
         before = self.snapshot()
@@ -206,6 +149,63 @@ class MetadataPointerTests(unittest.TestCase):
         self.assertEqual(
             original(b.VERSION, component_commits=PINS)["manifest_sha256"], self.ids[1]
         )
+
+    def test_install_rejects_a_retained_historical_release(self) -> None:
+        before = self.snapshot()
+        reopened = b.DisposableTarget(self.target.root)
+        self.addCleanup(reopened.close)
+        checkpoint = Mock()
+        with patch.object(reopened, "recover", wraps=reopened.recover) as recover:
+            for label in ("first", "second"):
+                with (
+                    self.subTest(label=label),
+                    self.assertRaisesRegex(
+                        ValueError, "retained installation requires rollback"
+                    ),
+                ):
+                    reopened.install(
+                        b.VERSION,
+                        bundle(label),
+                        component_commits=PINS,
+                        expected_generation=3,
+                        checkpoint=checkpoint,
+                    )
+            recover.assert_not_called()
+        checkpoint.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
+        receipt = reopened.rollback(
+            b.VERSION, component_commits=PINS, expected_generation=3
+        )
+        self.assertEqual(receipt["manifest_sha256"], self.ids[1])
+
+    def test_repeated_active_install_only_verifies_installed_bytes(self) -> None:
+        checkpoint = Mock()
+        before = self.snapshot()
+        with patch.object(self.target, "recover", wraps=self.target.recover) as recover:
+            receipt = self.target.install(
+                b.VERSION,
+                bundle("third"),
+                component_commits=PINS,
+                expected_generation=3,
+                checkpoint=checkpoint,
+            )
+            self.assertEqual(receipt["manifest_sha256"], self.ids[2])
+            self.assertEqual(self.snapshot(), before)
+
+            payload = self.target.root / "versions" / self.ids[2] / "payload.txt"
+            payload.write_bytes(b"damaged")
+            before = self.snapshot()
+            with self.assertRaisesRegex(ValueError, "installed byte mismatch"):
+                self.target.install(
+                    b.VERSION,
+                    bundle("third"),
+                    component_commits=PINS,
+                    expected_generation=3,
+                    checkpoint=checkpoint,
+                )
+            recover.assert_not_called()
+        checkpoint.assert_not_called()
+        self.assertEqual(self.snapshot(), before)
 
 
 if __name__ == "__main__":
