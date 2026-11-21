@@ -831,6 +831,9 @@ def compact_profile_job(repository, job, workflow_blob):
             and name in {"validation / quality", "validation / component"}
         )
     if repository == "newdarwindev/runspindle" and workflow_blob == "bba7664a55dc961f339579c84bdcbde86af720c9":
+        # The exact component and mutation_1 jobs peaked below 1.8 GiB.
+        if job.get("head_sha") == "f05cffd2f0ea5d607a983d7d36d238a890b0310e":
+            return name in {"validation / component", "validation / mutation_1"}
         if job.get("head_sha") == "93009f2709518a893a3894e908441fc84fab6a9f":
             # These partitions passed with peaks between 1.59 and 1.82 GiB.
             return name in {
@@ -855,6 +858,9 @@ def compact_profile_job(repository, job, workflow_blob):
             and job.get("head_sha") == "b7122b89905ebf33a4cd674cc4cf67feba033025"
         )
     if repository == "newdarwindev/runspindle-refinery" and workflow_blob == "afd9d52e77f3e858609e26e42d64ba3b3a27a8ca":
+        # These partitions passed at 1520–1787 MiB on this revision.
+        if job.get("head_sha") == "b107233878e8fdfb4fe7ef350a9656b35a0e40ab":
+            return name in {"validation / component", "validation / quality", "validation / mutation_2"}
         if job.get("head_sha") == "b2a97ffda86040987c45db29f359b5173a512b5e":
             return name in {
                 "validation / component", "validation / quality",
