@@ -25,6 +25,10 @@ A pinned Linux arm64 Temporal development lane now has real readiness, killed-se
 
 Detailed adaptation: [native-monitoring.md](native-monitoring.md).
 
+The [historical Langfuse archive handoff](../docs/HISTORICAL_LANGFUSE_ARCHIVE.md)
+records a separate migration procedure and readback boundary. Its scope leaves
+native enrollment and the pinned Langfuse candidate gates open.
+
 [Bounded maintained-workflow qualification](maintained-offline.md) covers separate synthetic standard-Collector diagnostics and disposable development-metadata installation. Langfuse/native/full-product gates remain blocked.
 
 [Pinned Langfuse image metadata](langfuse-image-inventory.md) records the verified Linux arm64 manifests, configurations and layer descriptors for the five registry images.
