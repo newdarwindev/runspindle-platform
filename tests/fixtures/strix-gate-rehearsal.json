@@ -1,0 +1,23 @@
+{
+  "expected": {
+    "revision": "fixture-revision-2",
+    "runner_label": "fixture-strix",
+    "checks": ["quality", "component"]
+  },
+  "good": {
+    "revision": "fixture-revision-2",
+    "job_status": "completed",
+    "runner_id": "fixture-runner-1",
+    "runner_label": "fixture-strix",
+    "checks": {"quality": "success", "component": "success"},
+    "cleanup": {"slot": true, "process": true, "registration": true}
+  },
+  "cases": {
+    "passed": {},
+    "queued-unassigned": {"job_status": "queued", "runner_id": null},
+    "wrong-label": {"runner_label": "fixture-other"},
+    "stale-revision": {"revision": "fixture-revision-1"},
+    "incomplete-cleanup": {"cleanup": {"slot": true, "process": true, "registration": false}},
+    "missing-check": {"checks": {"quality": "success"}}
+  }
+}
