@@ -194,6 +194,22 @@ test_metadata_pointer.py` and repeat with `-O`. Full aggregate, actual ARM64
 installation, power-loss recovery, services and product qualification were not
 run. The source change does not expand the supported installation targets.
 
+## Disposable install journal recovery
+
+The metadata and streaming development installers share a version 1 SQLite
+journal. On reopen, both compare the retained table and trigger definitions
+with the version 1 schema before accepting the journal. A missing retention
+trigger, weakened immutability trigger or other schema mismatch blocks recovery.
+The installer creates this schema only in an empty unversioned journal.
+
+The metadata regression opens a three-release scratch journal in a fresh
+process after removing or weakening its immutability trigger. Both cases
+leave the journal contents, active pointer and installed payloads untouched.
+The same test opens the damaged journal on base `38e608f`. Run it with
+`python3 -m unittest discover -s tests -p test_metadata_pointer.py`.
+The test injects target admission and uses actual SQLite and files. Native
+target recovery and installed-service qualification remain separate gates.
+
 ## Regular-file inventory admission
 
 Both bundle formats reject `.` as a file: it denotes the destination directory,
