@@ -73,6 +73,34 @@ def runner_claims(
     return claims
 
 
+def _retained_registration(
+    resource: dict[str, Any], rows: list[dict[str, Any]]
+) -> int | None:
+    runner_id = resource["details"].get("runner_id")
+    name = resource["runner_name"]
+    if any(
+        type(row.get("id")) is not int
+        or row["id"] <= 0
+        or not isinstance(row.get("name"), str)
+        or not row["name"]
+        for row in rows
+    ):
+        raise RuntimeError("Incomplete runner registration inventory")
+    # Check both sides of the binding so a renamed registration or a
+    # same-name replacement cannot be mistaken for verified absence.
+    matches = [row for row in rows if row["name"] == name or row["id"] == runner_id]
+    if not matches:
+        return None
+    if (
+        len(matches) != 1
+        or type(runner_id) is not int
+        or matches[0]["id"] != runner_id
+        or matches[0]["name"] != name
+    ):
+        raise RuntimeError("Runner registration does not match retained identity")
+    return runner_id
+
+
 class Manager:
     def __init__(self, cfg, directory, backend=None):
         self.cfg = cfg
@@ -152,14 +180,13 @@ class Manager:
         return pages(f"repos/{self.cfg['owner']}/{repo}/actions/runners", "runners")
 
     def remove_registration(self, resource: dict[str, Any]) -> None:
-        full = f"{self.cfg['owner']}/{resource['repository']}"
-        for runner in self.registrations(resource["repository"]):
-            if runner["name"] == resource["runner_name"]:
-                gh(f"repos/{full}/actions/runners/{runner['id']}", "DELETE")
-        if any(
-            r["name"] == resource["runner_name"]
-            for r in self.registrations(resource["repository"])
-        ):
+        repo = resource["repository"]
+        runner_id = _retained_registration(resource, self.registrations(repo))
+        if runner_id is None:
+            return
+        full = f"{self.cfg['owner']}/{repo}"
+        gh(f"repos/{full}/actions/runners/{runner_id}", "DELETE")
+        if _retained_registration(resource, self.registrations(repo)) is not None:
             raise RuntimeError("Runner registration still present")
 
     def cleanup(self, resource: dict[str, Any], reason: str) -> None:
@@ -228,17 +255,16 @@ class Manager:
                 or observed.get("ActiveState") != "active"
             ):
                 self.cleanup(resource, "restart reconciliation")
-        names = {r["runner_name"] for r in self.state.active()}
+        names = {(r["repository"], r["runner_name"]) for r in self.state.active()}
         for repo in self.cfg["repositories"]:
             for runner in self.registrations(repo):
                 if (
                     runner["name"].startswith("runspindle-fleet-")
-                    and runner["name"] not in names
+                    and (repo, runner["name"]) not in names
                 ):
-                    gh(
-                        f"repos/{self.cfg['owner']}/{repo}/actions/runners/{runner['id']}",
-                        "DELETE",
-                    )
+                    error = "untracked fleet runner registration blocks restart reconciliation"
+                    self.state.set("error", error)
+                    raise RuntimeError(error)
         self.state.set("reconciled_at", time.time())
 
     def cancel_claim(self, resource: dict[str, Any], job: dict[str, Any]) -> Any:
