@@ -619,8 +619,23 @@ class RunnerPolicyTests(unittest.TestCase):
             lanes = re.findall(r"^\s*runs-on:\s*\[([^\]]+)\]$", source, re.M)
             self.assertTrue(lanes, path)
             self.assertEqual(len(lanes), len(re.findall(r"^\s*runs-on:", source, re.M)))
-            for labels in lanes:
-                self.assertIn(tuple(s.strip() for s in labels.split(",")), allowed)
+            if path.name == "validation.yml":
+                partitions = (
+                    "quality",
+                    "component",
+                    "rust",
+                    "mutation_1",
+                    "mutation_2",
+                    "mutation_3",
+                    "mutation_4",
+                    "strix-linux-x64",
+                )
+                prefix = "\"${{ format('runspindle-strix-direct-{0}-{1}-"
+                suffix = "', github.run_id, github.run_attempt) }}\""
+                self.assertEqual(lanes, [prefix + part + suffix for part in partitions])
+            else:
+                for labels in lanes:
+                    self.assertIn(tuple(s.strip() for s in labels.split(",")), allowed)
             self.assertNotRegex(source, r"pull_request(?:_target)?\s*:")
             self.assertIn("persist-credentials: false", source)
             self.assertIn("contents: read", source)
