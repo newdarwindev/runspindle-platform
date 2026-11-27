@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from typing import Any
 
 from tools import streaming_bundle as b
 from tools.development_bundle import COMPONENTS, actual_target, canonical, sha
@@ -212,6 +213,36 @@ class InstalledStreamingTests(unittest.TestCase):
             self.target.rollback(
                 b.VERSION, component_commits=PINS, expected_generation=2
             )
+
+    def test_fresh_recovery_rejects_ambiguous_pointer_before_staging(self) -> None:
+        target: Any = self.target
+        build_fixture: Any = make
+        invoke: Any = self.invoke
+        first, _, active = build_fixture(self.tmp.name)
+        target.install(b.VERSION, first, component_commits=PINS, expected_generation=0)
+        upgrade, _, pending = build_fixture(self.tmp.name, "upgrade")
+        invoke(
+            "t.install(VERSION,sys.argv[2],component_commits=PINS,expected_generation=1,checkpoint=lambda p:os._exit(101) if p=='after_install_intent' else None)",
+            upgrade,
+            expected=101,
+        )
+        pointer = target.root / "active.json"
+        original = pointer.read_bytes()
+        ambiguous = (
+            f'{{"manifest_sha256":"{pending}","manifest_sha256":"{active}"}}'.encode()
+        )
+        pointer.write_bytes(ambiguous)
+        denied = invoke("t.recover(VERSION,component_commits=PINS)", expected=1)
+        self.assertIn("invalid active pointer", denied.stderr)
+        self.assertEqual(pointer.read_bytes(), ambiguous)
+        self.assertFalse((target.root / "stream-stage").exists())
+        self.assertFalse((target.root / "versions" / pending).exists())
+        self.assertEqual(
+            target.state(), {"generation": 2, "active": active, "pending": pending}
+        )
+        pointer.write_bytes(original)
+        invoke("t.recover(VERSION,component_commits=PINS);t.close()")
+        self.assertEqual(target.verify_installed(PINS)["manifest_sha256"], pending)
 
     def test_installed_corruption_and_unsafe_links(self):
         archive, _, digest = make(self.tmp.name)
