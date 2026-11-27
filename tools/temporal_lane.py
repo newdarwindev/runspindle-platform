@@ -558,7 +558,16 @@ class Lane:
             raise Blocked(
                 "prepared image does not match pinned release bytes and recipe"
             )
-        self.name = "runspindle-temporal-" + uuid.uuid4().hex
+        # An optional trusted controller nonce scopes independent crash cleanup.
+        # It never changes network policy, image admission or retention behavior.
+        run_id = os.environ.get("RUNSPINDLE_TEMPORAL_RUN_ID")
+        if run_id is not None and not re.fullmatch(r"[a-f0-9]{32}", run_id):
+            raise ValueError("invalid Temporal controller identity")
+        self.name = (
+            "runspindle-temporal-"
+            + (run_id + "-" if run_id is not None else "")
+            + uuid.uuid4().hex
+        )
         self.network = self.name + "-net"
         self.volume = self.name + "-db"
         self.server = self.name + "-server"

@@ -297,7 +297,13 @@ class Tests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "helper.py"
             path.write_text("old helper")
-            with patch.object(probe, "DEPLOYED_HELPER", path):
+            expected = hashlib.sha256(
+                Path(probe.__file__).with_name("host_helper.py").read_bytes()
+            ).hexdigest()
+            with (
+                patch.object(probe, "DEPLOYED_HELPER", path),
+                patch.object(probe, "EXPECTED_HELPER_SHA256", expected),
+            ):
                 with self.assertRaises(ValueError):
                     probe.verify_host_lifetime_policy()
                 path.write_bytes(
