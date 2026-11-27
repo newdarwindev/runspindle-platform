@@ -18,7 +18,7 @@ from . import model as _model
 from . import state as _state
 from .backend import ROOT, Backend, digest, execute, helper, image_binding
 from .identity import binding
-from .manager import Manager
+from .manager import Manager, require_runner_claim, runner_claims
 from .model import ROOT as SOURCE
 
 # Existing fleet APIs exchange dynamic JSON records. New campaign boundaries
@@ -327,6 +327,7 @@ class QueueManager(Manager):
         return queue, jobs
 
     def cancel_claim(self, resource: dict[str, Any], job: dict[str, Any]) -> bool:
+        require_runner_claim(resource, job)
         # GitHub offers run-scoped cancellation, not atomic attempt-scoped
         # cancellation. Never risk cancelling a successor rerun via this API.
         run = gh(
@@ -362,7 +363,12 @@ class QueueManager(Manager):
                 resource, "starting", candidate_job_deadline=time.time() + 900
             )
         self.arm_deadline()
-        claims = [j for j in jobs if j.get("runner_name") == resource["runner_name"]]
+        try:
+            claims = runner_claims(resource, jobs)
+        except RuntimeError as error:
+            self.state.update(resource, "uncertain", error=str(error))
+            self.stopping = True
+            return
         if len(claims) > 1:
             self.state.update(resource, "uncertain", error="Multiple server claims")
             self.stopping = True
