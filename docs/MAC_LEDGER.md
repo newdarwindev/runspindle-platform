@@ -1,7 +1,8 @@
 # Mac disposable fleet ledger candidate
 
-Status: synthetic component tests only. No Mac guest, launchd manager, runner
-registration, GitHub job or isolation qualification has been exercised.
+Status: synthetic lifecycle tests and read-only local inventory observations.
+Guest boot, launchd management, runner registration, GitHub jobs and target
+isolation qualification remain untested.
 
 `tools/runner_fleet/mac_lifecycle.py` prepares the one-slot Mac ownership
 boundary. It validates the existing repository, workflow, ref, exact labels,
@@ -49,6 +50,42 @@ Use a local Python 3.10+ interpreter, for example
 run `python3 tools/check_scaffold.py`. These checks do not satisfy any live fleet
 scenario. The remaining activation plan and original resource thresholds are
 in [RUNNER_FLEET.md](RUNNER_FLEET.md).
+
+## Local command inventory checks
+
+The Mac adapter reads one JSON object per Lima instance and recognizes explicit
+Running and Stopped states. A successful command can still report skipped or
+broken instances. The adapter blocks on those diagnostics. It accepts the
+documented empty result with Lima's single no-instance warning.
+[Lima 2.3.0 inventory source](https://github.com/lima-vm/lima/blob/v2.3.0/cmd/limactl/list.go)
+
+Tart inventory is restricted to local guests. Each row must have a unique
+name and consistent boolean running state and lifecycle state, including the
+suspended state. Unknown, duplicate or contradictory rows block allocation
+and cleanup. The SQLite regression reopens the manager after reservation and
+verifies that an incomplete observation keeps the slot occupied without
+issuing a stop or delete. Deliberately ignoring an empty-output warning makes
+that test fail.
+[Tart 2.41.1 inventory source](https://github.com/openai/tart/blob/2.41.1/Sources/tart/Commands/List.swift)
+
+Run the bounded synthetic checks from the repository root:
+
+```sh
+python3 -B -m unittest tests.test_mac_lifecycle tests.test_mac_policy_boundary tests.test_mac_polling tests.test_fleet_lifecycle
+```
+
+All 33 tests passed in both normal and optimized CPython 3.13.18, with
+SQLite resource warnings. In macOS arm64 build `26B123`, read-only commands
+against disposable `LIMA_HOME` and `TART_HOME` directories verified both empty
+inventories, two Lima fixture directories reported as Stopped, and rejection
+of a Lima fixture with incomplete configuration. Neither a guest boot nor
+mutating backend commands were needed for this observation. Nonempty Tart
+rows and running or suspended guests were exercised with synthetic output.
+
+| Command | Version | Executable SHA-256 |
+| --- | --- | --- |
+| `limactl` | 2.3.0 | `f0b05d09511621106bae7e447ff7aed4705f40f8d71784a844a1258d3c14426c` |
+| `tart` | 2.41.1 | `a5e51a515d1b96c14e369e10352532f9aa5230c2233e8f39b611122bf6852276` |
 
 ## Offline proposal reconciliation
 
