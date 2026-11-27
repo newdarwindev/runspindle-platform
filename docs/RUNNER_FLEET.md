@@ -180,6 +180,8 @@ lanes remain unqualified. The command exits 2 even when byte identity matches.
 Status now reports separately observed guest ownership and durable reservations.
 An unavailable/stale/future heartbeat or inventory poll, missing guest observation,
 guest loss, ownership mismatch or inventory error advertises zero available slots.
+An active manager or guest also needs a positive process ID from its process
+observation. A failed manager status command provides no usable service fields.
 Draining also advertises zero availability. Uncertain/cleaning reservations remain
 occupied after a fresh process opens the SQLite store. This readout does not change
 the scheduler or reconcile resources. Reservations retain the requested commit/run
@@ -188,8 +190,9 @@ remain explicitly absent rather than acquiring a fabricated source identity.
 
 The bounded synthetic fault suite and deliberate source mutations run through
 `python3 tools/validate.py`; `tools/check_fleet_lifecycle_mutations.py` independently
-removes freshness, recipe and uncertain-capacity checks and requires assertion
-failures. Real QEMU/systemd/GitHub operations are mocked in the manager unit tests;
+removes freshness, recipe, uncertain-capacity and active guest process checks
+and requires assertion failures. Real QEMU/systemd/GitHub operations are mocked
+in the manager unit tests;
 the fresh-process SQLite tests exercise an actual local database. These checks
 cannot qualify actual guest loss, cancellation, cleanup, isolation or fairness on
 any target. Actual Strix and Mac observations remain required for issue #15.
