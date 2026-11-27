@@ -1,0 +1,5 @@
+{
+  "expected_dependency": {"image": "fixture-minio", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "notice": "fixture-notice"},
+  "dependency": {"image": "fixture-minio", "digest": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "notice": "fixture-notice"},
+  "trace": {"id": "fixture-trace-1", "payload": {"message": "invented observation"}}
+}
