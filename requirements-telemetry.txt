@@ -1,0 +1,4 @@
+# Optional explicit in-memory SDK verification; not installed by fleet runtime.
+opentelemetry-api==1.44.0
+opentelemetry-sdk==1.44.0
+opentelemetry-semantic-conventions==0.65b0

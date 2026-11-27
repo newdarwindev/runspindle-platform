@@ -40,3 +40,8 @@ Runner lifecycle progress for platform #15 adds exact candidate-image/recipe
 identity, conservative capacity observations and durable requested source bindings.
 See [scope and remaining gaps](../docs/fleet-lifecycle-progress.json); synthetic
 faults and actual SQLite restart checks do not qualify target guest operation.
+
+## Optional fleet telemetry
+
+[Explicit manager observation adapter](fleet-telemetry-v1.md) provides bounded
+metadata and optional off-path SDK conversion; installed fleet is unchanged.
