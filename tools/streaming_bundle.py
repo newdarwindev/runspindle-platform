@@ -62,6 +62,13 @@ def _regular_source(path: Path | str, limit: int) -> Iterator[tuple[BinaryIO, in
         os.close(fd)
 
 
+def _sync_extracted_directories(path: Path) -> None:
+    for child in path.iterdir():
+        if stat.S_ISDIR(child.lstat().st_mode):
+            _sync_extracted_directories(child)
+    _sync_dir(path)
+
+
 def _copy_exact(source: BinaryIO, output: BinaryIO, expected: int) -> None:
     remaining = expected
     while remaining:
@@ -255,12 +262,14 @@ def inspect(bundle, *, component_commits, target="linux/arm64", destination=None
                 check(h.hexdigest() == item["sha256"], "bundle checksum mismatch")
                 if output:
                     output.flush()
-                    os.fsync(output.fileno())
                     os.fchmod(output.fileno(), item["mode"])
+                    os.fsync(output.fileno())
             finally:
                 if output:
                     output.close()
         check(not stream.read(1), "unexpected trailing bundle payload")
+    if root is not None:
+        _sync_extracted_directories(root)
     return manifest, digest
 
 
@@ -376,7 +385,7 @@ def verify_tree(folder: Path | str, manifest: dict[str, Any]) -> None:
         )
 
 
-def _sync_dir(path):
+def _sync_dir(path: Path) -> None:
     descriptor = os.open(path, os.O_RDONLY | os.O_DIRECTORY)
     try:
         os.fsync(descriptor)
