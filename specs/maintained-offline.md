@@ -119,12 +119,39 @@ The official selected MinIO release source is now acquired at immutable revision
 `0d7408fc9969caf07de6a8c3a84f9fbb10a6739e`. The source record inventories 256
 module archive/mod hashes and exact notice evidence. Three Go-derived modules
 explicitly reference the retained Go BSD notice; `mpb/v8` includes UNLICENSE.
-`go-localereader v0.0.1` declares MIT in README but omits the complete original
-notice, and its versioned LICENSE URL returned 404. This unresolved notice keeps
-the build and Langfuse service execution blocked. The source-qualification helper
-returns 78 on incomplete closure. No MinIO binary, storage substitute, Langfuse
-API persistence or H08 success is claimed. Worker/OS/database inventories and
-actual API export/outage/restart readback remain required after that blocker.
+The `go-localereader v0.0.1` archive declares MIT and omits the full notice. The
+upstream maintainer added the complete notice in a GitHub-verified merge whose first
+parent is the exact v0.0.1 commit. The merge adds only `LICENSE`. The verifier
+accepts the [retained notice](../telemetry/notices/go-localereader-MIT-LICENSE)
+only for the existing module archive, `go.mod`, Go sums, and README hashes.
+See the [upstream merge](https://github.com/mattn/go-localereader/commit/2491eb6c1c75720122ef321ed7acc3a8d9de95b1)
+and the [source report](../telemetry/minio-source-qualification.json).
+
+The helper returns 78 on incomplete notice closure. A prepared source report
+records that all notices were verified. The pinned Linux build, worker/OS/database
+and storage inventories, and actual Langfuse API export, outage and restart
+readback remain pending. The original blocked run remains in the
+[historical evidence](../docs/offline-finish-tests.json).
+
+The [MinIO cross-build record](../telemetry/langfuse-qualification.json) captures
+the Linux arm64 binary digest from the macOS arm64 Go 1.24.2 toolchain. First run the
+source-qualification helper against the complete pinned cache. In the clean MinIO
+source checkout, set `GOMODCACHE` to that verified cache and `GOCACHE` to a fresh
+directory. Use the exact Go 1.24.2 executable and write the binary outside the
+checkout as `$MINIO_OUTPUT`.
+
+```sh
+unset GOPATH GOROOT GOFLAGS
+export GOTOOLCHAIN=local GOPROXY=off GOSUMDB=off GOVCS='*:off'
+export GOENV=off GOWORK=off GOTELEMETRY=off
+go mod verify
+flags=$(MINIO_RELEASE=RELEASE go run buildscripts/gen-ldflags.go '2025-04-22T22:12:26Z')
+CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -mod=readonly -p 6 \
+  -tags kqueue -trimpath -ldflags "$flags" -o "$MINIO_OUTPUT" .
+go version -m "$MINIO_OUTPUT"
+```
+
+Both the pinned Linux build environment and service execution remain pending.
 
 The user waived independent review for this offline tranche. No independent
 review is recorded as having occurred. Full-product and live gates remain blocked.

@@ -1,11 +1,13 @@
 {
   "MinIO_source_preparation": {
-    "build": "blocked_original_notice_closure",
+    "build": "pinned_linux_build_not_run",
     "executable_import": "none",
+    "local_cross_build": "telemetry/langfuse-qualification.json",
     "notices": [
       "telemetry/notices/minio-AGPL-LICENSE",
       "telemetry/notices/minio-CREDITS",
-      "telemetry/notices/minio-Go-LICENSE"
+      "telemetry/notices/minio-Go-LICENSE",
+      "telemetry/notices/go-localereader-MIT-LICENSE"
     ],
     "record": "telemetry/minio-source-qualification.json",
     "source_revision": "0d7408fc9969caf07de6a8c3a84f9fbb10a6739e"
