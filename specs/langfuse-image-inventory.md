@@ -27,5 +27,37 @@ The verifier reads capped regular files and emits only pinned references,
 sizes and digests. Its output excludes configuration labels, environment and
 history. Missing, malformed, substituted or wrong-target metadata exits 78.
 
-This is read-only registry evidence. Layer contents, package inventories,
-container execution, and Langfuse persistence and restart readback remain open.
+## Verify layers and read installed packages
+
+The [layer report](../telemetry/langfuse-image-layer-audit.json) records checks
+against **61 distinct registry blobs** covering all **73 ordered layer references**.
+Place the selected gzip blobs from the upstream OCI Registry API in a temporary
+directory. Name each file by the hexadecimal portion of its compressed SHA-256.
+Keep the raw manifest and configuration capture available for the same run.
+
+```sh
+python3 -B tools/langfuse_image_layers.py --metadata "$CAPTURE_DIRECTORY" \
+  --layers "$LAYER_DIRECTORY" > "$REPORT"
+cmp "$REPORT" telemetry/langfuse-image-layer-audit.json
+```
+
+The scanner verifies the compressed size and SHA-256 before reading the tar
+stream and verifies the entire uncompressed stream against the configured
+diff ID. It holds selected metadata in memory and never extracts a filesystem.
+Whiteouts and replacements apply in layer order. The 16 selected worker hard
+links receive their bytes from earlier regular files in the same verified
+layer, with no host path resolution. [OCI layer specification](https://github.com/opencontainers/image-spec/blob/v1.1.1/layer.md)
+
+| Image | Installed OS packages | Distinct physical Node package versions |
+| --- | ---: | ---: |
+| Langfuse web | 18 | 759 |
+| Langfuse worker | 17 | 1,825 |
+| PostgreSQL | 147 | 0 |
+| Redis | 89 | 0 |
+| ClickHouse | 110 | 0 |
+
+OS counts come from `apk` or `dpkg` installed records. Node counts come from
+visible package manifests under `node_modules`, including the physical pnpm
+store. They measure artifact contents. Runtime imports, bundled code without a
+package manifest, license closure, container execution, and Langfuse persistence
+and restart readback remain open. MinIO retains its separate source fallback.
