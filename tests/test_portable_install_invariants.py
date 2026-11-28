@@ -165,7 +165,7 @@ class PortableInstallInvariants(unittest.TestCase):
             report["evidence_class"], "portable_component_mutation_detection"
         )
         self.assertEqual(report["native_acceptance"], "not_run")
-        self.assertEqual(len(report["results"]), 5)
+        self.assertEqual(len(report["results"]), 7)
         self.assertTrue(all(item["detected"] for item in report["results"]))
 
 

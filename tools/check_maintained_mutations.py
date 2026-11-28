@@ -30,6 +30,12 @@ CASES = {
         'check(True, "bundle checksum mismatch")',
         "test_streaming_bundle.StreamingTests.test_large_file_extract_and_integrity_negative_cases",
     ),
+    "stream_publication_replaces_winner": (
+        "streaming_bundle.py",
+        "os.link(candidate, destination, follow_symlinks=False)",
+        "os.replace(candidate, destination)",
+        "test_atomic_bundle_publication.AtomicBundlePublicationTests.test_two_verified_fresh_processes_preserve_the_single_published_winner",
+    ),
     "stream_installed_modes_ignored": (
         "streaming_bundle.py",
         'and stat.S_IMODE(mode) == expected["mode"]',
